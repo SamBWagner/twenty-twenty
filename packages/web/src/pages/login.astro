@@ -1,0 +1,23 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const redirect = Astro.url.searchParams.get("redirect") || "";
+const signinUrl = redirect ? `/auth/signin?redirect=${encodeURIComponent(redirect)}` : "/auth/signin";
+---
+
+<Layout title="Sign In">
+  <div class="flex flex-col items-center justify-center py-20 relative">
+    <div class="absolute top-16 left-20 text-5xl rotate-[12deg] select-none">★</div>
+    <div class="absolute top-24 right-32 text-3xl rotate-[-8deg] text-primary select-none">✦</div>
+
+    <h1 class="text-5xl font-bold uppercase text-stroke mb-10">
+      <span class="text-tertiary">Get</span> <span class="text-primary">In</span>
+    </h1>
+    <a
+      href={signinUrl}
+      class="border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white shadow-brutal-lg rotate-[-1deg] transition-all hover:rotate-[1deg] hover:shadow-brutal-tertiary hover:scale-105"
+    >
+      Sign in with GitHub →
+    </a>
+  </div>
+</Layout>

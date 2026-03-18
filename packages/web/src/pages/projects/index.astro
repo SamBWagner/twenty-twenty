@@ -1,0 +1,33 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getUser } from "../../lib/auth";
+import ProjectList from "../../components/react/ProjectList";
+
+const user = await getUser(Astro.request.headers.get("cookie") || undefined);
+if (!user) return Astro.redirect("/login");
+---
+
+<Layout title="Projects">
+  <Fragment slot="nav">
+    <div class="flex items-center gap-2">
+      {user.image && <img src={user.image} alt="" class="h-9 w-9 border-3 border-secondary shadow-brutal-sm" />}
+      <span class="border-3 border-secondary bg-white px-3 py-1 text-sm font-bold shadow-brutal-sm">{user.name}</span>
+    </div>
+  </Fragment>
+
+  <div class="relative">
+    <div class="flex items-end justify-between mb-8">
+      <h1 class="text-5xl font-bold uppercase text-stroke">
+        <span class="text-tertiary">Your</span> <span class="text-primary">Projects</span>
+      </h1>
+      <a
+        href="/projects/new"
+        class="border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white shadow-brutal rotate-[1deg] transition-all hover:rotate-[-1deg] hover:shadow-brutal-tertiary"
+      >
+        + New Project
+      </a>
+    </div>
+
+    <ProjectList client:load />
+  </div>
+</Layout>

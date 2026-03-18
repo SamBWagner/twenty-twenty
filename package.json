@@ -1,0 +1,15 @@
+{
+  "name": "twenty-twenty",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npx concurrently \"cd packages/api && npm run dev\" \"cd packages/web && npm run dev\"",
+    "dev:api": "cd packages/api && npm run dev",
+    "dev:web": "cd packages/web && npm run dev",
+    "build": "cd packages/api && npm run build && cd ../web && npm run build",
+    "db:generate": "cd packages/api && npx drizzle-kit generate",
+    "db:migrate": "cd packages/api && npx drizzle-kit migrate"
+  }
+}

@@ -1,0 +1,14 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { getUser } from "../../../lib/auth";
+import ProjectDetail from "../../../components/react/ProjectDetail";
+
+const user = await getUser(Astro.request.headers.get("cookie") || undefined);
+if (!user) return Astro.redirect("/login");
+
+const { projectId } = Astro.params;
+---
+
+<Layout title="Project">
+  <ProjectDetail projectId={projectId!} client:load />
+</Layout>

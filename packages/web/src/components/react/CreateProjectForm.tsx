@@ -1,0 +1,61 @@
+import { useState } from "react";
+import { api } from "../../lib/api-client";
+
+export default function CreateProjectForm() {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const project = await api.post<{ id: string }>("/api/projects", { name, description });
+      window.location.href = `/projects/${project.id}`;
+    } catch (err: any) {
+      setError(err.message);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="border-3 border-secondary bg-white p-6 rotate-[-0.5deg]">
+        <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-secondary/60">Project Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          className="w-full border-3 border-secondary px-4 py-3 font-bold text-lg focus:shadow-brutal-primary focus:outline-none transition-shadow bg-surface"
+          placeholder="e.g. Team Alpha Retros"
+        />
+      </div>
+      <div className="border-3 border-secondary bg-white p-6 rotate-[0.5deg]">
+        <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-secondary/60">Description (optional)</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full border-3 border-secondary px-4 py-3 font-medium focus:shadow-brutal-primary focus:outline-none transition-shadow bg-surface"
+          rows={3}
+          placeholder="What is this retro project for?"
+        />
+      </div>
+      {error && (
+        <div className="border-3 border-secondary bg-red-300 px-4 py-3 font-mono text-sm font-bold rotate-[-1deg]">
+          {error}
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="border-4 border-secondary bg-primary px-8 py-4 font-bold uppercase text-white text-lg shadow-brutal-lg rotate-[-1deg] transition-all hover:rotate-[1deg] hover:shadow-brutal-tertiary disabled:opacity-50"
+      >
+        {submitting ? "Creating..." : "Create Project →"}
+      </button>
+    </form>
+  );
+}

@@ -1,0 +1,14 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import { getUser } from "../../../../lib/auth";
+import SessionView from "../../../../components/react/SessionView";
+
+const user = await getUser(Astro.request.headers.get("cookie") || undefined);
+if (!user) return Astro.redirect("/login");
+
+const { projectId, sessionId } = Astro.params;
+---
+
+<Layout title="Session">
+  <SessionView sessionId={sessionId!} projectId={projectId!} userId={user.id} client:load />
+</Layout>

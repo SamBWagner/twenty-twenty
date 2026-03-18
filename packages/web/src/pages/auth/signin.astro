@@ -1,0 +1,35 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Signing in...">
+  <div class="flex items-center justify-center py-20">
+    <p class="font-mono text-sm">Redirecting to GitHub...</p>
+  </div>
+  <script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL || "http://localhost:3001", webUrl: import.meta.env.PUBLIC_WEB_URL || "http://localhost:4321" }}>
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    const callbackURL = redirect ? `${webUrl}${redirect}` : `${webUrl}/projects`;
+
+    fetch(`${apiUrl}/api/auth/sign-in/social`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        provider: "github",
+        callbackURL,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          window.location.href = "/login?error=auth_failed";
+        }
+      })
+      .catch(() => {
+        window.location.href = "/login?error=auth_failed";
+      });
+  </script>
+</Layout>

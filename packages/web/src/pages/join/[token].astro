@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getUser } from "../../lib/auth";
+import JoinSession from "../../components/react/JoinSession";
+
+const user = await getUser(Astro.request.headers.get("cookie") || undefined);
+const { token } = Astro.params;
+
+if (!user) {
+  return Astro.redirect(`/login?redirect=/join/${token}`);
+}
+---
+
+<Layout title="Join Retro">
+  <JoinSession token={token!} client:load />
+</Layout>

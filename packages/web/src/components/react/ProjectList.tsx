@@ -1,0 +1,57 @@
+import { useEffect, useState } from "react";
+import { api } from "../../lib/api-client";
+import MarchingAnts from "./MarchingAnts";
+
+interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  role: string;
+  createdAt: string;
+}
+
+const rotations = ["rotate-[-2deg]", "rotate-[1deg]", "rotate-[-1deg]", "rotate-[2deg]", "rotate-[0deg]", "rotate-[-1.5deg]"];
+
+export default function ProjectList() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<Project[]>("/api/projects").then(setProjects).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p className="font-mono text-sm">Loading projects...</p>;
+  if (projects.length === 0) {
+    return (
+      <MarchingAnts className="p-16 text-center rotate-[0.5deg]">
+        <p className="text-xl font-bold mb-4">Nothing here yet.</p>
+        <a
+          href="/projects/new"
+          className="inline-block border-3 border-secondary bg-tertiary px-6 py-3 font-bold uppercase shadow-brutal rotate-[-2deg] transition-all hover:rotate-[1deg] hover:shadow-brutal-primary"
+        >
+          Create your first project
+        </a>
+      </MarchingAnts>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 sm:grid-cols-2">
+      {projects.map((p, i) => (
+        <a
+          key={p.id}
+          href={`/projects/${p.id}`}
+          className={`block border-3 border-secondary bg-white p-6 shadow-brutal transition-all hover:shadow-brutal-lg hover:scale-[1.02] ${rotations[i % rotations.length]}`}
+        >
+          <h2 className="font-bold text-xl uppercase">{p.name}</h2>
+          {p.description && <p className="text-sm mt-2 text-secondary/60">{p.description}</p>}
+          <div className="mt-4 flex gap-2">
+            <span className="border-2 border-secondary bg-tertiary px-2 py-0.5 text-xs font-bold uppercase">
+              {p.role}
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}

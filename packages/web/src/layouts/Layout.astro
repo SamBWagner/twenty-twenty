@@ -1,0 +1,229 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} | Twenty Twenty</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .text-stroke {
+        -webkit-text-stroke: 3px #080708;
+        paint-order: stroke fill;
+      }
+      .text-stroke-sm {
+        -webkit-text-stroke: 2px #080708;
+        paint-order: stroke fill;
+      }
+      .tape {
+        position: relative;
+      }
+      .tape::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%) rotate(-2deg);
+        width: 80px;
+        height: 24px;
+        background: rgba(253, 202, 64, 0.7);
+        border: 2px solid #080708;
+        z-index: 10;
+      }
+      /* Marching ants animation */
+      @keyframes march {
+        to {
+          stroke-dashoffset: -24;
+        }
+      }
+
+      /* Button click press-down */
+      .btn-pressing {
+        transform: translateY(3px) !important;
+        transition: transform 0.08s ease-out !important;
+      }
+
+      /* Slide-in overlay */
+      @keyframes slide-from-left {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+      }
+      @keyframes slide-from-right {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+      }
+      @keyframes slide-from-top {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+      }
+      @keyframes slide-from-bottom {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      .click-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+      }
+      .click-overlay-text {
+        position: relative;
+        z-index: 2;
+      }
+      .paper-tear {
+        clip-path: polygon(0% 0%, 3% 2%, 6% 0%, 9% 1%, 12% 0%, 15% 2%, 18% 0%, 21% 1%, 24% 0%, 27% 2%, 30% 0%, 33% 1%, 36% 0%, 39% 2%, 42% 0%, 45% 1%, 48% 0%, 51% 2%, 54% 0%, 57% 1%, 60% 0%, 63% 2%, 66% 0%, 69% 1%, 72% 0%, 75% 2%, 78% 0%, 81% 1%, 84% 0%, 87% 2%, 90% 0%, 93% 1%, 96% 0%, 100% 2%, 100% 100%, 0% 100%);
+      }
+
+      /* Floating avatar animations */
+      @keyframes float-0 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(25vw, 12vh) rotate(5deg); }
+        50% { transform: translate(40vw, 35vh) rotate(-3deg); }
+        75% { transform: translate(15vw, 50vh) rotate(8deg); }
+      }
+      @keyframes float-1 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(-20vw, 25vh) rotate(-6deg); }
+        50% { transform: translate(10vw, 50vh) rotate(4deg); }
+        75% { transform: translate(-15vw, 20vh) rotate(-2deg); }
+      }
+      @keyframes float-2 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        33% { transform: translate(30vw, -10vh) rotate(7deg); }
+        66% { transform: translate(-10vw, 30vh) rotate(-5deg); }
+      }
+      @keyframes float-3 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        20% { transform: translate(-25vw, 15vh) rotate(-4deg); }
+        40% { transform: translate(5vw, 40vh) rotate(6deg); }
+        60% { transform: translate(20vw, 20vh) rotate(-8deg); }
+        80% { transform: translate(-5vw, -5vh) rotate(3deg); }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-surface bg-grid font-sans text-secondary">
+    <!-- Scattered nav -->
+    <nav class="relative mx-auto max-w-6xl px-6 pt-6 pb-2">
+      <div class="flex items-start justify-between">
+        <a
+          href="/"
+          class="inline-block border-3 border-secondary bg-tertiary px-4 py-2 font-bold uppercase tracking-tight shadow-brutal-sm rotate-[-2deg] hover:rotate-0 transition-transform"
+        >
+          Twenty Twenty
+        </a>
+        <div class="flex items-center gap-2 mt-2">
+          <slot name="nav" />
+        </div>
+      </div>
+    </nav>
+
+    <main class="mx-auto max-w-6xl px-6 py-6">
+      <slot />
+    </main>
+
+    <script>
+      const COLORS = [
+        { bg: "#3772FF", text: "#FFFFFF" }, // primary blue
+        { bg: "#080708", text: "#FFFFFF" }, // secondary black
+        { bg: "#FDCA40", text: "#080708" }, // tertiary yellow
+        { bg: "#7C3AED", text: "#FFFFFF" }, // purple
+        { bg: "#F87171", text: "#080708" }, // red
+        { bg: "#34D399", text: "#080708" }, // green
+      ];
+
+      const DIRECTIONS = [
+        "slide-from-left",
+        "slide-from-right",
+        "slide-from-top",
+        "slide-from-bottom",
+      ];
+
+      function isInteractiveButton(el: Element): el is HTMLElement {
+        // Match buttons and links that have shadow-brutal (our "interactive" indicator)
+        const classes = el.className || "";
+        if (el.tagName === "BUTTON" || (el.tagName === "A" && classes.includes("shadow-brutal"))) {
+          // Skip tiny vote buttons and delete buttons
+          if (classes.includes("w-7") || classes.includes("w-6") || classes.includes("w-8")) return false;
+          return true;
+        }
+        return false;
+      }
+
+      document.addEventListener("click", (e) => {
+        const target = (e.target as HTMLElement).closest("button, a");
+        if (!target || !isInteractiveButton(target)) return;
+
+        // Pick random color and direction
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        const direction = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+
+        // Press down effect
+        target.classList.add("btn-pressing");
+
+        // Ensure the button can contain the overlay
+        const prevOverflow = target.style.overflow;
+        const prevPosition = target.style.position;
+        target.style.overflow = "hidden";
+        if (getComputedStyle(target).position === "static") {
+          target.style.position = "relative";
+        }
+
+        // Wrap existing children in a z-index layer so text stays on top
+        const children = Array.from(target.childNodes);
+        const textWrap = document.createElement("span");
+        textWrap.className = "click-overlay-text";
+        textWrap.style.display = "contents";
+        children.forEach((child) => textWrap.appendChild(child));
+        target.appendChild(textWrap);
+
+        // Create the sliding overlay
+        const overlay = document.createElement("span");
+        overlay.className = "click-overlay";
+        overlay.style.backgroundColor = color.bg;
+        overlay.style.animation = `${direction} 0.3s ease-out forwards`;
+        target.appendChild(overlay);
+
+        // Change text color for legibility
+        const prevColor = target.style.color;
+        target.style.color = color.text;
+
+        // Clean up after animation
+        const cleanup = () => {
+          target.classList.remove("btn-pressing");
+          target.style.overflow = prevOverflow;
+          target.style.position = prevPosition;
+          target.style.color = prevColor;
+
+          // Unwrap the text wrapper
+          if (textWrap.parentNode === target) {
+            while (textWrap.firstChild) {
+              target.insertBefore(textWrap.firstChild, textWrap);
+            }
+            textWrap.remove();
+          }
+          overlay.remove();
+        };
+
+        overlay.addEventListener("animationend", () => {
+          setTimeout(cleanup, 150);
+        });
+
+        // Safety timeout in case animationend doesn't fire
+        setTimeout(cleanup, 600);
+      });
+    </script>
+  </body>
+</html>

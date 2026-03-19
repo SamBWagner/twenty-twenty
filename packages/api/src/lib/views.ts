@@ -1,0 +1,394 @@
+import { and, asc, desc, eq, gt } from "drizzle-orm";
+import {
+  actionReviewSchema,
+  actionSchema,
+  bundleSchema,
+  projectInvitationSchema,
+  projectMemberSchema,
+  projectSchema,
+  projectViewSchema,
+  retroItemSchema,
+  retroSessionSchema,
+  reviewStateSchema,
+  sessionParticipantSchema,
+  sessionViewSchema,
+  type ViewerCapabilities,
+} from "@twenty-twenty/shared";
+import { db, schema } from "../db/index.js";
+import { canAccessSession } from "./session-access.js";
+import { toIsoString, toNullableIsoString } from "./http.js";
+
+function serializeProject(project: typeof schema.projects.$inferSelect) {
+  return projectSchema.parse({
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    createdBy: project.createdBy,
+    createdAt: toIsoString(project.createdAt),
+    updatedAt: toIsoString(project.updatedAt),
+  });
+}
+
+function serializeSession(session: typeof schema.retroSessions.$inferSelect) {
+  return retroSessionSchema.parse({
+    id: session.id,
+    projectId: session.projectId,
+    name: session.name,
+    phase: session.phase,
+    sequence: session.sequence,
+    createdBy: session.createdBy,
+    createdAt: toIsoString(session.createdAt),
+    closedAt: toNullableIsoString(session.closedAt),
+  });
+}
+
+function serializeProjectMember(member: {
+  userId: string;
+  role: "owner" | "member";
+  joinedAt: Date;
+  username: string;
+  avatarUrl: string | null;
+}) {
+  return projectMemberSchema.parse({
+    userId: member.userId,
+    role: member.role,
+    joinedAt: toIsoString(member.joinedAt),
+    username: member.username,
+    avatarUrl: member.avatarUrl,
+  });
+}
+
+function serializeInvitation(invitation: {
+  id: string;
+  token: string;
+  invitedByUserName: string;
+  expiresAt: Date;
+  createdAt: Date;
+}) {
+  return projectInvitationSchema.parse({
+    id: invitation.id,
+    token: invitation.token,
+    invitedByUserName: invitation.invitedByUserName,
+    expiresAt: toIsoString(invitation.expiresAt),
+    createdAt: toIsoString(invitation.createdAt),
+  });
+}
+
+function serializeParticipant(participant: {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  role: "member" | "guest";
+  joinedAt: Date;
+}) {
+  return sessionParticipantSchema.parse({
+    userId: participant.userId,
+    username: participant.username,
+    avatarUrl: participant.avatarUrl,
+    role: participant.role,
+    joinedAt: toIsoString(participant.joinedAt),
+  });
+}
+
+function buildViewerCapabilities(input: {
+  projectRole: "owner" | "member" | null;
+  projectMemberCount: number;
+  session:
+    | {
+      createdBy: string;
+      phase: "review" | "ideation" | "action" | "closed";
+    }
+    | null;
+  userId: string;
+  canAccessCurrentSession: boolean;
+}): ViewerCapabilities {
+  const isOwner = input.projectRole === "owner";
+  const isMember = input.projectRole !== null;
+  const session = input.session;
+
+  return {
+    canManageProject: isOwner,
+    canCreateSession: isMember,
+    canManageInvitations: isOwner,
+    canManageMembers: isOwner,
+    canDeleteProject: isOwner && input.projectMemberCount === 1,
+    canLeaveProject: isMember && !isOwner,
+    canAdvancePhase: Boolean(
+      session
+      && session.createdBy === input.userId
+      && (session.phase === "ideation" || session.phase === "action"),
+    ),
+    canShareSession: isMember && input.canAccessCurrentSession,
+    canEditIdeation: input.canAccessCurrentSession && session?.phase === "ideation",
+    canEditActionBoard: input.canAccessCurrentSession && session?.phase === "action",
+    canSubmitReviews: input.canAccessCurrentSession && session?.phase === "review",
+  };
+}
+
+export async function getProjectMembers(projectId: string) {
+  const members = await db
+    .select({
+      userId: schema.projectMembers.userId,
+      role: schema.projectMembers.role,
+      joinedAt: schema.projectMembers.joinedAt,
+      username: schema.user.name,
+      avatarUrl: schema.user.image,
+    })
+    .from(schema.projectMembers)
+    .innerJoin(schema.user, eq(schema.user.id, schema.projectMembers.userId))
+    .where(eq(schema.projectMembers.projectId, projectId));
+
+  return members.map(serializeProjectMember);
+}
+
+export async function getProjectView(projectId: string, userId: string) {
+  const project = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId)).get();
+  if (!project) {
+    return null;
+  }
+
+  const membership = await db
+    .select()
+    .from(schema.projectMembers)
+    .where(and(eq(schema.projectMembers.projectId, projectId), eq(schema.projectMembers.userId, userId)))
+    .get();
+
+  if (!membership) {
+    return null;
+  }
+
+  const [sessions, members, invitations] = await Promise.all([
+    db
+      .select()
+      .from(schema.retroSessions)
+      .where(eq(schema.retroSessions.projectId, projectId))
+      .orderBy(desc(schema.retroSessions.sequence)),
+    getProjectMembers(projectId),
+    membership.role === "owner"
+      ? db
+        .select({
+          id: schema.projectInvitations.id,
+          token: schema.projectInvitations.token,
+          invitedByUserName: schema.user.name,
+          expiresAt: schema.projectInvitations.expiresAt,
+          createdAt: schema.projectInvitations.createdAt,
+        })
+        .from(schema.projectInvitations)
+        .innerJoin(schema.user, eq(schema.user.id, schema.projectInvitations.invitedByUserId))
+        .where(and(
+          eq(schema.projectInvitations.projectId, projectId),
+          gt(schema.projectInvitations.expiresAt, new Date()),
+        ))
+        .orderBy(desc(schema.projectInvitations.createdAt))
+      : Promise.resolve([]),
+  ]);
+
+  const viewerMembership = members.find((member) => member.userId === userId) || null;
+
+  return projectViewSchema.parse({
+    project: serializeProject(project),
+    sessions: sessions.map(serializeSession),
+    members,
+    invitations: invitations.map(serializeInvitation),
+    viewerMembership,
+    viewerCapabilities: buildViewerCapabilities({
+      projectRole: membership.role,
+      projectMemberCount: members.length,
+      session: null,
+      userId,
+      canAccessCurrentSession: false,
+    }),
+  });
+}
+
+export async function getReviewStateForSession(session: typeof schema.retroSessions.$inferSelect) {
+  const previousSession = await db
+    .select()
+    .from(schema.retroSessions)
+    .where(
+      and(
+        eq(schema.retroSessions.projectId, session.projectId),
+        eq(schema.retroSessions.sequence, session.sequence - 1),
+      ),
+    )
+    .get();
+
+  if (!previousSession) {
+    return reviewStateSchema.parse({
+      actions: [],
+      reviews: [],
+      pending: [],
+      total: 0,
+      reviewed: 0,
+    });
+  }
+
+  const [previousActions, reviews] = await Promise.all([
+    db
+      .select()
+      .from(schema.actions)
+      .where(eq(schema.actions.sessionId, previousSession.id))
+      .orderBy(asc(schema.actions.createdAt)),
+    db
+      .select()
+      .from(schema.actionReviews)
+      .where(eq(schema.actionReviews.sessionId, session.id))
+      .orderBy(asc(schema.actionReviews.createdAt)),
+  ]);
+
+  const reviewedActionIds = new Set(reviews.map((review) => review.actionId));
+
+  return reviewStateSchema.parse({
+    actions: previousActions.map((action) => actionSchema.parse({
+      id: action.id,
+      sessionId: action.sessionId,
+      bundleId: action.bundleId,
+      description: action.description,
+      assigneeId: action.assigneeId,
+      createdAt: toIsoString(action.createdAt),
+    })),
+    reviews: reviews.map((review) => actionReviewSchema.parse({
+      id: review.id,
+      actionId: review.actionId,
+      sessionId: review.sessionId,
+      reviewerId: review.reviewerId,
+      status: review.status,
+      comment: review.comment,
+      createdAt: toIsoString(review.createdAt),
+    })),
+    pending: previousActions
+      .filter((action) => !reviewedActionIds.has(action.id))
+      .map((action) => actionSchema.parse({
+        id: action.id,
+        sessionId: action.sessionId,
+        bundleId: action.bundleId,
+        description: action.description,
+        assigneeId: action.assigneeId,
+        createdAt: toIsoString(action.createdAt),
+      })),
+    total: previousActions.length,
+    reviewed: reviews.length,
+  });
+}
+
+export async function getSessionView(sessionId: string, userId: string) {
+  const access = await canAccessSession(userId, sessionId);
+  if (!access.allowed) {
+    return null;
+  }
+
+  const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sessionId)).get();
+  if (!session) {
+    return null;
+  }
+
+  const [projectMembership, projectMembers, participants, items, bundles, actions, voteRows, bundleLinks, reviewState] = await Promise.all([
+    db
+      .select()
+      .from(schema.projectMembers)
+      .where(and(eq(schema.projectMembers.projectId, session.projectId), eq(schema.projectMembers.userId, userId)))
+      .get(),
+    getProjectMembers(session.projectId),
+    db
+      .select({
+        userId: schema.sessionParticipants.userId,
+        username: schema.user.name,
+        avatarUrl: schema.user.image,
+        role: schema.sessionParticipants.role,
+        joinedAt: schema.sessionParticipants.joinedAt,
+      })
+      .from(schema.sessionParticipants)
+      .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
+      .where(eq(schema.sessionParticipants.sessionId, sessionId))
+      .orderBy(asc(schema.sessionParticipants.joinedAt)),
+    db
+      .select()
+      .from(schema.items)
+      .where(eq(schema.items.sessionId, sessionId))
+      .orderBy(asc(schema.items.createdAt)),
+    db
+      .select()
+      .from(schema.bundles)
+      .where(eq(schema.bundles.sessionId, sessionId))
+      .orderBy(asc(schema.bundles.createdAt)),
+    db
+      .select()
+      .from(schema.actions)
+      .where(eq(schema.actions.sessionId, sessionId))
+      .orderBy(asc(schema.actions.createdAt)),
+    db
+      .select()
+      .from(schema.votes)
+      .innerJoin(schema.items, eq(schema.items.id, schema.votes.itemId))
+      .where(eq(schema.items.sessionId, sessionId)),
+    db
+      .select({
+        bundleId: schema.bundleItems.bundleId,
+        itemId: schema.bundleItems.itemId,
+      })
+      .from(schema.bundleItems)
+      .innerJoin(schema.bundles, eq(schema.bundles.id, schema.bundleItems.bundleId))
+      .where(eq(schema.bundles.sessionId, sessionId)),
+    getReviewStateForSession(session),
+  ]);
+
+  const voteCountByItemId = new Map<string, number>();
+  const userVoteByItemId = new Map<string, number>();
+
+  for (const vote of voteRows) {
+    voteCountByItemId.set(vote.votes.itemId, (voteCountByItemId.get(vote.votes.itemId) || 0) + vote.votes.value);
+    if (vote.votes.userId === userId) {
+      userVoteByItemId.set(vote.votes.itemId, vote.votes.value);
+    }
+  }
+
+  const itemIdsByBundleId = new Map<string, string[]>();
+  for (const link of bundleLinks) {
+    const itemIds = itemIdsByBundleId.get(link.bundleId) || [];
+    itemIds.push(link.itemId);
+    itemIdsByBundleId.set(link.bundleId, itemIds);
+  }
+
+  return sessionViewSchema.parse({
+    session: serializeSession(session),
+    participants: participants.map(serializeParticipant),
+    projectMembers,
+    items: items.map((item) => retroItemSchema.parse({
+      id: item.id,
+      sessionId: item.sessionId,
+      authorId: session.phase === "ideation" ? null : item.authorId,
+      type: item.type,
+      content: item.content,
+      createdAt: toIsoString(item.createdAt),
+      voteCount: voteCountByItemId.get(item.id) || 0,
+      userVote: userVoteByItemId.get(item.id) || 0,
+      isOwn: item.authorId === userId,
+    })),
+    bundles: bundles.map((bundle) => bundleSchema.parse({
+      id: bundle.id,
+      sessionId: bundle.sessionId,
+      label: bundle.label,
+      createdAt: toIsoString(bundle.createdAt),
+      itemIds: itemIdsByBundleId.get(bundle.id) || [],
+    })),
+    actions: actions.map((action) => actionSchema.parse({
+      id: action.id,
+      sessionId: action.sessionId,
+      bundleId: action.bundleId,
+      description: action.description,
+      assigneeId: action.assigneeId,
+      createdAt: toIsoString(action.createdAt),
+    })),
+    reviewState,
+    viewerCapabilities: buildViewerCapabilities({
+      projectRole: projectMembership?.role || null,
+      projectMemberCount: projectMembers.length,
+      session: {
+        createdBy: session.createdBy,
+        phase: session.phase,
+      },
+      userId,
+      canAccessCurrentSession: access.allowed,
+    }),
+  });
+}

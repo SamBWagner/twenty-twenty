@@ -1,44 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import AuthBlockedState from "../../components/AuthBlockedState.astro";
-import ProjectList from "../../components/react/ProjectList";
-import { cn, scrapbookButton } from "../../lib/button-styles";
-
-const auth = Astro.locals.auth;
-if (auth.state === "anonymous") return Astro.redirect("/login");
-const user = auth.user;
+import ProjectsIndexPage from "../../components/react/ProjectsIndexPage";
+import UserNav from "../../components/react/UserNav";
 ---
 
 <Layout title="Projects">
-  {auth.state === "authenticated" && user ? (
-    <>
-      <Fragment slot="nav">
-        <div class="flex items-center gap-2">
-          {user.image && <img src={user.image} alt="" class="h-9 w-9 border-3 border-secondary shadow-brutal-sm" />}
-          <span class="border-3 border-secondary bg-white px-3 py-1 text-sm font-bold shadow-brutal-sm">{user.name}</span>
-        </div>
-      </Fragment>
+  <Fragment slot="nav">
+    <UserNav client:load />
+  </Fragment>
 
-      <div class="relative">
-        <div class="flex items-end justify-between mb-8">
-          <h1 class="text-5xl font-bold uppercase text-stroke">
-            <span class="text-tertiary">Your</span> <span class="text-primary">Projects</span>
-          </h1>
-          <a
-            href="/projects/new"
-            class={cn(
-              scrapbookButton({ tone: "primary", size: "regular", tilt: "right", depth: "md" }),
-              "border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white",
-            )}
-          >
-            + New Project
-          </a>
-        </div>
-
-        <ProjectList client:load />
-      </div>
-    </>
-  ) : (
-    <AuthBlockedState auth={auth} />
-  )}
+  <ProjectsIndexPage client:load />
 </Layout>

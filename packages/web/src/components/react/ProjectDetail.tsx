@@ -1,39 +1,15 @@
 import { useEffect, useState } from "react";
+import type {
+  ProjectInvitation,
+  ProjectMember,
+  ProjectView,
+  RetroSession as Session,
+  ViewerCapabilities,
+} from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
 import { cn, scrapbookButton } from "../../lib/button-styles";
 import MarchingAnts from "./MarchingAnts";
-
-interface Session {
-  id: string;
-  name: string;
-  phase: string;
-  sequence: number;
-  createdAt: string;
-  closedAt: string | null;
-}
-
-interface ProjectMember {
-  userId: string;
-  username: string;
-  role: string;
-  avatarUrl: string | null;
-}
-
-interface ProjectInvitation {
-  id: string;
-  token: string;
-  invitedByUserName: string;
-  expiresAt: string;
-  createdAt: string;
-}
-
-interface ProjectData {
-  id: string;
-  name: string;
-  description: string | null;
-  members: ProjectMember[];
-}
 
 type FeedbackState =
   | { tone: "success" | "error"; message: string }
@@ -93,9 +69,12 @@ export default function ProjectDetail({
   projectId: string;
   currentUserId: string;
 }) {
-  const [project, setProject] = useState<ProjectData | null>(null);
+  const [project, setProject] = useState<ProjectView["project"] | null>(null);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [invitations, setInvitations] = useState<ProjectInvitation[]>([]);
+  const [viewerMembership, setViewerMembership] = useState<ProjectView["viewerMembership"]>(null);
+  const [viewerCapabilities, setViewerCapabilities] = useState<ViewerCapabilities | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -109,31 +88,19 @@ export default function ProjectDetail({
   const [newName, setNewName] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
-  async function loadInvitations() {
-    const data = await api.get<ProjectInvitation[]>(`/api/projects/${projectId}/invitations`);
-    setInvitations(data);
-  }
-
   async function loadProject() {
     setLoading(true);
     setLoadError(null);
 
     try {
-      const [projectData, sessionData] = await Promise.all([
-        api.get<ProjectData>(`/api/projects/${projectId}`),
-        api.get<Session[]>(`/api/projects/${projectId}/sessions`),
-      ]);
+      const view = await api.get<ProjectView>(`/api/projects/${projectId}/view`);
 
-      const viewerRole = projectData.members.find((member) => member.userId === currentUserId)?.role;
-
-      setProject(projectData);
-      setSessions(sessionData);
-
-      if (viewerRole === "owner") {
-        await loadInvitations();
-      } else {
-        setInvitations([]);
-      }
+      setProject(view.project);
+      setMembers(view.members);
+      setSessions(view.sessions);
+      setInvitations(view.invitations);
+      setViewerMembership(view.viewerMembership);
+      setViewerCapabilities(view.viewerCapabilities);
     } catch (err: any) {
       setLoadError(err.message || "Failed to load project.");
     } finally {
@@ -258,12 +225,11 @@ export default function ProjectDetail({
       return;
     }
 
-    const viewerMembership = project.members.find((member) => member.userId === currentUserId) || null;
     if (viewerMembership?.role !== "owner") {
       return;
     }
 
-    if (project.members.length > 1) {
+    if (members.length > 1) {
       closeDeleteConfirmation();
       setFeedback({
         tone: "error",
@@ -311,7 +277,6 @@ export default function ProjectDetail({
   if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!project) return <p className="font-bold text-red-600">Project not found</p>;
 
-  const viewerMembership = project.members.find((member) => member.userId === currentUserId) || null;
   const isOwner = viewerMembership?.role === "owner";
   const canLeaveProject = viewerMembership?.role === "member";
 
@@ -450,11 +415,11 @@ export default function ProjectDetail({
         <div className="mt-8">
           <div className="mb-3 flex items-center justify-between gap-4">
             <h2 className="text-lg font-bold uppercase">Members</h2>
-            <span className="font-mono text-xs uppercase text-secondary/40">{project.members.length} total</span>
+            <span className="font-mono text-xs uppercase text-secondary/40">{members.length} total</span>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            {project.members.map((member) => {
+            {members.map((member) => {
               const isCurrentUser = member.userId === currentUserId;
               const canKick = isOwner && member.role !== "owner" && !isCurrentUser;
 
@@ -501,7 +466,8 @@ export default function ProjectDetail({
         </div>
       </div>
 
-      <div className="mb-10 border-3 border-secondary bg-tertiary p-6 rotate-[0.5deg]">
+      {viewerCapabilities?.canCreateSession && (
+        <div className="mb-10 border-3 border-secondary bg-tertiary p-6 rotate-[0.5deg]">
         <h2 className="mb-4 text-lg font-bold uppercase">Start a New Session</h2>
         <form onSubmit={createSession} className="flex gap-3">
           <input
@@ -523,7 +489,8 @@ export default function ProjectDetail({
             {creating ? "..." : "Go →"}
           </button>
         </form>
-      </div>
+        </div>
+      )}
 
       <h2 className="mb-4 text-2xl font-bold uppercase">Sessions</h2>
       {sessions.length === 0 ? (
@@ -556,7 +523,7 @@ export default function ProjectDetail({
         </div>
       )}
 
-      {isOwner && (
+      {viewerCapabilities?.canManageInvitations && (
         <div className="mt-12">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>

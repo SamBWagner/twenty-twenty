@@ -8,11 +8,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
-
-type RequestAuthResult = import("./lib/auth").RequestAuthResult;
-
-declare namespace App {
-  interface Locals {
-    auth: RequestAuthResult;
-  }
-}

@@ -16,7 +16,7 @@ export function connectWs(
 ): Promise<WsHelper> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(
-      `ws://localhost:3001/api/ws?sessionId=${sessionId}`,
+      `ws://localhost:3001/api/v1/ws?sessionId=${sessionId}`,
       {
         headers: {
           Cookie: `better-auth.session_token=${sessionToken}`,

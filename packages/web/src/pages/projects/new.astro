@@ -1,21 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import AuthBlockedState from "../../components/AuthBlockedState.astro";
-import CreateProjectForm from "../../components/react/CreateProjectForm";
-
-const auth = Astro.locals.auth;
-if (auth.state === "anonymous") return Astro.redirect("/login");
+import NewProjectPage from "../../components/react/NewProjectPage";
+import UserNav from "../../components/react/UserNav";
 ---
 
 <Layout title="New Project">
-  {auth.state === "authenticated" ? (
-    <div class="max-w-lg">
-      <h1 class="text-4xl font-bold uppercase text-stroke mb-8">
-        <span class="text-primary">New</span> <span class="text-tertiary">Project</span>
-      </h1>
-      <CreateProjectForm client:load />
-    </div>
-  ) : (
-    <AuthBlockedState auth={auth} />
-  )}
+  <Fragment slot="nav">
+    <UserNav client:load />
+  </Fragment>
+
+  <NewProjectPage client:load />
 </Layout>

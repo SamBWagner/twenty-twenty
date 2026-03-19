@@ -1,10 +1,12 @@
 import { Hono } from "hono";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { createItemBodySchema, retroItemSchema, voteItemBodySchema } from "@twenty-twenty/shared";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
 import { newId } from "../lib/id.js";
 import { broadcast } from "../ws/rooms.js";
 import { canAccessSession } from "../lib/session-access.js";
+import { jsonError, parseJsonBody, toIsoString } from "../lib/http.js";
 
 export const itemRoutes = new Hono();
 
@@ -14,10 +16,10 @@ itemRoutes.get("/sessions/:sid/items", requireAuth, async (c) => {
   const sid = c.req.param("sid");
 
   const access = await canAccessSession(user.id, sid);
-  if (!access.allowed) return c.json({ error: "Not found" }, 404);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
 
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
-  if (!session) return c.json({ error: "Not found" }, 404);
+  if (!session) return jsonError(c, 404, "not_found", "Session not found.");
 
   const items = await db.select().from(schema.items).where(eq(schema.items.sessionId, sid));
 
@@ -28,18 +30,17 @@ itemRoutes.get("/sessions/:sid/items", requireAuth, async (c) => {
       const voteCount = voteRows.reduce((sum, v) => sum + v.value, 0);
       const userVote = voteRows.find((v) => v.userId === user.id)?.value || 0;
 
-      return {
+      return retroItemSchema.parse({
         id: item.id,
         sessionId: item.sessionId,
         type: item.type,
         content: item.content,
-        createdAt: item.createdAt,
+        createdAt: toIsoString(item.createdAt),
         voteCount,
         userVote,
-        // Hide author during ideation phase
-        authorId: session.phase === "ideation" ? undefined : item.authorId,
+        authorId: session.phase === "ideation" ? null : item.authorId,
         isOwn: item.authorId === user.id,
-      };
+      });
     }),
   );
 
@@ -52,23 +53,23 @@ itemRoutes.post("/sessions/:sid/items", requireAuth, async (c) => {
   const sid = c.req.param("sid");
 
   const access = await canAccessSession(user.id, sid);
-  if (!access.allowed) return c.json({ error: "Not found" }, 404);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
 
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
-  if (!session) return c.json({ error: "Not found" }, 404);
-  if (session.phase !== "ideation") return c.json({ error: "Items can only be added during ideation" }, 400);
+  if (!session) return jsonError(c, 404, "not_found", "Session not found.");
+  if (session.phase !== "ideation") return jsonError(c, 400, "invalid_phase", "Items can only be added during ideation.");
 
-  const body = await c.req.json<{ type: "good" | "bad"; content: string }>();
-  if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
-  if (body.content.trim().length > 2000) return c.json({ error: "Content must be 2000 characters or less" }, 400);
-  if (!["good", "bad"].includes(body.type)) return c.json({ error: "Type must be good or bad" }, 400);
+  const parsed = await parseJsonBody(c, createItemBodySchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
 
   const item = {
     id: newId(),
     sessionId: sid,
     authorId: user.id,
-    type: body.type,
-    content: body.content.trim(),
+    type: parsed.data.type,
+    content: parsed.data.content.trim(),
     createdAt: new Date(),
   };
 
@@ -79,7 +80,13 @@ itemRoutes.post("/sessions/:sid/items", requireAuth, async (c) => {
     payload: { id: item.id, type: item.type, content: item.content, voteCount: 0 },
   }, user.id);
 
-  return c.json({ ...item, voteCount: 0, userVote: 0, isOwn: true }, 201);
+  return c.json(retroItemSchema.parse({
+    ...item,
+    createdAt: toIsoString(item.createdAt),
+    voteCount: 0,
+    userVote: 0,
+    isOwn: true,
+  }), 201);
 });
 
 // Delete own item (ideation phase only)
@@ -88,13 +95,16 @@ itemRoutes.delete("/sessions/:sid/items/:iid", requireAuth, async (c) => {
   const sid = c.req.param("sid");
   const iid = c.req.param("iid");
 
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
+
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
-  if (!session) return c.json({ error: "Not found" }, 404);
-  if (session.phase !== "ideation") return c.json({ error: "Can only delete during ideation" }, 400);
+  if (!session) return jsonError(c, 404, "not_found", "Session not found.");
+  if (session.phase !== "ideation") return jsonError(c, 400, "invalid_phase", "Items can only be deleted during ideation.");
 
   const item = await db.select().from(schema.items).where(eq(schema.items.id, iid)).get();
-  if (!item || item.sessionId !== sid) return c.json({ error: "Not found" }, 404);
-  if (item.authorId !== user.id) return c.json({ error: "Can only delete your own items" }, 403);
+  if (!item || item.sessionId !== sid) return jsonError(c, 404, "not_found", "Item not found.");
+  if (item.authorId !== user.id) return jsonError(c, 403, "forbidden", "You can only delete your own items.");
 
   await db.delete(schema.items).where(eq(schema.items.id, iid));
   broadcast(sid, { type: "item:deleted", payload: { id: iid } }, user.id);
@@ -108,12 +118,17 @@ itemRoutes.post("/sessions/:sid/items/:iid/vote", requireAuth, async (c) => {
   const sid = c.req.param("sid");
   const iid = c.req.param("iid");
 
-  const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
-  if (!session) return c.json({ error: "Not found" }, 404);
-  if (session.phase !== "ideation") return c.json({ error: "Voting only during ideation" }, 400);
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
 
-  const body = await c.req.json<{ value: 1 | -1 }>();
-  if (body.value !== 1 && body.value !== -1) return c.json({ error: "Value must be 1 or -1" }, 400);
+  const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
+  if (!session) return jsonError(c, 404, "not_found", "Session not found.");
+  if (session.phase !== "ideation") return jsonError(c, 400, "invalid_phase", "Voting is only available during ideation.");
+
+  const parsed = await parseJsonBody(c, voteItemBodySchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
 
   const existing = await db
     .select()
@@ -122,19 +137,19 @@ itemRoutes.post("/sessions/:sid/items/:iid/vote", requireAuth, async (c) => {
     .get();
 
   if (existing) {
-    if (existing.value === body.value) {
+    if (existing.value === parsed.data.value) {
       // Same vote = remove it (toggle off)
       await db.delete(schema.votes).where(eq(schema.votes.id, existing.id));
     } else {
       // Different vote = update
-      await db.update(schema.votes).set({ value: body.value }).where(eq(schema.votes.id, existing.id));
+      await db.update(schema.votes).set({ value: parsed.data.value }).where(eq(schema.votes.id, existing.id));
     }
   } else {
     await db.insert(schema.votes).values({
       id: newId(),
       itemId: iid,
       userId: user.id,
-      value: body.value,
+      value: parsed.data.value,
       createdAt: new Date(),
     });
   }

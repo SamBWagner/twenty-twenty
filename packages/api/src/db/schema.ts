@@ -51,6 +51,26 @@ export const verification = sqliteTable("verification", {
   updatedAt: integer("updated_at", { mode: "timestamp" }),
 });
 
+export const personalAccessTokens = sqliteTable(
+  "personal_access_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenPrefix: text("token_prefix").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+    revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("personal_access_tokens_token_hash_idx").on(table.tokenHash),
+    index("personal_access_tokens_user_id_idx").on(table.userId),
+  ],
+);
+
 // App tables
 
 export const projects = sqliteTable("projects", {

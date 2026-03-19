@@ -1,20 +1,7 @@
 import { useEffect, useState } from "react";
+import type { ReviewState } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
-
-interface Action {
-  id: string;
-  description: string;
-  assigneeId: string | null;
-}
-
-interface ReviewData {
-  actions: Action[];
-  reviews: { actionId: string; status: string }[];
-  pending: Action[];
-  total: number;
-  reviewed: number;
-}
 
 export default function ActionReviewFlow({
   sessionId,
@@ -25,7 +12,7 @@ export default function ActionReviewFlow({
   sessionPhase: "review" | "ideation" | "action" | "closed";
   onComplete: () => void;
 }) {
-  const [data, setData] = useState<ReviewData | null>(null);
+  const [data, setData] = useState<ReviewState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [comment, setComment] = useState("");
@@ -33,7 +20,7 @@ export default function ActionReviewFlow({
 
   useEffect(() => {
     api
-      .get<ReviewData>(`/api/sessions/${sessionId}/reviews/pending`)
+      .get<ReviewState>(`/api/sessions/${sessionId}/reviews/pending`)
       .then((d) => {
         setData(d);
         setLoadError(null);
@@ -44,8 +31,9 @@ export default function ActionReviewFlow({
 
   if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!data) return <p className="font-mono text-sm">Loading reviews...</p>;
+  const reviewState = data;
 
-  if (data.total === 0) {
+  if (reviewState.total === 0) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rotate-[0.4deg] border-3 border-secondary bg-white p-8 text-center">
@@ -62,7 +50,7 @@ export default function ActionReviewFlow({
     );
   }
 
-  const currentAction = data.pending[currentIndex];
+  const currentAction = reviewState.pending[currentIndex];
   if (!currentAction) {
     return (
       <div className="rotate-[0.5deg] border-3 border-secondary bg-green-300 p-10 text-center">
@@ -90,7 +78,7 @@ export default function ActionReviewFlow({
         comment: status === "disagree" ? comment : undefined,
       });
       const nextIndex = currentIndex + 1;
-      if (nextIndex >= data.pending.length) {
+      if (nextIndex >= reviewState.pending.length) {
         onComplete();
       } else {
         setCurrentIndex(nextIndex);
@@ -101,7 +89,7 @@ export default function ActionReviewFlow({
     }
   }
 
-  const progress = data.reviewed + currentIndex + 1;
+  const progress = reviewState.reviewed + currentIndex + 1;
   const reviewLocked = sessionPhase !== "review";
 
   return (
@@ -118,14 +106,14 @@ export default function ActionReviewFlow({
             </p>
           </div>
           <span className="border-2 border-secondary bg-tertiary px-2 py-0.5 font-mono text-sm font-bold">
-            {progress}/{data.total}
+            {progress}/{reviewState.total}
           </span>
         </div>
 
         <div className="mb-6 h-5 border-3 border-secondary bg-white">
           <div
             className="h-full bg-primary transition-all"
-            style={{ width: `${(progress / data.total) * 100}%` }}
+            style={{ width: `${(progress / reviewState.total) * 100}%` }}
           />
         </div>
 

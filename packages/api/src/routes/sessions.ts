@@ -1,19 +1,58 @@
 import { Hono } from "hono";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
+import {
+  actionSchema,
+  bundleSchema,
+  createSessionBodySchema,
+  retroSessionSchema,
+  sessionParticipantSchema,
+  sessionSummarySchema,
+  sharePreviewSchema,
+} from "@twenty-twenty/shared";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
 import { newId } from "../lib/id.js";
 import { broadcast } from "../ws/rooms.js";
 import { canAccessSession } from "../lib/session-access.js";
+import { getReviewStateForSession, getSessionView } from "../lib/views.js";
+import { jsonError, parseJsonBody, toIsoString, toNullableIsoString } from "../lib/http.js";
 
 export const sessionRoutes = new Hono();
+
+function serializeSession(session: typeof schema.retroSessions.$inferSelect) {
+  return retroSessionSchema.parse({
+    id: session.id,
+    projectId: session.projectId,
+    name: session.name,
+    phase: session.phase,
+    sequence: session.sequence,
+    createdBy: session.createdBy,
+    createdAt: toIsoString(session.createdAt),
+    closedAt: toNullableIsoString(session.closedAt),
+  });
+}
+
+function serializeParticipant(participant: {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+  role: "member" | "guest";
+  joinedAt: Date;
+}) {
+  return sessionParticipantSchema.parse({
+    userId: participant.userId,
+    username: participant.username,
+    avatarUrl: participant.avatarUrl,
+    role: participant.role,
+    joinedAt: toIsoString(participant.joinedAt),
+  });
+}
 
 // List sessions for a project
 sessionRoutes.get("/projects/:pid/sessions", requireAuth, async (c) => {
   const user = c.get("user");
   const pid = c.req.param("pid");
 
-  // Check membership
   const membership = await db
     .select()
     .from(schema.projectMembers)
@@ -21,7 +60,7 @@ sessionRoutes.get("/projects/:pid/sessions", requireAuth, async (c) => {
     .get();
 
   if (!membership) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Project not found.");
   }
 
   const sessions = await db
@@ -30,7 +69,7 @@ sessionRoutes.get("/projects/:pid/sessions", requireAuth, async (c) => {
     .where(eq(schema.retroSessions.projectId, pid))
     .orderBy(desc(schema.retroSessions.sequence));
 
-  return c.json(sessions);
+  return c.json(sessions.map(serializeSession));
 });
 
 // Create session
@@ -38,7 +77,6 @@ sessionRoutes.post("/projects/:pid/sessions", requireAuth, async (c) => {
   const user = c.get("user");
   const pid = c.req.param("pid");
 
-  // Check membership
   const membership = await db
     .select()
     .from(schema.projectMembers)
@@ -46,18 +84,14 @@ sessionRoutes.post("/projects/:pid/sessions", requireAuth, async (c) => {
     .get();
 
   if (!membership) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Project not found.");
   }
 
-  const body = await c.req.json<{ name: string }>();
-  if (!body.name?.trim()) {
-    return c.json({ error: "Name is required" }, 400);
-  }
-  if (body.name.trim().length > 200) {
-    return c.json({ error: "Name must be 200 characters or less" }, 400);
+  const parsed = await parseJsonBody(c, createSessionBodySchema);
+  if (!parsed.success) {
+    return parsed.response;
   }
 
-  // Find the latest session to determine sequence and check for pending actions
   const latestSession = await db
     .select()
     .from(schema.retroSessions)
@@ -68,7 +102,6 @@ sessionRoutes.post("/projects/:pid/sessions", requireAuth, async (c) => {
 
   const sequence = latestSession ? latestSession.sequence + 1 : 1;
 
-  // Check if previous session has actions that need review
   let initialPhase: "review" | "ideation" = "ideation";
   if (latestSession) {
     const previousActions = await db
@@ -84,16 +117,29 @@ sessionRoutes.post("/projects/:pid/sessions", requireAuth, async (c) => {
   const session = {
     id: newId(),
     projectId: pid,
-    name: body.name.trim(),
+    name: parsed.data.name.trim(),
     phase: initialPhase,
     sequence,
     createdBy: user.id,
     createdAt: new Date(),
     closedAt: null,
+    shareToken: null,
   };
 
   await db.insert(schema.retroSessions).values(session);
-  return c.json(session, 201);
+  return c.json(serializeSession(session), 201);
+});
+
+sessionRoutes.get("/sessions/:sid/view", requireAuth, async (c) => {
+  const user = c.get("user");
+  const sid = c.req.param("sid");
+  const view = await getSessionView(sid, user.id);
+
+  if (!view) {
+    return jsonError(c, 404, "not_found", "Session not found.");
+  }
+
+  return c.json(view);
 });
 
 // Get session detail
@@ -103,15 +149,15 @@ sessionRoutes.get("/sessions/:sid", requireAuth, async (c) => {
 
   const access = await canAccessSession(user.id, sid);
   if (!access.allowed) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
   if (!session) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
-  return c.json(session);
+  return c.json(serializeSession(session));
 });
 
 // Get full session summary
@@ -121,12 +167,12 @@ sessionRoutes.get("/sessions/:sid/summary", requireAuth, async (c) => {
 
   const access = await canAccessSession(user.id, sid);
   if (!access.allowed) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
   if (!session) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
   const [participants, items, bundles, actions] = await Promise.all([
@@ -139,7 +185,7 @@ sessionRoutes.get("/sessions/:sid/summary", requireAuth, async (c) => {
         joinedAt: schema.sessionParticipants.joinedAt,
       })
       .from(schema.sessionParticipants)
-      .innerJoin(schema.user, eq(schema.sessionParticipants.userId, schema.user.id))
+      .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
       .where(eq(schema.sessionParticipants.sessionId, sid))
       .orderBy(asc(schema.sessionParticipants.joinedAt)),
     db
@@ -208,7 +254,7 @@ sessionRoutes.get("/sessions/:sid/summary", requireAuth, async (c) => {
     reviewerName: string;
     status: "did_nothing" | "actioned" | "disagree";
     comment: string | null;
-    createdAt: Date;
+    createdAt: string;
   }> = [];
 
   if (previousSession) {
@@ -230,7 +276,7 @@ sessionRoutes.get("/sessions/:sid/summary", requireAuth, async (c) => {
           createdAt: schema.actionReviews.createdAt,
         })
         .from(schema.actionReviews)
-        .innerJoin(schema.user, eq(schema.actionReviews.reviewerId, schema.user.id))
+        .innerJoin(schema.user, eq(schema.user.id, schema.actionReviews.reviewerId))
         .where(eq(schema.actionReviews.sessionId, sid))
         .orderBy(asc(schema.actionReviews.createdAt)),
     ]);
@@ -242,23 +288,39 @@ sessionRoutes.get("/sessions/:sid/summary", requireAuth, async (c) => {
     reviews = reviewRows.map((review) => ({
       ...review,
       actionDescription: previousActionDescriptionById.get(review.actionId) || "Previous action",
+      createdAt: toIsoString(review.createdAt),
     }));
   }
 
-  return c.json({
-    session,
-    participants,
+  return c.json(sessionSummarySchema.parse({
+    session: serializeSession(session),
+    participants: participants.map(serializeParticipant),
     items: items.map((item) => ({
-      ...item,
+      id: item.id,
+      sessionId: item.sessionId,
+      authorId: item.authorId,
+      type: item.type,
+      content: item.content,
+      createdAt: toIsoString(item.createdAt),
       voteCount: voteCountByItemId.get(item.id) || 0,
     })),
-    bundles: bundles.map((bundle) => ({
-      ...bundle,
+    bundles: bundles.map((bundle) => bundleSchema.parse({
+      id: bundle.id,
+      sessionId: bundle.sessionId,
+      label: bundle.label,
+      createdAt: toIsoString(bundle.createdAt),
       itemIds: itemIdsByBundleId.get(bundle.id) || [],
     })),
-    actions,
+    actions: actions.map((action) => actionSchema.parse({
+      id: action.id,
+      sessionId: action.sessionId,
+      bundleId: action.bundleId,
+      description: action.description,
+      assigneeId: action.assigneeId,
+      createdAt: toIsoString(action.createdAt),
+    })),
     reviews,
-  });
+  }));
 });
 
 // Advance phase
@@ -266,27 +328,30 @@ sessionRoutes.patch("/sessions/:sid/phase", requireAuth, async (c) => {
   const user = c.get("user");
   const sid = c.req.param("sid");
 
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) {
+    return jsonError(c, 404, "not_found", "Session not found.");
+  }
+
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
   if (!session) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
-  // Only creator can advance phase
   if (session.createdBy !== user.id) {
-    return c.json({ error: "Only the session creator can advance phases" }, 403);
+    return jsonError(c, 403, "forbidden", "Only the session creator can advance phases.");
   }
 
-  const transitions: Record<string, string> = {
+  const transitions: Record<string, "action" | "closed" | undefined> = {
     ideation: "action",
     action: "closed",
   };
 
   const nextPhase = transitions[session.phase];
   if (!nextPhase) {
-    return c.json({ error: `Cannot advance from ${session.phase}` }, 400);
+    return jsonError(c, 400, "invalid_phase", `Cannot advance from ${session.phase}.`);
   }
 
-  // Ideation → action requires at least 1 item
   if (session.phase === "ideation") {
     const itemCount = await db
       .select()
@@ -294,7 +359,7 @@ sessionRoutes.patch("/sessions/:sid/phase", requireAuth, async (c) => {
       .where(eq(schema.items.sessionId, sid));
 
     if (itemCount.length === 0) {
-      return c.json({ error: "At least one item is required to advance" }, 400);
+      return jsonError(c, 400, "invalid_request", "At least one item is required to advance.");
     }
   }
 
@@ -317,10 +382,9 @@ sessionRoutes.post("/sessions/:sid/share", requireAuth, async (c) => {
 
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
   if (!session) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
-  // Only project members can share
   const membership = await db
     .select()
     .from(schema.projectMembers)
@@ -330,7 +394,7 @@ sessionRoutes.post("/sessions/:sid/share", requireAuth, async (c) => {
     .get();
 
   if (!membership) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
   if (session.shareToken) {
@@ -358,7 +422,7 @@ sessionRoutes.get("/sessions/join/:token", requireAuth, async (c) => {
     .get();
 
   if (!session) {
-    return c.json({ error: "Invalid or expired link" }, 404);
+    return jsonError(c, 404, "not_found", "Invalid or expired link.");
   }
 
   const project = await db
@@ -375,14 +439,14 @@ sessionRoutes.get("/sessions/join/:token", requireAuth, async (c) => {
     )
     .get();
 
-  return c.json({
+  return c.json(sharePreviewSchema.parse({
     sessionId: session.id,
     sessionName: session.name,
     projectId: session.projectId,
     projectName: project?.name || "Unknown",
     phase: session.phase,
-    isMember: !!membership,
-  });
+    isMember: Boolean(membership),
+  }));
 });
 
 // Join session as guest
@@ -397,10 +461,9 @@ sessionRoutes.post("/sessions/join/:token", requireAuth, async (c) => {
     .get();
 
   if (!session) {
-    return c.json({ error: "Invalid or expired link" }, 404);
+    return jsonError(c, 404, "not_found", "Invalid or expired link.");
   }
 
-  // If already a project member, just return session info
   const membership = await db
     .select()
     .from(schema.projectMembers)
@@ -436,7 +499,7 @@ sessionRoutes.post("/sessions/join/:token/project", requireAuth, async (c) => {
     .get();
 
   if (!session) {
-    return c.json({ error: "Invalid or expired link" }, 404);
+    return jsonError(c, 404, "not_found", "Invalid or expired link.");
   }
 
   await db
@@ -469,7 +532,7 @@ sessionRoutes.get("/sessions/:sid/participants", requireAuth, async (c) => {
 
   const access = await canAccessSession(user.id, sid);
   if (!access.allowed) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Session not found.");
   }
 
   const participants = await db
@@ -481,8 +544,8 @@ sessionRoutes.get("/sessions/:sid/participants", requireAuth, async (c) => {
       joinedAt: schema.sessionParticipants.joinedAt,
     })
     .from(schema.sessionParticipants)
-    .innerJoin(schema.user, eq(schema.sessionParticipants.userId, schema.user.id))
+    .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
     .where(eq(schema.sessionParticipants.sessionId, sid));
 
-  return c.json(participants);
+  return c.json(participants.map(serializeParticipant));
 });

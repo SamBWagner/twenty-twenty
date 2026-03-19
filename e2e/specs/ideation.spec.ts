@@ -105,7 +105,7 @@ test.describe("Ideation Phase", () => {
 
     // Try creating an item in action phase
     const res = await ctx.request.post(
-      `http://localhost:3001/api/sessions/${session.id}/items`,
+      `http://localhost:3001/api/v1/sessions/${session.id}/items`,
       {
         data: { type: "good", content: "Should fail" },
         headers: { Cookie: owner.cookie },

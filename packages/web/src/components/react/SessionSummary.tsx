@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { SessionSummary as SessionSummaryData } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn } from "../../lib/button-styles";
 import CopySummary from "./CopySummary";
@@ -6,7 +7,6 @@ import {
   buildSessionSummaryMarkdown,
   formatVoteCount,
   reviewStatusLabels,
-  type SessionSummaryData,
 } from "../../lib/session-summary";
 
 function formatDateTime(value: string | null): string {

@@ -1,10 +1,31 @@
 import { Hono } from "hono";
-import { eq, and, gt, desc } from "drizzle-orm";
-import { db, schema } from "../db/index.js";
+import { and, desc, eq, gt } from "drizzle-orm";
+import {
+  createProjectBodySchema,
+  invitationPreviewSchema,
+  projectInvitationSchema,
+  projectListItemSchema,
+  projectMemberSchema,
+  projectSchema,
+  updateProjectBodySchema,
+} from "@twenty-twenty/shared";
+import { db, runSqliteStatement, schema, tableHasColumn } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
 import { newId } from "../lib/id.js";
+import { jsonError, parseJsonBody, toIsoString } from "../lib/http.js";
+import { getProjectMembers, getProjectView } from "../lib/views.js";
 
 export const projectRoutes = new Hono();
+let hasLegacyInvitationEmailColumn: boolean | null = null;
+
+function invitationTableHasLegacyEmailColumn(): boolean {
+  if (hasLegacyInvitationEmailColumn !== null) {
+    return hasLegacyInvitationEmailColumn;
+  }
+
+  hasLegacyInvitationEmailColumn = tableHasColumn("project_invitations", "email");
+  return hasLegacyInvitationEmailColumn;
+}
 
 async function getProjectMembership(projectId: string, userId: string) {
   return db
@@ -45,14 +66,41 @@ async function getInvitationWithProject(token: string) {
     .get();
 
   if (!invitation) {
-    return { invitation: null, status: 404 as const, error: "Invalid invitation" };
+    return { invitation: null, status: 404 as const, code: "not_found", message: "Invalid invitation." };
   }
 
   if (new Date() > new Date(invitation.expiresAt)) {
-    return { invitation: null, status: 400 as const, error: "Invitation expired" };
+    return { invitation: null, status: 400 as const, code: "invitation_expired", message: "Invitation expired." };
   }
 
-  return { invitation, status: 200 as const, error: null };
+  return { invitation, status: 200 as const, code: null, message: null };
+}
+
+function serializeProject(project: typeof schema.projects.$inferSelect) {
+  return projectSchema.parse({
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    createdBy: project.createdBy,
+    createdAt: toIsoString(project.createdAt),
+    updatedAt: toIsoString(project.updatedAt),
+  });
+}
+
+function serializeInvitation(invitation: {
+  id: string;
+  token: string;
+  invitedByUserName: string;
+  expiresAt: Date;
+  createdAt: Date;
+}) {
+  return projectInvitationSchema.parse({
+    id: invitation.id,
+    token: invitation.token,
+    invitedByUserName: invitation.invitedByUserName,
+    expiresAt: toIsoString(invitation.expiresAt),
+    createdAt: toIsoString(invitation.createdAt),
+  });
 }
 
 // List user's projects
@@ -67,28 +115,25 @@ projectRoutes.get("/projects", requireAuth, async (c) => {
     .innerJoin(schema.projects, eq(schema.projects.id, schema.projectMembers.projectId))
     .where(eq(schema.projectMembers.userId, user.id));
 
-  return c.json(memberships.map((m) => ({ ...m.project, role: m.role })));
+  return c.json(memberships.map((membership) => projectListItemSchema.parse({
+    ...serializeProject(membership.project),
+    role: membership.role,
+  })));
 });
 
 // Create project
 projectRoutes.post("/projects", requireAuth, async (c) => {
   const user = c.get("user");
-  const body = await c.req.json<{ name: string; description?: string }>();
-  if (!body.name?.trim()) {
-    return c.json({ error: "Name is required" }, 400);
-  }
-  if (body.name.trim().length > 200) {
-    return c.json({ error: "Name must be 200 characters or less" }, 400);
-  }
-  if (body.description && body.description.trim().length > 2000) {
-    return c.json({ error: "Description must be 2000 characters or less" }, 400);
+  const parsed = await parseJsonBody(c, createProjectBodySchema);
+  if (!parsed.success) {
+    return parsed.response;
   }
 
   const now = new Date();
   const project = {
     id: newId(),
-    name: body.name.trim(),
-    description: body.description?.trim() || null,
+    name: parsed.data.name.trim(),
+    description: parsed.data.description?.trim() || null,
     createdBy: user.id,
     createdAt: now,
     updatedAt: now,
@@ -102,7 +147,19 @@ projectRoutes.post("/projects", requireAuth, async (c) => {
     joinedAt: now,
   });
 
-  return c.json(project, 201);
+  return c.json(serializeProject(project), 201);
+});
+
+projectRoutes.get("/projects/:pid/view", requireAuth, async (c) => {
+  const user = c.get("user");
+  const pid = c.req.param("pid");
+  const view = await getProjectView(pid, user.id);
+
+  if (!view) {
+    return jsonError(c, 404, "not_found", "Project not found.");
+  }
+
+  return c.json(view);
 });
 
 // Get project detail
@@ -111,24 +168,21 @@ projectRoutes.get("/projects/:pid", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getProjectMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Project not found.");
   }
 
   const project = await db.select().from(schema.projects).where(eq(schema.projects.id, pid)).get();
-  const members = await db
-    .select({
-      userId: schema.projectMembers.userId,
-      role: schema.projectMembers.role,
-      username: schema.user.name,
-      avatarUrl: schema.user.image,
-    })
-    .from(schema.projectMembers)
-    .innerJoin(schema.user, eq(schema.user.id, schema.projectMembers.userId))
-    .where(eq(schema.projectMembers.projectId, pid));
+  if (!project) {
+    return jsonError(c, 404, "not_found", "Project not found.");
+  }
 
-  return c.json({ ...project, members });
+  const members = await getProjectMembers(pid);
+
+  return c.json({
+    ...serializeProject(project),
+    members,
+  });
 });
 
 // Update project
@@ -137,26 +191,23 @@ projectRoutes.patch("/projects/:pid", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getOwnerMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can update a project.");
   }
 
-  const body = await c.req.json<{ name?: string; description?: string }>();
-  if (body.name && body.name.trim().length > 200) {
-    return c.json({ error: "Name must be 200 characters or less" }, 400);
+  const parsed = await parseJsonBody(c, updateProjectBodySchema);
+  if (!parsed.success) {
+    return parsed.response;
   }
-  if (body.description && body.description.trim().length > 2000) {
-    return c.json({ error: "Description must be 2000 characters or less" }, 400);
-  }
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
-  if (body.name?.trim()) updates.name = body.name.trim();
-  if (body.description !== undefined) updates.description = body.description?.trim() || null;
+  if (parsed.data.name?.trim()) updates.name = parsed.data.name.trim();
+  if (parsed.data.description !== undefined) updates.description = parsed.data.description?.trim() || null;
 
   await db.update(schema.projects).set(updates).where(eq(schema.projects.id, pid));
   const project = await db.select().from(schema.projects).where(eq(schema.projects.id, pid)).get();
 
-  return c.json(project);
+  return c.json(serializeProject(project!));
 });
 
 // Delete project
@@ -165,9 +216,8 @@ projectRoutes.delete("/projects/:pid", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getOwnerMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can delete a project.");
   }
 
   const members = await db
@@ -178,7 +228,7 @@ projectRoutes.delete("/projects/:pid", requireAuth, async (c) => {
     .where(eq(schema.projectMembers.projectId, pid));
 
   if (members.length !== 1 || members[0]?.userId !== user.id) {
-    return c.json({ error: "Kick everyone else from the project before deleting it." }, 400);
+    return jsonError(c, 400, "project_not_empty", "Kick everyone else from the project before deleting it.");
   }
 
   await db.delete(schema.projects).where(eq(schema.projects.id, pid));
@@ -191,24 +241,11 @@ projectRoutes.get("/projects/:pid/members", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getProjectMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Project not found.");
   }
 
-  const members = await db
-    .select({
-      userId: schema.projectMembers.userId,
-      role: schema.projectMembers.role,
-      joinedAt: schema.projectMembers.joinedAt,
-      username: schema.user.name,
-      avatarUrl: schema.user.image,
-    })
-    .from(schema.projectMembers)
-    .innerJoin(schema.user, eq(schema.user.id, schema.projectMembers.userId))
-    .where(eq(schema.projectMembers.projectId, pid));
-
-  return c.json(members);
+  return c.json(await getProjectMembers(pid));
 });
 
 // Add member (by user ID — frontend resolves GitHub username to user)
@@ -217,15 +254,18 @@ projectRoutes.post("/projects/:pid/members", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getOwnerMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can add members.");
   }
 
-  const body = await c.req.json<{ userId: string }>();
+  const body = await c.req.json<{ userId: string }>().catch(() => null);
+  if (!body?.userId) {
+    return jsonError(c, 400, "validation_error", "A userId is required.");
+  }
+
   const targetUser = await db.select().from(schema.user).where(eq(schema.user.id, body.userId)).get();
   if (!targetUser) {
-    return c.json({ error: "User not found" }, 404);
+    return jsonError(c, 404, "not_found", "User not found.");
   }
 
   await db
@@ -248,23 +288,21 @@ projectRoutes.delete("/projects/:pid/members/:uid", requireAuth, async (c) => {
   const uid = c.req.param("uid");
 
   const membership = await getOwnerMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can remove members.");
   }
 
   const targetMembership = await getProjectMembership(pid, uid);
-
   if (!targetMembership) {
-    return c.json({ error: "Member not found" }, 404);
+    return jsonError(c, 404, "not_found", "Member not found.");
   }
 
   if (targetMembership.userId === user.id) {
-    return c.json({ error: "Cannot remove yourself" }, 400);
+    return jsonError(c, 400, "invalid_request", "You cannot remove yourself.");
   }
 
   if (targetMembership.role === "owner") {
-    return c.json({ error: "Owners cannot be removed" }, 400);
+    return jsonError(c, 400, "invalid_request", "Owners cannot be removed.");
   }
 
   await db
@@ -281,11 +319,11 @@ projectRoutes.delete("/projects/:pid/membership", requireAuth, async (c) => {
 
   const membership = await getProjectMembership(pid, user.id);
   if (!membership) {
-    return c.json({ error: "Not found" }, 404);
+    return jsonError(c, 404, "not_found", "Project not found.");
   }
 
   if (membership.role === "owner") {
-    return c.json({ error: "Owners can't leave their project yet" }, 400);
+    return jsonError(c, 400, "invalid_request", "Owners can't leave their project yet.");
   }
 
   await db
@@ -302,19 +340,19 @@ projectRoutes.get("/projects/invite/:token", requireAuth, async (c) => {
 
   const invitationResult = await getInvitationWithProject(token);
   if (!invitationResult.invitation) {
-    return c.json({ error: invitationResult.error }, invitationResult.status);
+    return jsonError(c, invitationResult.status, invitationResult.code!, invitationResult.message!);
   }
 
   const membership = await getProjectMembership(invitationResult.invitation.projectId, user.id);
 
-  return c.json({
+  return c.json(invitationPreviewSchema.parse({
     projectId: invitationResult.invitation.projectId,
     projectName: invitationResult.invitation.projectName,
     projectDescription: invitationResult.invitation.projectDescription,
     invitedByUserName: invitationResult.invitation.invitedByUserName,
-    expiresAt: invitationResult.invitation.expiresAt,
-    isMember: !!membership,
-  });
+    expiresAt: toIsoString(invitationResult.invitation.expiresAt),
+    isMember: Boolean(membership),
+  }));
 });
 
 // Join project via shareable invitation link
@@ -324,7 +362,7 @@ projectRoutes.post("/projects/invite/:token", requireAuth, async (c) => {
 
   const invitationResult = await getInvitationWithProject(token);
   if (!invitationResult.invitation) {
-    return c.json({ error: invitationResult.error }, invitationResult.status);
+    return jsonError(c, invitationResult.status, invitationResult.code!, invitationResult.message!);
   }
 
   await db
@@ -346,12 +384,10 @@ projectRoutes.get("/projects/:pid/invitations", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getOwnerMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can view invitations.");
   }
 
-  const now = new Date();
   const invitations = await db
     .select({
       id: schema.projectInvitations.id,
@@ -364,11 +400,11 @@ projectRoutes.get("/projects/:pid/invitations", requireAuth, async (c) => {
     .innerJoin(schema.user, eq(schema.user.id, schema.projectInvitations.invitedByUserId))
     .where(and(
       eq(schema.projectInvitations.projectId, pid),
-      gt(schema.projectInvitations.expiresAt, now),
+      gt(schema.projectInvitations.expiresAt, new Date()),
     ))
     .orderBy(desc(schema.projectInvitations.createdAt));
 
-  return c.json(invitations);
+  return c.json(invitations.map(serializeInvitation));
 });
 
 // Create shareable invitation link
@@ -377,35 +413,49 @@ projectRoutes.post("/projects/:pid/invitations", requireAuth, async (c) => {
   const pid = c.req.param("pid");
 
   const membership = await getOwnerMembership(pid, user.id);
-
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can create invitations.");
   }
 
   const now = new Date();
-  const invitationId = newId();
-  const expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
-  const token = newId(32);
-
-  await db.insert(schema.projectInvitations).values({
-    id: invitationId,
+  const invitation = {
+    id: newId(),
     projectId: pid,
     invitedByUserId: user.id,
-    token,
-    expiresAt,
+    token: newId(32),
+    expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
     createdAt: now,
-  });
+  };
 
-  return c.json(
-    {
-      id: invitationId,
-      token,
-      invitedByUserName: user.name,
-      expiresAt,
-      createdAt: now,
-    },
-    201,
-  );
+  if (invitationTableHasLegacyEmailColumn()) {
+    runSqliteStatement(
+      `
+        INSERT INTO project_invitations
+          (id, project_id, invited_by_user_id, token, email, expires_at, created_at)
+        VALUES
+          (@id, @projectId, @invitedByUserId, @token, @email, @expiresAt, @createdAt)
+      `,
+      {
+        id: invitation.id,
+        projectId: invitation.projectId,
+        invitedByUserId: invitation.invitedByUserId,
+        token: invitation.token,
+        email: user.email || `invite+${invitation.id}@local.invalid`,
+        expiresAt: invitation.expiresAt.getTime() / 1000,
+        createdAt: invitation.createdAt.getTime(),
+      },
+    );
+  } else {
+    await db.insert(schema.projectInvitations).values(invitation);
+  }
+
+  return c.json(serializeInvitation({
+    id: invitation.id,
+    token: invitation.token,
+    invitedByUserName: user.name,
+    expiresAt: invitation.expiresAt,
+    createdAt: invitation.createdAt,
+  }), 201);
 });
 
 // Revoke invitation
@@ -416,7 +466,7 @@ projectRoutes.delete("/projects/:pid/invitations/:iid", requireAuth, async (c) =
 
   const membership = await getOwnerMembership(pid, user.id);
   if (!membership) {
-    return c.json({ error: "Forbidden" }, 403);
+    return jsonError(c, 403, "forbidden", "Only project owners can revoke invitations.");
   }
 
   const invitation = await db
@@ -426,7 +476,7 @@ projectRoutes.delete("/projects/:pid/invitations/:iid", requireAuth, async (c) =
     .get();
 
   if (!invitation) {
-    return c.json({ error: "Invitation not found" }, 404);
+    return jsonError(c, 404, "not_found", "Invitation not found.");
   }
 
   await db

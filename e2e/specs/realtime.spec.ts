@@ -76,6 +76,8 @@ test.describe("Real-time Collaboration", () => {
     await expect(ownerPage.getByText("Test item")).toBeVisible();
 
     await ownerPage.getByRole("button", { name: "Advance to Actions" }).click();
+    await expect(ownerPage.getByRole("dialog")).toContainText("Move to Actions?");
+    await ownerPage.getByRole("button", { name: "Yes, Move to Actions" }).click();
 
     // Member should see the live phase change, but stay on ideation until they choose otherwise
     await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Actions", { timeout: 10_000 });

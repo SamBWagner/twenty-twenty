@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Project } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
 
@@ -14,7 +15,7 @@ export default function CreateProjectForm() {
     setSubmitting(true);
 
     try {
-      const project = await api.post<{ id: string }>("/api/projects", { name, description });
+      const project = await api.post<Project>("/api/projects", { name, description });
       window.location.href = `/projects/${project.id}`;
     } catch (err: any) {
       setError(err.message);

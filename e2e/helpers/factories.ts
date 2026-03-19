@@ -1,6 +1,7 @@
 import type { APIRequestContext } from "@playwright/test";
 
 const API_URL = "http://localhost:3001";
+const API_V1_URL = `${API_URL}/api/v1`;
 
 interface RequestOptions {
   request: APIRequestContext;
@@ -17,7 +18,7 @@ export async function createProject(
   opts: RequestOptions,
   data: { name: string; description?: string },
 ) {
-  const res = await opts.request.post(`${API_URL}/api/projects`, {
+  const res = await opts.request.post(`${API_V1_URL}/projects`, {
     data,
     headers: headers(opts.cookie),
   });
@@ -33,7 +34,7 @@ export async function addMember(
   userId: string,
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/projects/${projectId}/members`,
+    `${API_V1_URL}/projects/${projectId}/members`,
     { data: { userId }, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`addMember failed: ${res.status()}`);
@@ -47,7 +48,7 @@ export async function createInvitation(
   projectId: string,
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/projects/${projectId}/invitations`,
+    `${API_V1_URL}/projects/${projectId}/invitations`,
     { headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`createInvitation failed: ${res.status()}`);
@@ -73,7 +74,7 @@ export async function createSession(
   data: { name: string },
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/projects/${projectId}/sessions`,
+    `${API_V1_URL}/projects/${projectId}/sessions`,
     { data, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`createSession failed: ${res.status()}`);
@@ -85,7 +86,7 @@ export async function advancePhase(
   sessionId: string,
 ) {
   const res = await opts.request.patch(
-    `${API_URL}/api/sessions/${sessionId}/phase`,
+    `${API_V1_URL}/sessions/${sessionId}/phase`,
     { headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`advancePhase failed: ${res.status()}`);
@@ -97,7 +98,7 @@ export async function generateShareToken(
   sessionId: string,
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/sessions/${sessionId}/share`,
+    `${API_V1_URL}/sessions/${sessionId}/share`,
     { headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`generateShareToken failed: ${res.status()}`);
@@ -112,7 +113,7 @@ export async function createItem(
   data: { type: "good" | "bad"; content: string },
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/sessions/${sessionId}/items`,
+    `${API_V1_URL}/sessions/${sessionId}/items`,
     { data, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`createItem failed: ${res.status()}`);
@@ -126,7 +127,7 @@ export async function voteItem(
   value: 1 | -1,
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/sessions/${sessionId}/items/${itemId}/vote`,
+    `${API_V1_URL}/sessions/${sessionId}/items/${itemId}/vote`,
     { data: { value }, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`voteItem failed: ${res.status()}`);
@@ -141,7 +142,7 @@ export async function createBundle(
   data: { label?: string; itemIds?: string[] },
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/sessions/${sessionId}/bundles`,
+    `${API_V1_URL}/sessions/${sessionId}/bundles`,
     { data, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`createBundle failed: ${res.status()}`);
@@ -156,7 +157,7 @@ export async function createAction(
   data: { description: string; bundleId?: string; assigneeId?: string },
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/sessions/${sessionId}/actions`,
+    `${API_V1_URL}/sessions/${sessionId}/actions`,
     { data, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`createAction failed: ${res.status()}`);
@@ -171,7 +172,7 @@ export async function submitReview(
   data: { actionId: string; status: "did_nothing" | "actioned" | "disagree"; comment?: string },
 ) {
   const res = await opts.request.post(
-    `${API_URL}/api/sessions/${sessionId}/reviews`,
+    `${API_V1_URL}/sessions/${sessionId}/reviews`,
     { data, headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`submitReview failed: ${res.status()}`);

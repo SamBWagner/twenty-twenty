@@ -38,7 +38,7 @@ test.describe("Action Phase", () => {
     await page.getByRole("button", { name: /New Action Group/ }).click();
 
     // Should see the new bundle with editable label
-    await expect(page.getByPlaceholder("Action group name")).toBeVisible();
+    await expect(page.getByPlaceholder("New Action Group")).toBeVisible();
 
     await ctx.close();
   });
@@ -57,7 +57,7 @@ test.describe("Action Phase", () => {
 
     // Fill in action input inside the bundle
     await page.getByPlaceholder("e.g. Set up weekly check-ins").fill("Automate deploys");
-    await page.locator("button").filter({ hasText: "+" }).last().click();
+    await page.getByPlaceholder("e.g. Set up weekly check-ins").press("Enter");
 
     await expect(page.getByText("Automate deploys")).toBeVisible();
 
@@ -86,7 +86,7 @@ test.describe("Action Phase", () => {
 
     // Session is in ideation phase — bundles should fail
     const res = await ctx.request.post(
-      `http://localhost:3001/api/sessions/${session.id}/bundles`,
+      `http://localhost:3001/api/v1/sessions/${session.id}/bundles`,
       {
         data: { label: "Should fail" },
         headers: { Cookie: owner.cookie },

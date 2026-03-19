@@ -1,15 +1,7 @@
 import { useEffect, useState } from "react";
+import type { InvitationPreview as ProjectInviteInfo } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
-
-interface ProjectInviteInfo {
-  projectId: string;
-  projectName: string;
-  projectDescription: string | null;
-  invitedByUserName: string;
-  expiresAt: string;
-  isMember: boolean;
-}
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString(undefined, {

@@ -2,7 +2,14 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "../../lib/api-client";
 import { useSessionWebSocket } from "../../lib/ws-client";
 import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
-import type { WsEvent } from "@twenty-twenty/shared";
+import type {
+  RetroSession as Session,
+  SessionParticipant as Participant,
+  SessionPhase,
+  SessionView as SessionWorkspaceView,
+  ViewerCapabilities,
+  WsEvent,
+} from "@twenty-twenty/shared";
 import { cn, scrapbookButton } from "../../lib/button-styles";
 import IdeationBoard from "./IdeationBoard";
 import ActionBoard from "./ActionBoard";
@@ -10,7 +17,6 @@ import ActionReviewFlow from "./ActionReviewFlow";
 import FloatingAvatars from "./FloatingAvatars";
 import SessionSummary from "./SessionSummary";
 
-type SessionPhase = "review" | "ideation" | "action" | "closed";
 type SessionSection = "review" | "ideation" | "action" | "summary";
 
 const phaseOrder: SessionPhase[] = ["review", "ideation", "action", "closed"];
@@ -31,28 +37,10 @@ function isSectionUnlocked(section: SessionSection, phase: SessionPhase): boolea
   return phaseOrder.indexOf(phase) >= phaseOrder.indexOf(requiredPhase);
 }
 
-interface Session {
-  id: string;
-  projectId: string;
-  name: string;
-  phase: SessionPhase;
-  sequence: number;
-  createdBy: string;
-  closedAt: string | null;
-}
-
 interface PresenceUser {
   userId: string;
   username: string;
   avatarUrl: string | null;
-}
-
-interface Participant {
-  userId: string;
-  username: string;
-  avatarUrl: string | null;
-  role: "member" | "guest";
-  joinedAt: string;
 }
 
 interface PendingAdvance {
@@ -60,6 +48,7 @@ interface PendingAdvance {
   title: string;
   message: string;
   busyLabel: string;
+  confirmLabel: string;
 }
 
 export default function SessionView({
@@ -78,6 +67,7 @@ export default function SessionView({
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
   const [showParticipants, setShowParticipants] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [viewerCapabilities, setViewerCapabilities] = useState<ViewerCapabilities | null>(null);
   const [activeSection, setActiveSection] = useState<SessionSection | null>(null);
   const [pendingAdvance, setPendingAdvance] = useState<PendingAdvance | null>(null);
   const [advancingPhase, setAdvancingPhase] = useState(false);
@@ -89,6 +79,13 @@ export default function SessionView({
 
   const handleReviewComplete = useCallback(() => {
     setSession((prev) => (prev ? { ...prev, phase: "ideation" } : prev));
+    setViewerCapabilities((prev) => (prev ? {
+      ...prev,
+      canAdvancePhase: true,
+      canSubmitReviews: false,
+      canEditIdeation: true,
+      canEditActionBoard: false,
+    } : prev));
     setActiveSection("ideation");
   }, []);
 
@@ -108,10 +105,18 @@ export default function SessionView({
           setOnlineUsers((prev) => prev.filter((u) => u.userId !== event.payload.userId));
           break;
         case "phase:changed":
+          const nextPhase = event.payload.phase as SessionPhase;
           setSession((prev) =>
-            prev ? { ...prev, phase: event.payload.phase as SessionPhase } : prev,
+            prev ? { ...prev, phase: nextPhase } : prev,
           );
-          setActiveSection((prev) => prev || defaultSectionForPhase(event.payload.phase as SessionPhase));
+          setViewerCapabilities((prev) => (prev ? {
+            ...prev,
+            canAdvancePhase: (nextPhase === "ideation" || nextPhase === "action") && session?.createdBy === userId,
+            canSubmitReviews: nextPhase === "review",
+            canEditIdeation: nextPhase === "ideation",
+            canEditActionBoard: nextPhase === "action",
+          } : prev));
+          setActiveSection((prev) => prev || defaultSectionForPhase(nextPhase));
           break;
         default:
           itemEventHandlers.onWsEvent?.(event);
@@ -124,10 +129,12 @@ export default function SessionView({
 
   useEffect(() => {
     api
-      .get<Session>(`/api/sessions/${sessionId}`)
-      .then((s) => {
-        setSession(s);
-        setActiveSection((prev) => prev || defaultSectionForPhase(s.phase));
+      .get<SessionWorkspaceView>(`/api/sessions/${sessionId}/view`)
+      .then((view) => {
+        setSession(view.session);
+        setParticipants(view.participants);
+        setViewerCapabilities(view.viewerCapabilities);
+        setActiveSection((prev) => prev || defaultSectionForPhase(view.session.phase));
         setLoadError(null);
       })
       .catch((err: Error) => setLoadError(err.message || "Failed to load session."))
@@ -198,10 +205,6 @@ export default function SessionView({
       setShowParticipants(false);
       return;
     }
-    try {
-      const data = await api.get<Participant[]>(`/api/sessions/${sessionId}/participants`);
-      setParticipants(data);
-    } catch {}
     setShowParticipants(true);
   }
 
@@ -350,17 +353,19 @@ export default function SessionView({
             )}
           </div>
 
-          <button
-            onClick={handleShare}
-            className={cn(
-              scrapbookButton({ tone: "primary", size: "compact", tilt: "left", depth: "sm" }),
-              "border-3 border-secondary bg-primary px-4 py-2 text-sm font-bold uppercase text-white",
-            )}
-          >
-            {shareState === "copied" ? "Copied!" : "Share"}
-          </button>
+          {viewerCapabilities?.canShareSession && (
+            <button
+              onClick={handleShare}
+              className={cn(
+                scrapbookButton({ tone: "primary", size: "compact", tilt: "left", depth: "sm" }),
+                "border-3 border-secondary bg-primary px-4 py-2 text-sm font-bold uppercase text-white",
+              )}
+            >
+              {shareState === "copied" ? "Copied!" : "Share"}
+            </button>
+          )}
 
-          {isCreator && session.phase === "ideation" && (
+          {viewerCapabilities?.canAdvancePhase && session.phase === "ideation" && (
             <button
               onClick={() =>
                 setPendingAdvance({
@@ -368,6 +373,7 @@ export default function SessionView({
                   title: "Move to Actions?",
                   message: "This ends ideation editing and moves everyone into the action planning stage. This action can't be undone.",
                   busyLabel: "Moving...",
+                  confirmLabel: "Yes, Move to Actions",
                 })}
               disabled={advancingPhase}
               className={cn(
@@ -379,14 +385,15 @@ export default function SessionView({
             </button>
           )}
 
-          {isCreator && session.phase === "action" && (
+          {viewerCapabilities?.canAdvancePhase && session.phase === "action" && (
             <button
               onClick={() =>
                 setPendingAdvance({
                   nextSection: "summary",
-                  title: "Close Session?",
+                  title: "Close this retrospective?",
                   message: "This ends live editing and opens the final summary view for the team. This action can't be undone.",
                   busyLabel: "Closing...",
+                  confirmLabel: "Yes, Close Session",
                 })}
               className={cn(
                 scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "md" }),
@@ -398,8 +405,13 @@ export default function SessionView({
           )}
 
           {pendingAdvance && (
-            <div className="absolute right-0 top-[4.5rem] z-40 w-[min(24rem,calc(100vw-2rem))] border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal">
-              <p className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="pending-advance-title"
+              className="absolute right-0 top-[4.5rem] z-40 w-[min(24rem,calc(100vw-2rem))] border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal"
+            >
+              <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
               <p className="scribble-help mt-2 text-sm text-secondary/70">{pendingAdvance.message}</p>
               <div className="mt-4 flex flex-wrap justify-end gap-3">
                 <button
@@ -422,7 +434,7 @@ export default function SessionView({
                     "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                 >
-                  {advancingPhase ? pendingAdvance.busyLabel : "Confirm"}
+                  {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
                 </button>
               </div>
             </div>

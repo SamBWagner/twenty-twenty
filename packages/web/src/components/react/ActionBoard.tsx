@@ -1,35 +1,14 @@
 import { useEffect, useState } from "react";
+import type {
+  Action,
+  Bundle,
+  ProjectMember as Member,
+  RetroItem as Item,
+  WsEvent,
+} from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
-import type { WsEvent } from "@twenty-twenty/shared";
 import { cn, scrapbookButton } from "../../lib/button-styles";
 import MarchingAnts from "./MarchingAnts";
-
-interface Item {
-  id: string;
-  type: "good" | "bad";
-  content: string;
-  voteCount: number;
-  authorId?: string;
-}
-
-interface Bundle {
-  id: string;
-  label: string | null;
-  itemIds: string[];
-}
-
-interface Action {
-  id: string;
-  description: string;
-  bundleId: string | null;
-  assigneeId: string | null;
-}
-
-interface Member {
-  userId: string;
-  username: string;
-  avatarUrl: string | null;
-}
 
 const bundleRotations = ["rotate-[-0.5deg]", "rotate-[0.5deg]", "rotate-[0deg]", "rotate-[-0.3deg]"];
 

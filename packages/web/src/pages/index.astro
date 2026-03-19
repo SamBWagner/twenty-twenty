@@ -1,74 +1,80 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import AuthBlockedState from "../components/AuthBlockedState.astro";
 import { cn, scrapbookButton } from "../lib/button-styles";
-
-const auth = Astro.locals.auth;
-
-if (auth.state === "authenticated") {
-  return Astro.redirect("/projects");
-}
 ---
 
 <Layout title="Welcome">
-  {auth.state === "anonymous" ? (
-    <div class="relative py-12">
-      <!-- Decorative scattered elements -->
-      <div class="absolute top-8 right-12 border-3 border-secondary bg-primary text-white px-3 py-1 font-mono text-xs font-bold rotate-[8deg] shadow-brutal-sm">
-        v1.0
-      </div>
-      <div class="absolute top-32 right-24 text-6xl rotate-[15deg] select-none">
-        ✦
-      </div>
-      <div class="absolute bottom-20 left-8 text-4xl rotate-[-10deg] text-primary select-none">
-        ★
-      </div>
-      <div class="absolute top-4 left-[40%] w-16 h-3 bg-tertiary/60 border-2 border-secondary rotate-[-3deg]"></div>
+  <div class="relative py-12">
+    <div class="absolute top-8 right-12 border-3 border-secondary bg-primary text-white px-3 py-1 font-mono text-xs font-bold rotate-[8deg] shadow-brutal-sm">
+      v1.0
+    </div>
+    <div class="absolute top-32 right-24 text-6xl rotate-[15deg] select-none">
+      ✦
+    </div>
+    <div class="absolute bottom-20 left-8 text-4xl rotate-[-10deg] text-primary select-none">
+      ★
+    </div>
+    <div class="absolute top-4 left-[40%] w-16 h-3 bg-tertiary/60 border-2 border-secondary rotate-[-3deg]"></div>
 
-      <!-- Main hero -->
-      <div class="relative max-w-2xl mx-auto text-center">
-        <!-- Title as stacked punchy lines -->
-        <div class="mb-2 inline-block">
-          <h1 class="text-7xl font-bold uppercase leading-[0.9] text-stroke">
-            <span class="text-tertiary">Twenty</span><br />
-            <span class="text-primary">Twenty</span>
-          </h1>
+    <div class="relative max-w-2xl mx-auto text-center">
+      <div class="mb-2 inline-block">
+        <h1 class="text-7xl font-bold uppercase leading-[0.9] text-stroke">
+          <span class="text-tertiary">Twenty</span><br />
+          <span class="text-primary">Twenty</span>
+        </h1>
+      </div>
+
+      <div class="tape mx-auto mt-8 mb-10 max-w-md border-3 border-secondary bg-white p-5 shadow-brutal rotate-[1deg]">
+        <p class="text-lg font-medium leading-relaxed">
+          Hindsight is 20/20. Run retros with <span class="bg-tertiary px-1 font-bold">real accountability</span> — ideation, voting, actions, and follow-through.
+        </p>
+      </div>
+
+      <a
+        href="/auth/signin"
+        class={cn(
+          scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "lg" }),
+          "group inline-block border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white",
+        )}
+      >
+        Sign in with GitHub
+        <span class="inline-block transition-transform group-hover:translate-x-1">→</span>
+      </a>
+
+      <div class="mt-12 flex justify-center gap-6">
+        <div class="border-3 border-secondary bg-green-300 px-4 py-2 font-bold text-sm uppercase shadow-brutal-sm rotate-[-3deg]">
+          ✓ What went well
         </div>
-
-        <!-- Tagline on a "taped" card -->
-        <div class="tape mx-auto mt-8 mb-10 max-w-md border-3 border-secondary bg-white p-5 shadow-brutal rotate-[1deg]">
-          <p class="text-lg font-medium leading-relaxed">
-            Hindsight is 20/20. Run retros with <span class="bg-tertiary px-1 font-bold">real accountability</span> — ideation, voting, actions, and follow-through.
-          </p>
+        <div class="border-3 border-secondary bg-red-300 px-4 py-2 font-bold text-sm uppercase shadow-brutal-sm rotate-[2deg]">
+          ✗ What didn't
         </div>
-
-        <!-- CTA as a big sticker -->
-        <a
-          href="/auth/signin"
-          class={cn(
-            scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "lg" }),
-            "group inline-block border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white",
-          )}
-        >
-          Sign in with GitHub
-          <span class="inline-block transition-transform group-hover:translate-x-1">→</span>
-        </a>
-
-        <!-- Small scattered details -->
-        <div class="mt-12 flex justify-center gap-6">
-          <div class="border-3 border-secondary bg-green-300 px-4 py-2 font-bold text-sm uppercase shadow-brutal-sm rotate-[-3deg]">
-            ✓ What went well
-          </div>
-          <div class="border-3 border-secondary bg-red-300 px-4 py-2 font-bold text-sm uppercase shadow-brutal-sm rotate-[2deg]">
-            ✗ What didn't
-          </div>
-          <div class="border-3 border-secondary bg-primary text-white px-4 py-2 font-bold text-sm uppercase shadow-brutal-sm rotate-[-1deg]">
-            → Take action
-          </div>
+        <div class="border-3 border-secondary bg-primary text-white px-4 py-2 font-bold text-sm uppercase shadow-brutal-sm rotate-[-1deg]">
+          → Take action
         </div>
       </div>
     </div>
-  ) : (
-    <AuthBlockedState auth={auth} />
-  )}
+  </div>
+
+  <script is:inline define:vars={{ explicitApiUrl: import.meta.env.PUBLIC_API_URL || "" }}>
+    function getSessionApiBaseUrl() {
+      if (explicitApiUrl) return explicitApiUrl;
+
+      const url = new URL(window.location.origin);
+      const isLocalDevHost = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+      if (isLocalDevHost && url.port === "4321") {
+        url.port = "3001";
+      }
+
+      return url.origin;
+    }
+
+    fetch(`${getSessionApiBaseUrl()}/api/v1/auth/session`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.viewer) {
+          window.location.href = "/projects";
+        }
+      })
+      .catch(() => {});
+  </script>
 </Layout>

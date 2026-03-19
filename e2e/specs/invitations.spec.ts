@@ -92,7 +92,7 @@ test.describe("Project invite links", () => {
     const invitation = await createInvitation(ownerOptions, project.id);
 
     const revokeResponse = await ownerCtx.request.delete(
-      `${API_URL}/api/projects/${project.id}/invitations/${invitation.id}`,
+      `${API_URL}/api/v1/projects/${project.id}/invitations/${invitation.id}`,
       { headers: { Cookie: owner.cookie } },
     );
     expect(revokeResponse.ok()).toBeTruthy();
@@ -141,7 +141,7 @@ test.describe("Project invite links", () => {
     await addMember(ownerOptions, project.id, member.userId);
 
     const response = await memberCtx.request.post(
-      `${API_URL}/api/projects/${project.id}/invitations`,
+      `${API_URL}/api/v1/projects/${project.id}/invitations`,
       { headers: { Cookie: member.cookie } },
     );
     expect(response.status()).toBe(403);

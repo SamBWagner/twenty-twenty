@@ -1,19 +1,15 @@
 ---
 import Layout from "../../../../layouts/Layout.astro";
-import AuthBlockedState from "../../../../components/AuthBlockedState.astro";
-import SessionView from "../../../../components/react/SessionView";
-
-const auth = Astro.locals.auth;
-if (auth.state === "anonymous") return Astro.redirect("/login");
-const user = auth.user;
+import SessionPage from "../../../../components/react/SessionPage";
+import UserNav from "../../../../components/react/UserNav";
 
 const { projectId, sessionId } = Astro.params;
 ---
 
 <Layout title="Session">
-  {auth.state === "authenticated" && user ? (
-    <SessionView sessionId={sessionId!} projectId={projectId!} userId={user.id} client:load />
-  ) : (
-    <AuthBlockedState auth={auth} />
-  )}
+  <Fragment slot="nav">
+    <UserNav client:load />
+  </Fragment>
+
+  <SessionPage sessionId={sessionId!} projectId={projectId!} client:load />
 </Layout>

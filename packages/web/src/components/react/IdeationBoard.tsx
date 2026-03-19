@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
+import type { RetroItem as Item } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import type { WsEvent } from "@twenty-twenty/shared";
 import { cn, scrapbookButton } from "../../lib/button-styles";
-
-interface Item {
-  id: string;
-  type: "good" | "bad";
-  content: string;
-  voteCount: number;
-  userVote: number;
-  isOwn: boolean;
-}
 
 const cardRotations = [
   "rotate-[-1.5deg]", "rotate-[0.5deg]", "rotate-[-0.5deg]", "rotate-[1.5deg]",

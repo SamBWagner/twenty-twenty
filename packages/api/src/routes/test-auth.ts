@@ -62,6 +62,7 @@ testAuthRoutes.post("/test-auth/reset-db", async (c) => {
     "project_invitations",
     "project_members",
     "projects",
+    "personal_access_tokens",
     "verification",
     "session",
     "account",

@@ -1,66 +1,28 @@
 import { Hono } from "hono";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { actionReviewSchema, submitReviewBodySchema } from "@twenty-twenty/shared";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
 import { newId } from "../lib/id.js";
 import { broadcast } from "../ws/rooms.js";
 import { canAccessSession } from "../lib/session-access.js";
+import { jsonError, parseJsonBody, toIsoString } from "../lib/http.js";
+import { getReviewStateForSession } from "../lib/views.js";
 
 export const reviewRoutes = new Hono();
 
 // Get pending reviews (previous session's unreviewed actions)
 reviewRoutes.get("/sessions/:sid/reviews/pending", requireAuth, async (c) => {
+  const user = c.get("user");
   const sid = c.req.param("sid");
 
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
+
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
-  if (!session) return c.json({ error: "Not found" }, 404);
+  if (!session) return jsonError(c, 404, "not_found", "Session not found.");
 
-  // Find previous session
-  const previousSession = await db
-    .select()
-    .from(schema.retroSessions)
-    .where(
-      and(
-        eq(schema.retroSessions.projectId, session.projectId),
-        eq(schema.retroSessions.sequence, session.sequence - 1),
-      ),
-    )
-    .get();
-
-  if (!previousSession) {
-    return c.json({
-      actions: [],
-      reviews: [],
-      pending: [],
-      total: 0,
-      reviewed: 0,
-    });
-  }
-
-  // Get actions from previous session
-  const previousActions = await db
-    .select()
-    .from(schema.actions)
-    .where(eq(schema.actions.sessionId, previousSession.id));
-
-  // Get existing reviews for this session
-  const existingReviews = await db
-    .select()
-    .from(schema.actionReviews)
-    .where(eq(schema.actionReviews.sessionId, sid));
-
-  const reviewedActionIds = new Set(existingReviews.map((r) => r.actionId));
-
-  // Return unreviewed actions with their bundle context
-  const pending = previousActions.filter((a) => !reviewedActionIds.has(a.id));
-
-  return c.json({
-    actions: previousActions,
-    reviews: existingReviews,
-    pending,
-    total: previousActions.length,
-    reviewed: existingReviews.length,
-  });
+  return c.json(await getReviewStateForSession(session));
 });
 
 // Submit a review
@@ -68,45 +30,40 @@ reviewRoutes.post("/sessions/:sid/reviews", requireAuth, async (c) => {
   const user = c.get("user");
   const sid = c.req.param("sid");
 
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
+
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
-  if (!session) return c.json({ error: "Not found" }, 404);
-  if (session.phase !== "review") return c.json({ error: "Reviews only during review phase" }, 400);
+  if (!session) return jsonError(c, 404, "not_found", "Session not found.");
+  if (session.phase !== "review") return jsonError(c, 400, "invalid_phase", "Reviews are only available during the review phase.");
 
-  const body = await c.req.json<{
-    actionId: string;
-    status: "did_nothing" | "actioned" | "disagree";
-    comment?: string;
-  }>();
-
-  if (!["did_nothing", "actioned", "disagree"].includes(body.status)) {
-    return c.json({ error: "Invalid status" }, 400);
+  const parsed = await parseJsonBody(c, submitReviewBodySchema);
+  if (!parsed.success) {
+    return parsed.response;
   }
-  if (body.status === "disagree" && !body.comment?.trim()) {
-    return c.json({ error: "Comment required when disagreeing" }, 400);
-  }
-  if (body.comment && body.comment.trim().length > 2000) {
-    return c.json({ error: "Comment must be 2000 characters or less" }, 400);
+  if (parsed.data.status === "disagree" && !parsed.data.comment?.trim()) {
+    return jsonError(c, 400, "validation_error", "A comment is required when disagreeing.");
   }
 
   // Check action exists and belongs to previous session
-  const action = await db.select().from(schema.actions).where(eq(schema.actions.id, body.actionId)).get();
-  if (!action) return c.json({ error: "Action not found" }, 404);
+  const action = await db.select().from(schema.actions).where(eq(schema.actions.id, parsed.data.actionId)).get();
+  if (!action) return jsonError(c, 404, "not_found", "Action not found.");
 
   // Create review
   const review = {
     id: newId(),
-    actionId: body.actionId,
+    actionId: parsed.data.actionId,
     sessionId: sid,
     reviewerId: user.id,
-    status: body.status,
-    comment: body.comment?.trim() || null,
+    status: parsed.data.status,
+    comment: parsed.data.comment?.trim() || null,
     createdAt: new Date(),
   };
 
   await db.insert(schema.actionReviews).values(review);
 
   // If "did_nothing", roll the action into this session
-  if (body.status === "did_nothing") {
+  if (parsed.data.status === "did_nothing") {
     const rolledAction = {
       id: newId(),
       sessionId: sid,
@@ -152,17 +109,37 @@ reviewRoutes.post("/sessions/:sid/reviews", requireAuth, async (c) => {
     }
   }
 
-  return c.json(review, 201);
+  return c.json(actionReviewSchema.parse({
+    id: review.id,
+    actionId: review.actionId,
+    sessionId: review.sessionId,
+    reviewerId: review.reviewerId,
+    status: review.status,
+    comment: review.comment,
+    createdAt: toIsoString(review.createdAt),
+  }), 201);
 });
 
 // Get all reviews for this session
 reviewRoutes.get("/sessions/:sid/reviews", requireAuth, async (c) => {
+  const user = c.get("user");
   const sid = c.req.param("sid");
+
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) return jsonError(c, 404, "not_found", "Session not found.");
 
   const reviews = await db
     .select()
     .from(schema.actionReviews)
     .where(eq(schema.actionReviews.sessionId, sid));
 
-  return c.json(reviews);
+  return c.json(reviews.map((review) => actionReviewSchema.parse({
+    id: review.id,
+    actionId: review.actionId,
+    sessionId: review.sessionId,
+    reviewerId: review.reviewerId,
+    status: review.status,
+    comment: review.comment,
+    createdAt: toIsoString(review.createdAt),
+  })));
 });

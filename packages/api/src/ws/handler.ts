@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { eq, and } from "drizzle-orm";
-import { auth } from "../auth/index.js";
+import { authenticateRequest } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
 import { joinRoom, leaveRoom } from "./rooms.js";
 
@@ -8,9 +8,8 @@ export function createWsHandler(upgradeWebSocket: Function) {
   return upgradeWebSocket(async (c: Context) => {
     const sessionId = c.req.query("sessionId");
 
-    // Authenticate via session cookie
-    const sessionData = await auth.api.getSession({ headers: c.req.raw.headers });
-    const user = sessionData?.user;
+    const auth = await authenticateRequest(c.req.raw.headers);
+    const user = auth.user;
 
     return {
       onOpen(_event: unknown, ws: any) {

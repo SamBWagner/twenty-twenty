@@ -88,6 +88,8 @@ test.describe("Session Lifecycle", () => {
 
     // Click advance button
     await page.getByRole("button", { name: "Advance to Actions" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Move to Actions?");
+    await page.getByRole("button", { name: "Yes, Move to Actions" }).click();
     await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Actions");
     await expect(page.locator('button[data-active-section="true"]')).toHaveText("Actions");
 
@@ -103,7 +105,7 @@ test.describe("Session Lifecycle", () => {
 
     // Try advancing via API without items
     const res = await ctx.request.patch(
-      `http://localhost:3001/api/sessions/${session.id}/phase`,
+      `http://localhost:3001/api/v1/sessions/${session.id}/phase`,
       { headers: { Cookie: owner.cookie } },
     );
     expect(res.ok()).toBeFalsy();

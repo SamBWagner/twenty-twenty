@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
+import type { ProjectListItem as Project } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
 import MarchingAnts from "./MarchingAnts";
-
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  role: string;
-  createdAt: string;
-}
 
 const rotations = ["rotate-[-2deg]", "rotate-[1deg]", "rotate-[-1deg]", "rotate-[2deg]", "rotate-[0deg]", "rotate-[-1.5deg]"];
 

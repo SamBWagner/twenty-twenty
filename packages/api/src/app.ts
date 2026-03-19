@@ -20,6 +20,8 @@ import { actionRoutes } from "./routes/actions.js";
 import { reviewRoutes } from "./routes/reviews.js";
 import { testAuthRoutes } from "./routes/test-auth.js";
 import { rateLimiter, type RateLimitKeyStrategy } from "./middleware/rate-limit.js";
+import { authV1Routes } from "./routes/auth-v1.js";
+import { buildOpenApiDocument } from "./lib/openapi.js";
 
 interface RateLimitProfile {
   windowMs: number;
@@ -102,7 +104,7 @@ export function createApp(options: CreateAppOptions = {}) {
     cors({
       origin: process.env.WEB_URL || "http://localhost:4321",
       credentials: true,
-      allowHeaders: ["Content-Type"],
+      allowHeaders: ["Content-Type", "Authorization"],
     }),
   );
 
@@ -132,13 +134,15 @@ export function createApp(options: CreateAppOptions = {}) {
       "/api/*",
       rateLimiter({
         ...api,
-        skip: (c) => c.req.path === "/api/health" || c.req.path.startsWith("/api/auth/"),
+        skip: (c) => c.req.path === "/api/health" || c.req.path === "/api/v1/health" || c.req.path.startsWith("/api/auth/"),
       }),
     );
   }
 
   // Health check
   app.get("/api/health", (c) => c.json({ ok: true }));
+  app.get("/api/v1/health", (c) => c.json({ ok: true }));
+  app.get("/api/v1/openapi.json", (c) => c.json(buildOpenApiDocument()));
 
   app.get("/api/auth/status", (c) => {
     const missingEnvVars: string[] = [];
@@ -175,13 +179,14 @@ export function createApp(options: CreateAppOptions = {}) {
     app.route("/api", testAuthRoutes);
   }
 
-  // API routes
-  app.route("/api", projectRoutes);
-  app.route("/api", sessionRoutes);
-  app.route("/api", itemRoutes);
-  app.route("/api", bundleRoutes);
-  app.route("/api", actionRoutes);
-  app.route("/api", reviewRoutes);
+  // Versioned product API routes
+  app.route("/api/v1", authV1Routes);
+  app.route("/api/v1", projectRoutes);
+  app.route("/api/v1", sessionRoutes);
+  app.route("/api/v1", itemRoutes);
+  app.route("/api/v1", bundleRoutes);
+  app.route("/api/v1", actionRoutes);
+  app.route("/api/v1", reviewRoutes);
 
   return app;
 }

@@ -13,7 +13,7 @@ export function useSessionWebSocket(
   useEffect(() => {
     if (!sessionId) return;
 
-    const ws = new WebSocket(`${getPublicWebSocketBaseUrl()}/api/ws?sessionId=${sessionId}`);
+    const ws = new WebSocket(`${getPublicWebSocketBaseUrl()}/api/v1/ws?sessionId=${sessionId}`);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {

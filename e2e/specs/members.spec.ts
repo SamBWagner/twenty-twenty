@@ -107,7 +107,7 @@ test.describe("Project members", () => {
     const third = await loginAsUser(thirdCtx, { name: "Third User", email: "third@test.local" });
 
     const response = await memberCtx.request.post(
-      `http://localhost:3001/api/projects/${project.id}/members`,
+      `http://localhost:3001/api/v1/projects/${project.id}/members`,
       {
         data: { userId: third.userId },
         headers: { Cookie: member.cookie },

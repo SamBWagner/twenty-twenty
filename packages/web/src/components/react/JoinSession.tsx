@@ -1,15 +1,7 @@
 import { useEffect, useState } from "react";
+import type { SharePreview as SessionInfo } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
-
-interface SessionInfo {
-  sessionId: string;
-  sessionName: string;
-  projectId: string;
-  projectName: string;
-  phase: string;
-  isMember: boolean;
-}
 
 export default function JoinSession({ token }: { token: string }) {
   const [info, setInfo] = useState<SessionInfo | null>(null);

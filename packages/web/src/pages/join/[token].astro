@@ -1,20 +1,15 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import AuthBlockedState from "../../components/AuthBlockedState.astro";
-import JoinSession from "../../components/react/JoinSession";
+import JoinPage from "../../components/react/JoinPage";
+import UserNav from "../../components/react/UserNav";
 
-const auth = Astro.locals.auth;
 const { token } = Astro.params;
-
-if (auth.state === "anonymous") {
-  return Astro.redirect(`/login?redirect=/join/${token}`);
-}
 ---
 
 <Layout title="Join Retro">
-  {auth.state === "authenticated" ? (
-    <JoinSession token={token!} client:load />
-  ) : (
-    <AuthBlockedState auth={auth} />
-  )}
+  <Fragment slot="nav">
+    <UserNav client:load />
+  </Fragment>
+
+  <JoinPage token={token!} client:load />
 </Layout>

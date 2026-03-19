@@ -1,20 +1,15 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-import AuthBlockedState from "../../../components/AuthBlockedState.astro";
-import ProjectInviteJoin from "../../../components/react/ProjectInviteJoin";
+import ProjectInvitePage from "../../../components/react/ProjectInvitePage";
+import UserNav from "../../../components/react/UserNav";
 
-const auth = Astro.locals.auth;
 const { token } = Astro.params;
-
-if (auth.state === "anonymous") {
-  return Astro.redirect(`/login?redirect=/projects/invite/${token}`);
-}
 ---
 
 <Layout title="Join Project">
-  {auth.state === "authenticated" ? (
-    <ProjectInviteJoin token={token!} client:load />
-  ) : (
-    <AuthBlockedState auth={auth} />
-  )}
+  <Fragment slot="nav">
+    <UserNav client:load />
+  </Fragment>
+
+  <ProjectInvitePage token={token!} client:load />
 </Layout>

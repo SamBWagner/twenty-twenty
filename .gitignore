@@ -3,3 +3,17 @@ dist/
 .env
 *.db
 .astro/
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+*.swp
+*.swo
+.idea/
+.vscode/

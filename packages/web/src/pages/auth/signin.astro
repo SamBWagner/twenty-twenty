@@ -7,7 +7,10 @@ import Layout from "../../layouts/Layout.astro";
     <p class="font-mono text-sm">Redirecting to GitHub...</p>
   </div>
   <script define:vars={{
-    publicApiUrl: import.meta.env.PUBLIC_API_URL || process.env.API_URL || "",
+    // Never leak the server-only API_URL into browser code. In production on Fly,
+    // API_URL is the container-local origin and would resolve to the visitor's
+    // own localhost if the browser tried to use it directly.
+    publicApiUrl: import.meta.env.PUBLIC_API_URL || "",
     publicWebUrl: import.meta.env.PUBLIC_WEB_URL || process.env.WEB_URL || "",
   }}>
     function isLocalDevHost(hostname) {

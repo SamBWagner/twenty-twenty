@@ -74,7 +74,7 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
         <div className="max-w-md border-3 border-secondary bg-white p-8 text-center shadow-brutal">
           <h2 className="mb-2 text-3xl font-bold uppercase">{info.projectName}</h2>
           {info.projectDescription && <p className="mb-4 text-sm text-secondary/60">{info.projectDescription}</p>}
-          <p className="mb-6 font-mono text-sm text-secondary/60">
+          <p className="scribble-help mb-6 text-base text-secondary/60">
             You are already a member of this project.
           </p>
           <a

@@ -4,6 +4,7 @@ interface Props {
 }
 
 import { cn, scrapbookButton } from "../lib/button-styles";
+import Footer from "../components/Footer.astro";
 
 const { title } = Astro.props;
 ---
@@ -18,7 +19,7 @@ const { title } = Astro.props;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=The+Girl+Next+Door&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -116,6 +117,37 @@ const { title } = Astro.props;
       }
     </style>
     <style is:global>
+      @keyframes section-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+
+      .section-bounce {
+        animation: section-bounce 1s ease-in-out infinite;
+      }
+
+      .scribble-text {
+        font-family: "The Girl Next Door", cursive;
+      }
+
+      .scribble-help {
+        font-family: "The Girl Next Door", cursive;
+        font-size: clamp(1.05rem, 1rem + 0.25vw, 1.35rem);
+        font-weight: 700;
+        letter-spacing: 0.025em;
+        line-height: 1.2;
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        font-family: "The Girl Next Door", cursive;
+        font-weight: 700;
+        font-size: 1.18em;
+        letter-spacing: 0.025em;
+        line-height: 1.15;
+        opacity: 1;
+      }
+
       .scrapbook-btn {
         --sb-rest-rotate: 0deg;
         --sb-hover-rotate: 0.45deg;
@@ -232,7 +264,7 @@ const { title } = Astro.props;
       }
     </style>
   </head>
-  <body class="min-h-screen bg-surface bg-grid font-sans text-secondary">
+  <body class="flex min-h-screen flex-col bg-surface bg-grid font-sans text-secondary">
     <!-- Scattered nav -->
     <nav class="relative mx-auto max-w-6xl px-6 pt-6 pb-2">
       <div class="flex items-start justify-between">
@@ -251,9 +283,43 @@ const { title } = Astro.props;
       </div>
     </nav>
 
-    <main class="mx-auto max-w-6xl px-6 py-6">
+    <main class="mx-auto w-full max-w-6xl flex-1 px-6 py-6">
       <slot />
     </main>
+
+    <div class="mx-auto w-full max-w-6xl px-6" aria-hidden="true">
+      <div class="relative mt-24 md:mt-32">
+        <svg
+          viewBox="0 0 1200 54"
+          class="h-8 w-full overflow-visible"
+          preserveAspectRatio="none"
+          fill="none"
+        >
+          <path
+            d="M8 30 C 90 14, 170 42, 250 28 S 410 14, 500 29 S 690 44, 780 27 S 960 15, 1040 28 S 1130 39, 1192 25"
+            stroke="#080708"
+            stroke-width="6"
+            stroke-linecap="square"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          ></path>
+          <path
+            d="M8 34 C 90 18, 170 46, 250 32 S 410 18, 500 33 S 690 48, 780 31 S 960 19, 1040 32 S 1130 43, 1192 29"
+            stroke="#080708"
+            stroke-width="2.5"
+            stroke-dasharray="14 12"
+            stroke-linecap="square"
+            vector-effect="non-scaling-stroke"
+            opacity="0.85"
+          ></path>
+        </svg>
+        <div class="absolute left-6 top-1/2 -translate-y-1/2 rotate-[-4deg] border-3 border-secondary bg-white px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]">
+          Tear Here
+        </div>
+      </div>
+    </div>
+
+    <Footer />
 
     <script>
       const COLORS = [

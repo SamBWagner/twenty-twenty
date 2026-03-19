@@ -358,7 +358,7 @@ export default function ProjectDetail({
             {deleteConfirmOpen && (
               <div className="absolute right-4 top-[4.75rem] z-20 w-[min(22rem,calc(100%-2rem))] border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal">
                 <p className="text-sm font-bold uppercase">Delete Project</p>
-                <p className="mt-2 text-xs font-mono text-secondary/70">
+                <p className="scribble-help mt-2 text-sm text-secondary/70">
                   This permanently deletes the project, sessions, actions, and invite links.
                 </p>
                 <label htmlFor="delete-project-confirmation" className="mt-4 block text-xs font-bold uppercase">
@@ -422,10 +422,10 @@ export default function ProjectDetail({
                 >
                   {creatingInvite ? "Creating..." : "Create Invite Link"}
                 </button>
-                <p className="text-xs font-mono text-secondary/50">
+                <p className="scribble-help text-sm text-secondary/50">
                   Invite links are multi-use and expire 1 hour after creation.
                 </p>
-                <p className="text-xs font-mono text-secondary/50">
+                <p className="scribble-help text-sm text-secondary/50">
                   Owners cannot leave a project until ownership transfer exists.
                 </p>
               </>
@@ -528,7 +528,7 @@ export default function ProjectDetail({
       <h2 className="mb-4 text-2xl font-bold uppercase">Sessions</h2>
       {sessions.length === 0 ? (
         <MarchingAnts className="p-10 text-center">
-          <p className="text-lg font-bold">No sessions yet. Start one above!</p>
+          <p className="scribble-help text-2xl text-secondary">No sessions yet. Start one above!</p>
         </MarchingAnts>
       ) : (
         <div className="space-y-3">
@@ -561,14 +561,14 @@ export default function ProjectDetail({
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold uppercase">Invite Links</h2>
-              <p className="text-sm text-secondary/60">Share these links to let people join the project.</p>
+              <p className="scribble-help text-base text-secondary/60">Share these links to let people join the project.</p>
             </div>
           </div>
 
           {invitations.length === 0 ? (
             <MarchingAnts className="p-10 text-center">
-              <p className="text-lg font-bold">No active invite links yet.</p>
-              <p className="mt-2 text-sm text-secondary/60">Create one above and it will appear here.</p>
+              <p className="scribble-help text-2xl text-secondary">No active invite links yet.</p>
+              <p className="scribble-help mt-2 text-base text-secondary/60">Create one above and it will appear here.</p>
             </MarchingAnts>
           ) : (
             <div className="space-y-3">

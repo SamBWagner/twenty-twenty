@@ -8,6 +8,7 @@ interface MarchingAntsProps {
 export default function MarchingAnts({ children, className = "" }: MarchingAntsProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const rectRef = useRef<SVGRectElement>(null);
+  const inset = 6;
 
   useEffect(() => {
     const updateSize = () => {
@@ -15,8 +16,10 @@ export default function MarchingAnts({ children, className = "" }: MarchingAntsP
       const rect = rectRef.current;
       if (!svg || !rect) return;
       const { width, height } = svg.getBoundingClientRect();
-      rect.setAttribute("width", String(width - 3));
-      rect.setAttribute("height", String(height - 3));
+      rect.setAttribute("x", String(inset));
+      rect.setAttribute("y", String(inset));
+      rect.setAttribute("width", String(Math.max(width - inset * 2, 0)));
+      rect.setAttribute("height", String(Math.max(height - inset * 2, 0)));
     };
     updateSize();
     const observer = new ResizeObserver(updateSize);
@@ -39,8 +42,6 @@ export default function MarchingAnts({ children, className = "" }: MarchingAntsP
       >
         <rect
           ref={rectRef}
-          x="1.5"
-          y="1.5"
           fill="none"
           stroke="#080708"
           strokeWidth="3"

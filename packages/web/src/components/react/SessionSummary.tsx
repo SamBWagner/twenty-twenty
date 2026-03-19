@@ -79,7 +79,7 @@ export default function SessionSummary({
               Final Summary
             </p>
             <h2 className="mt-2 text-3xl font-bold uppercase">{summary.session.name}</h2>
-            <p className="mt-3 max-w-2xl text-sm font-medium text-secondary/60">
+            <p className="scribble-help mt-3 max-w-2xl text-base text-secondary/60">
               Everything from this retrospective is collected here, including attendance, review outcomes,
               ideation notes, and the action plan that came out of it.
             </p>
@@ -115,7 +115,7 @@ export default function SessionSummary({
           </span>
         </div>
         {summary.participants.length === 0 ? (
-          <p className="font-mono text-sm text-secondary/60">No participants were recorded for this session.</p>
+          <p className="scribble-help text-base text-secondary/60">No participants were recorded for this session.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
             {summary.participants.map((participant) => (
@@ -186,7 +186,7 @@ export default function SessionSummary({
             <h3 className="text-sm font-bold uppercase">Went Well</h3>
           </div>
           {goodItems.length === 0 ? (
-            <p className="font-mono text-sm text-secondary/60">No wins were captured in this session.</p>
+            <p className="scribble-help text-base text-secondary/60">No wins were captured in this session.</p>
           ) : (
             <div className="space-y-3">
               {goodItems.map((item) => (
@@ -208,7 +208,7 @@ export default function SessionSummary({
             <h3 className="text-sm font-bold uppercase">Needs Work</h3>
           </div>
           {badItems.length === 0 ? (
-            <p className="font-mono text-sm text-secondary/60">No follow-up issues were captured in this session.</p>
+            <p className="scribble-help text-base text-secondary/60">No follow-up issues were captured in this session.</p>
           ) : (
             <div className="space-y-3">
               {badItems.map((item) => (
@@ -252,7 +252,7 @@ export default function SessionSummary({
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Context</p>
                     {bundleItems.length === 0 ? (
-                      <p className="mt-3 font-mono text-sm text-secondary/60">No source items linked.</p>
+                      <p className="scribble-help mt-3 text-base text-secondary/60">No source items linked.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {bundleItems.map((item) => (
@@ -273,7 +273,7 @@ export default function SessionSummary({
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Actions</p>
                     {bundleActions.length === 0 ? (
-                      <p className="mt-3 font-mono text-sm text-secondary/60">No actions were created for this group.</p>
+                      <p className="scribble-help mt-3 text-base text-secondary/60">No actions were created for this group.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {bundleActions.map((action) => (
@@ -305,7 +305,7 @@ export default function SessionSummary({
           )}
 
           {summary.bundles.length === 0 && carriedOverActions.length === 0 && (
-            <p className="font-mono text-sm text-secondary/60">No action groups or actions were captured in this session.</p>
+            <p className="scribble-help text-base text-secondary/60">No action groups or actions were captured in this session.</p>
           )}
         </div>
       </section>

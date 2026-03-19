@@ -53,7 +53,7 @@ export default function ActionReviewFlow({
             Review
           </p>
           <h2 className="mt-3 text-2xl font-bold uppercase">Nothing to review yet</h2>
-          <p className="mt-3 text-sm font-medium text-secondary/65">
+          <p className="scribble-help mt-3 text-base text-secondary/65">
             This project doesn&apos;t have any actions from a previous retrospective yet, so there&apos;s
             nothing in the review stage for this session.
           </p>
@@ -113,7 +113,7 @@ export default function ActionReviewFlow({
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/50">
               Reviewing Previous Actions
             </p>
-            <p className="mt-1 text-sm font-medium text-secondary/60">
+            <p className="scribble-help mt-1 text-base text-secondary/60">
               Did we actually follow through on this one?
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function ActionReviewFlow({
 
       <div className="space-y-4" data-testid="review-options">
         {reviewLocked && (
-          <p className="border-3 border-secondary bg-white px-4 py-3 text-sm font-medium text-secondary/60">
+          <p className="scribble-help border-3 border-secondary bg-white px-4 py-3 text-base text-secondary/60">
             This review stage is finished, so these controls are read-only now.
           </p>
         )}
@@ -152,12 +152,12 @@ export default function ActionReviewFlow({
           )}
         >
           <span className="text-lg font-bold uppercase">Actioned</span>
-          <span className="mt-1 block text-sm text-secondary/60">We did it, it landed well, and we can close it out</span>
+          <span className="scribble-help mt-1 block text-base text-secondary/60">We did it, it landed well, and we can close it out</span>
         </button>
 
         <div className="rotate-[0.3deg] border-3 border-secondary bg-tertiary p-5" data-testid="review-option-disagreed">
           <span className="text-lg font-bold uppercase">Disagreed</span>
-          <span className="mb-3 mt-1 block text-sm text-secondary/60">
+          <span className="scribble-help mb-3 mt-1 block text-base text-secondary/60">
             We disagreed with this action or it missed the mark
           </span>
           <textarea
@@ -190,7 +190,7 @@ export default function ActionReviewFlow({
           )}
         >
           <span className="text-lg font-bold uppercase">We did nothing, try again</span>
-          <span className="mt-1 block text-sm text-secondary/60">Roll this into the next retro and give it another shot</span>
+          <span className="scribble-help mt-1 block text-base text-secondary/60">Roll this into the next retro and give it another shot</span>
         </button>
       </div>
     </div>

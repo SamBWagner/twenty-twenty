@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
 import type { WsEvent } from "@twenty-twenty/shared";
 import { cn, scrapbookButton } from "../../lib/button-styles";
+import MarchingAnts from "./MarchingAnts";
 
 interface Item {
   id: string;
@@ -95,7 +96,7 @@ export default function ActionBoard({
   const unbundledItems = items.filter((i) => !bundledItemIds.has(i.id));
 
   async function createBundle() {
-    const bundle = await api.post<Bundle>(`/api/sessions/${sessionId}/bundles`, { label: "New Action Group" });
+    const bundle = await api.post<Bundle>(`/api/sessions/${sessionId}/bundles`, { label: "" });
     setBundles((prev) => [...prev, bundle]);
   }
 
@@ -148,111 +149,170 @@ export default function ActionBoard({
   return (
     <div>
       {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
-      {/* Carried over from previous retro */}
-      {carriedOverActions.length > 0 && (
-        <div className="mb-10">
-          <div className="mb-3 inline-block border-3 border-secondary bg-purple-300 px-4 py-2 rotate-[0.5deg]">
-            <h3 className="text-sm font-bold uppercase">Carried Over from Last Retro</h3>
+      <section className="rotate-[0.25deg] border-3 border-secondary bg-white p-6">
+        <div className="mb-6">
+          <div className="mb-3 inline-block rotate-[-0.5deg] border-3 border-secondary bg-purple-300 px-5 py-2">
+            <h2 className="text-lg font-bold uppercase">Action Groups</h2>
           </div>
-          <p className="mb-4 text-secondary/50 font-medium text-sm">
-            These actions weren't completed last time. Update them or add new actions below.
+          <p className="scribble-help max-w-3xl text-base text-secondary/60">
+            Group related retro notes together, turn them into concrete actions, and make sure someone owns the next step.
           </p>
-          <div className="space-y-3">
-            {carriedOverActions.map((action, i) => (
-              <CarriedOverCard
-                key={action.id}
-                action={action}
-                readOnly={readOnly}
-                rotation={i % 2 === 0 ? "rotate-[-0.3deg]" : "rotate-[0.3deg]"}
-                onUpdate={(desc) => updateAction(action.id, desc)}
-                onDelete={() => deleteAction(action.id)}
-              />
-            ))}
-          </div>
         </div>
-      )}
 
-      {/* Helper text */}
-      {!readOnly && (
-        <p className="mb-6 text-secondary/50 font-medium text-sm rotate-[0.3deg]">
-          Create action groups for related retro items, then assign actions and owners to each. Start by creating an action group, then sort items into it.
-        </p>
-      )}
-
-      {/* Unactioned items */}
-      {unbundledItems.length > 0 && (
-        <div className="mb-8">
-          <div className="mb-3 inline-block border-3 border-secondary bg-tertiary px-4 py-2 rotate-[-1deg]">
-            <h3 className="text-sm font-bold uppercase">Unactioned Items</h3>
+        {carriedOverActions.length > 0 && (
+          <div className="mb-10">
+            <div className="mb-3 inline-block border-3 border-secondary bg-purple-300 px-4 py-2 rotate-[0.5deg]">
+              <h3 className="text-sm font-bold uppercase">Carried Over from Last Retro</h3>
+            </div>
+            <p className="scribble-help mb-4 text-base text-secondary/50">
+              These actions weren't completed last time. Update them or add new actions below.
+            </p>
+            <div className="space-y-3">
+              {carriedOverActions.map((action, i) => (
+                <CarriedOverCard
+                  key={action.id}
+                  action={action}
+                  readOnly={readOnly}
+                  rotation={i % 2 === 0 ? "rotate-[-0.3deg]" : "rotate-[0.3deg]"}
+                  onUpdate={(desc) => updateAction(action.id, desc)}
+                  onDelete={() => deleteAction(action.id)}
+                />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {unbundledItems.map((item, i) => (
-              <div
-                key={item.id}
-                className={`border-3 border-secondary p-3 ${
-                  item.type === "good" ? "bg-green-100" : "bg-red-100"
-                } ${i % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]"}`}
-              >
-                <p className="text-sm font-medium">{item.content}</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-secondary/40">{item.voteCount} votes</span>
-                  {!readOnly && bundles.length > 0 && (
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) addItemToBundle(e.target.value, item.id);
-                        e.target.value = "";
-                      }}
-                      className="border-2 border-secondary bg-white px-2 py-1 text-xs font-bold"
-                    >
-                      <option value="">→ Action group...</option>
-                      {bundles.map((b) => (
-                        <option key={b.id} value={b.id}>{b.label || "Unnamed Action Group"}</option>
-                      ))}
-                    </select>
-                  )}
+        )}
+
+        {unbundledItems.length > 0 && (
+          <div className="mb-10">
+            <div className="mb-3 inline-block border-3 border-secondary bg-tertiary px-4 py-2 rotate-[-1deg]">
+              <h3 className="text-sm font-bold uppercase">Unactioned Items</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              {unbundledItems.map((item, i) => (
+                <div
+                  key={item.id}
+                  className={`border-3 border-secondary p-3 ${
+                    item.type === "good" ? "bg-green-100" : "bg-red-100"
+                  } ${i % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]"}`}
+                >
+                  <p className="text-sm font-medium">{item.content}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <span className="font-mono text-xs font-bold text-secondary/40">{item.voteCount} votes</span>
+                    {!readOnly && bundles.length > 0 && (
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) addItemToBundle(e.target.value, item.id);
+                          e.target.value = "";
+                        }}
+                        className="border-2 border-secondary bg-white px-2 py-1 text-xs font-bold"
+                      >
+                        <option value="">→ Action group...</option>
+                        {bundles.map((b) => (
+                          <option key={b.id} value={b.id}>{b.label || "Unnamed Action Group"}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!readOnly && (
-        <button
-          onClick={createBundle}
-          className={cn(
-            scrapbookButton({ tone: "warm", size: "regular", tilt: "left", depth: "sm" }),
-            "mb-8 border-3 border-dashed border-secondary px-6 py-3 font-bold uppercase text-secondary/40 hover:border-solid hover:bg-tertiary hover:text-secondary",
-          )}
-        >
-          + New Action Group
-        </button>
-      )}
+        {bundles.length === 0 ? (
+          <ActionGroupPlaceholder onCreate={createBundle} readOnly={readOnly} />
+        ) : (
+          <>
+            <div className="space-y-8">
+              {bundles.map((bundle, i) => {
+                const bundleItems = items.filter((item) => bundle.itemIds.includes(item.id));
+                const bundleActions = actions.filter((a) => a.bundleId === bundle.id);
+                return (
+                  <BundleCard
+                    key={bundle.id}
+                    bundle={bundle}
+                    items={bundleItems}
+                    actions={bundleActions}
+                    members={members}
+                    readOnly={readOnly}
+                    rotation={bundleRotations[i % bundleRotations.length]}
+                    onUpdateLabel={(label) => updateBundleLabel(bundle.id, label)}
+                    onRemoveItem={(itemId) => removeItemFromBundle(bundle.id, itemId)}
+                    onDeleteBundle={() => deleteBundle(bundle.id)}
+                    onAddAction={(desc, assignee) => addAction(bundle.id, desc, assignee)}
+                    onDeleteAction={deleteAction}
+                  />
+                );
+              })}
+            </div>
 
-      {/* Bundles */}
-      <div className="space-y-8">
-        {bundles.map((bundle, i) => {
-          const bundleItems = items.filter((item) => bundle.itemIds.includes(item.id));
-          const bundleActions = actions.filter((a) => a.bundleId === bundle.id);
-          return (
-            <BundleCard
-              key={bundle.id}
-              bundle={bundle}
-              items={bundleItems}
-              actions={bundleActions}
-              members={members}
-              readOnly={readOnly}
-              rotation={bundleRotations[i % bundleRotations.length]}
-              onUpdateLabel={(label) => updateBundleLabel(bundle.id, label)}
-              onRemoveItem={(itemId) => removeItemFromBundle(bundle.id, itemId)}
-              onDeleteBundle={() => deleteBundle(bundle.id)}
-              onAddAction={(desc, assignee) => addAction(bundle.id, desc, assignee)}
-              onDeleteAction={deleteAction}
-            />
-          );
-        })}
-      </div>
+            {!readOnly && (
+              <div className="mt-8">
+                <ActionGroupPlaceholder onCreate={createBundle} readOnly={false} compact />
+              </div>
+            )}
+          </>
+        )}
+      </section>
     </div>
+  );
+}
+
+function ActionGroupPlaceholder({
+  onCreate,
+  readOnly,
+  compact = false,
+}: {
+  onCreate: () => void;
+  readOnly: boolean;
+  compact?: boolean;
+}) {
+  const content = (
+    <MarchingAnts
+      className={cn(
+        "relative overflow-hidden transition-colors duration-150",
+        compact ? "px-5 py-6" : "px-6 py-8",
+        !readOnly && "group-hover:bg-tertiary/15 group-focus-visible:bg-tertiary/15",
+      )}
+    >
+      <div className={cn("max-w-2xl", !compact && "md:pr-56")}>
+        <p className="text-lg font-bold uppercase">
+          {compact ? "Add another action group" : "No action groups yet."}
+        </p>
+        <p className="scribble-help mt-2 text-base text-secondary/60">
+          {compact
+            ? "Spin up another placeholder for related retro notes and the actions that come out of them."
+            : "Create the first action group to gather related retro notes, then turn that pile into owned follow-up work."}
+        </p>
+        {!readOnly && (
+          <span className="mt-4 inline-block border-3 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase transition-colors duration-150 group-hover:bg-tertiary group-focus-visible:bg-tertiary">
+            + New Action Group
+          </span>
+        )}
+      </div>
+
+      <div className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 md:block">
+        <div className={cn("relative", compact ? "h-20 w-32" : "h-24 w-40")}>
+          <div className="absolute bottom-1 left-6 h-14 w-24 border-3 border-secondary bg-white/60 transition-transform duration-150 group-hover:translate-x-3 group-hover:-translate-y-1 group-hover:rotate-[3deg] group-focus-visible:translate-x-3 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[3deg]"></div>
+          <div className="absolute bottom-3 left-3 h-14 w-24 border-3 border-secondary bg-surface/80 transition-transform duration-150 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:rotate-[-2deg] group-focus-visible:translate-x-1 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[-2deg]"></div>
+          <div className="absolute bottom-5 left-0 h-14 w-24 border-3 border-secondary bg-white transition-transform duration-150 group-hover:-translate-y-2 group-hover:rotate-[1deg] group-focus-visible:-translate-y-2 group-focus-visible:rotate-[1deg]"></div>
+        </div>
+      </div>
+    </MarchingAnts>
+  );
+
+  if (readOnly) {
+    return content;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onCreate}
+      className="group block w-full bg-transparent p-0 text-left focus:outline-none"
+    >
+      {content}
+    </button>
   );
 }
 
@@ -282,6 +342,7 @@ function BundleCard({
   onDeleteAction: (actionId: string) => void;
 }) {
   const [newAction, setNewAction] = useState("");
+  const hasLabel = Boolean(bundle.label?.trim());
 
   return (
     <div className={`border-3 border-secondary bg-white ${rotation}`}>
@@ -290,21 +351,32 @@ function BundleCard({
         {readOnly ? (
           <h3 className="font-bold uppercase text-white text-lg">{bundle.label || "Unnamed Action Group"}</h3>
         ) : (
-          <input
-            type="text"
-            value={bundle.label || ""}
-            onChange={(e) => onUpdateLabel(e.target.value)}
-            placeholder="Action group name..."
-            className="bg-transparent font-bold uppercase text-white text-lg placeholder-white/40 border-b-2 border-transparent focus:border-white/50 focus:outline-none"
-          />
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-white/40 bg-white/10 text-base font-black text-white/85">
+              ✎
+            </span>
+            <input
+              type="text"
+              value={bundle.label || ""}
+              onChange={(e) => onUpdateLabel(e.target.value)}
+              placeholder="New Action Group"
+              className={cn(
+                "min-w-0 bg-transparent text-white text-lg focus:outline-none",
+                hasLabel
+                  ? "flex-1 border-b-2 border-transparent font-bold uppercase focus:border-white/50"
+                  : "w-[min(26rem,calc(100%-1rem))] border-b-2 border-dashed border-white/70 text-[2rem] font-bold normal-case tracking-[0.02em] placeholder:text-white/90 focus:border-white scribble-text",
+              )}
+            />
+          </div>
         )}
         {!readOnly && (
           <button
             onClick={onDeleteBundle}
             className={cn(
-              scrapbookButton({ tone: "secondary", size: "compact", tilt: "flat", depth: "sm" }),
-              "border-2 border-white/40 bg-white/10 px-2 py-0.5 text-xs font-bold uppercase text-white/70 hover:border-white hover:bg-white/20 hover:text-white",
+              scrapbookButton({ tone: "danger", size: "compact", tilt: "flat", depth: "sm" }),
+              "border-2 border-secondary bg-white px-2 py-0.5 text-xs font-bold uppercase text-secondary hover:bg-[#ff7f7f] hover:text-white",
             )}
+            aria-label="Delete action group"
           >
             ✕
           </button>
@@ -337,7 +409,7 @@ function BundleCard({
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-secondary/30 py-2 font-medium">No items yet — use the "→ Action group..." dropdown on unactioned items above</p>}
+        {items.length === 0 && <p className="scribble-help py-2 text-base text-secondary/30">No items yet — use the "→ Action group..." dropdown on unactioned items above</p>}
       </div>
 
       {/* Actions section */}
@@ -347,7 +419,7 @@ function BundleCard({
         </h4>
         <div className="space-y-2 mb-3">
           {actions.map((action) => (
-            <div key={action.id} className="flex items-center justify-between border-2 border-secondary bg-white px-3 py-2">
+            <div key={action.id} className="flex items-center justify-between border-2 border-secondary bg-tertiary px-3 py-2">
               <span className="text-sm font-bold">{action.description}</span>
               {!readOnly && (
                 <button

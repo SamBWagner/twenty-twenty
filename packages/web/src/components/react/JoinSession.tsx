@@ -78,7 +78,7 @@ export default function JoinSession({ token }: { token: string }) {
       <div className="flex flex-col items-center justify-center py-20">
         <div className="border-3 border-secondary bg-white p-8 shadow-brutal max-w-md text-center">
           <h2 className="text-2xl font-bold uppercase mb-2">{info.sessionName}</h2>
-          <p className="font-mono text-sm text-secondary/60 mb-6">
+          <p className="scribble-help mb-6 text-base text-secondary/60">
             You're already a member of <strong>{info.projectName}</strong>
           </p>
           <a
@@ -118,7 +118,7 @@ export default function JoinSession({ token }: { token: string }) {
           >
             Join As Guest
           </button>
-          <p className="text-xs font-mono text-secondary/40 text-center -mt-1 mb-2">
+          <p className="scribble-help text-center -mt-1 mb-2 text-sm text-secondary/40">
             Participate in this retro only
           </p>
 
@@ -132,7 +132,7 @@ export default function JoinSession({ token }: { token: string }) {
           >
             Join Project
           </button>
-          <p className="text-xs font-mono text-secondary/40 text-center -mt-1">
+          <p className="scribble-help text-center -mt-1 text-sm text-secondary/40">
             Become a permanent member of {info.projectName}
           </p>
         </div>

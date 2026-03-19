@@ -34,7 +34,7 @@ export default function ProjectList() {
   if (projects.length === 0) {
     return (
       <MarchingAnts className="p-16 text-center rotate-[0.5deg]">
-        <p className="text-xl font-bold mb-4">Nothing here yet.</p>
+        <p className="scribble-help mb-4 text-2xl text-secondary">Nothing here yet.</p>
         <a
           href="/projects/new"
           className={cn(

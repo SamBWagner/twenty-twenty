@@ -1,0 +1,106 @@
+---
+import { cn, scrapbookButton } from "../lib/button-styles";
+
+const socials = [
+  {
+    label: "GitHub",
+    href: "https://github.com/SamBWagner",
+    blurb: "Code, side quests, experiments",
+    accent: "bg-primary text-white",
+    offset: "md:-bottom-12 md:left-4",
+    hoverTone: "secondary",
+    restRotate: "-4deg",
+    hoverRotate: "-1deg",
+  },
+  {
+    label: "Website",
+    href: "https://samwagner.dev",
+    blurb: "Writing, projects, internet home",
+    accent: "bg-tertiary text-secondary",
+    offset: "md:-bottom-20 md:left-[27%]",
+    hoverTone: "warm",
+    restRotate: "3deg",
+    hoverRotate: "0.75deg",
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/sam-b-wagner",
+    blurb: "Work history and professional things",
+    accent: "bg-[#ff8fab] text-secondary",
+    offset: "md:-bottom-11 md:right-5",
+    hoverTone: "danger",
+    restRotate: "-2deg",
+    hoverRotate: "-0.4deg",
+  },
+  {
+    label: "Buy Me a Coffee",
+    href: "https://buymeacoffee.com/sambwagner",
+    blurb: "Help fund the next little internet thing",
+    accent: "bg-[#95f9a9] text-secondary",
+    offset: "md:-bottom-18 md:left-[55%]",
+    hoverTone: "success",
+    restRotate: "-5deg",
+    hoverRotate: "-1.4deg",
+  },
+] as const;
+---
+
+<footer class="mx-auto mt-24 mb-10 w-full max-w-6xl px-6 pb-24 md:pb-32">
+  <div class="relative">
+    <div class="absolute left-10 top-1 h-6 w-24 -rotate-6 border-3 border-secondary bg-white/75"></div>
+    <div class="absolute right-14 top-4 h-5 w-20 rotate-[10deg] border-3 border-secondary bg-tertiary/70"></div>
+
+    <section class="relative overflow-visible border-4 border-secondary bg-[#fff6d8] px-6 py-8 md:px-10 md:py-10">
+      <div class="absolute left-1/2 top-0 h-7 w-7 -translate-x-1/2 -translate-y-1/2 border-4 border-secondary bg-red-400"></div>
+
+      <div class="max-w-2xl">
+        <p class="inline-block border-4 border-secondary bg-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.22em]">
+          Pinned Elsewhere
+        </p>
+        <h2 class="mt-5 max-w-xl text-3xl font-black uppercase leading-none md:text-5xl">
+          Find Sam on the corners of the internet.
+        </h2>
+        <p class="mt-4 max-w-xl border-l-4 border-secondary pl-4 text-sm font-medium leading-relaxed md:text-base">
+          Code, writing, work, and the occasional caffeine bribe.
+        </p>
+      </div>
+
+      <div class="mt-8 grid gap-4 md:h-48 md:mt-2">
+        {socials.map((social) => (
+          <a
+            href={social.href}
+            target="_blank"
+            rel="noreferrer"
+            class={cn(
+              scrapbookButton({ tone: social.hoverTone, depth: "lg", tilt: "flat", size: "regular" }),
+              "group relative block border-4 border-secondary px-5 py-4",
+              social.accent,
+              social.offset,
+              "md:absolute md:w-[22%]",
+            )}
+            style={`--sb-rest-rotate: ${social.restRotate}; --sb-hover-rotate: ${social.hoverRotate};`}
+          >
+            <div class="pr-12">
+              <p class="font-mono text-xs font-bold uppercase tracking-[0.18em]">
+                {social.label}
+              </p>
+              <p class="mt-3 text-xl font-black uppercase leading-tight md:text-2xl">
+                {social.label === "Website"
+                  ? "samwagner.dev"
+                  : social.label === "Buy Me a Coffee"
+                    ? "Buy Me A Coffee"
+                    : social.label}
+              </p>
+            </div>
+            <span class="absolute right-5 top-4 text-2xl font-black transition-transform duration-150 group-hover:translate-x-1 group-hover:-translate-y-1">
+              ↗
+            </span>
+            <p class="mt-4 max-w-[18rem] text-sm font-bold leading-snug">
+              {social.blurb}
+            </p>
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+</footer>

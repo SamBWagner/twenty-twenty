@@ -108,7 +108,7 @@ export default function IdeationBoard({
           ))}
         </div>
         {readOnly ? (
-          <p className="border-3 border-secondary bg-white px-4 py-3 text-sm font-medium text-secondary/60">
+          <p className="scribble-help border-3 border-secondary bg-white px-4 py-3 text-base text-secondary/60">
             This section is read-only now, but you can still look back through everything that was captured.
           </p>
         ) : (
@@ -154,7 +154,7 @@ export default function IdeationBoard({
           ))}
         </div>
         {readOnly ? (
-          <p className="border-3 border-secondary bg-white px-4 py-3 text-sm font-medium text-secondary/60">
+          <p className="scribble-help border-3 border-secondary bg-white px-4 py-3 text-base text-secondary/60">
             Live editing has moved on, but the ideas from this stage stay available here for reference.
           </p>
         ) : (

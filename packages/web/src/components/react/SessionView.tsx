@@ -55,6 +55,13 @@ interface Participant {
   joinedAt: string;
 }
 
+interface PendingAdvance {
+  nextSection: SessionSection;
+  title: string;
+  message: string;
+  busyLabel: string;
+}
+
 export default function SessionView({
   sessionId,
   projectId,
@@ -72,7 +79,7 @@ export default function SessionView({
   const [showParticipants, setShowParticipants] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [activeSection, setActiveSection] = useState<SessionSection | null>(null);
-  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+  const [pendingAdvance, setPendingAdvance] = useState<PendingAdvance | null>(null);
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const participantsPanelRef = useRef<HTMLDivElement>(null);
 
@@ -211,7 +218,7 @@ export default function SessionView({
       alert(err.message);
     } finally {
       setAdvancingPhase(false);
-      setShowCloseConfirmation(false);
+      setPendingAdvance(null);
     }
   }
 
@@ -254,7 +261,7 @@ export default function SessionView({
                     className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 text-secondary"
                     aria-hidden="true"
                   >
-                    <svg viewBox="0 0 16 16" className="h-4 w-4 fill-current">
+                    <svg viewBox="0 0 16 16" className="section-bounce h-4 w-4 fill-current">
                       <path d="M8 12.5L1.5 4.5h13L8 12.5z" />
                     </svg>
                   </span>
@@ -314,7 +321,7 @@ export default function SessionView({
               <div className="absolute right-0 top-14 z-50 w-72 border-3 border-secondary bg-white p-4 shadow-brutal-lg">
                 <h3 className="mb-3 text-sm font-bold uppercase">Participants</h3>
                 {participants.length === 0 && (
-                  <p className="font-mono text-sm text-secondary/50">No participants recorded yet</p>
+                  <p className="scribble-help text-sm text-secondary/50">No participants recorded yet</p>
                 )}
                 {participants.map((p) => {
                   const isOnline = onlineUsers.some((u) => u.userId === p.userId);
@@ -355,7 +362,13 @@ export default function SessionView({
 
           {isCreator && session.phase === "ideation" && (
             <button
-              onClick={() => advancePhase("action")}
+              onClick={() =>
+                setPendingAdvance({
+                  nextSection: "action",
+                  title: "Move to Actions?",
+                  message: "This ends ideation editing and moves everyone into the action planning stage. This action can't be undone.",
+                  busyLabel: "Moving...",
+                })}
               disabled={advancingPhase}
               className={cn(
                 scrapbookButton({ tone: "secondary", size: "regular", tilt: "right", depth: "md" }),
@@ -368,7 +381,13 @@ export default function SessionView({
 
           {isCreator && session.phase === "action" && (
             <button
-              onClick={() => setShowCloseConfirmation(true)}
+              onClick={() =>
+                setPendingAdvance({
+                  nextSection: "summary",
+                  title: "Close Session?",
+                  message: "This ends live editing and opens the final summary view for the team. This action can't be undone.",
+                  busyLabel: "Closing...",
+                })}
               className={cn(
                 scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "md" }),
                 "border-3 border-secondary bg-secondary px-5 py-3 font-bold uppercase text-white",
@@ -376,6 +395,37 @@ export default function SessionView({
             >
               Close Session
             </button>
+          )}
+
+          {pendingAdvance && (
+            <div className="absolute right-0 top-[4.5rem] z-40 w-[min(24rem,calc(100vw-2rem))] border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal">
+              <p className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
+              <p className="scribble-help mt-2 text-sm text-secondary/70">{pendingAdvance.message}</p>
+              <div className="mt-4 flex flex-wrap justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingAdvance(null)}
+                  disabled={advancingPhase}
+                  className={cn(
+                    scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                    "border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => advancePhase(pendingAdvance.nextSection)}
+                  disabled={advancingPhase}
+                  className={cn(
+                    scrapbookButton({ tone: "danger", size: "compact", tilt: "left", depth: "sm" }),
+                    "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                >
+                  {advancingPhase ? pendingAdvance.busyLabel : "Confirm"}
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -409,47 +459,6 @@ export default function SessionView({
         <SessionSummary sessionId={sessionId} />
       )}
 
-      {showCloseConfirmation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-secondary/45 px-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="w-full max-w-lg border-3 border-secondary bg-white p-6 shadow-brutal-lg"
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">
-              Final confirmation
-            </p>
-            <h2 className="mt-3 text-2xl font-bold uppercase">Close this retrospective?</h2>
-            <p className="mt-3 text-sm font-medium text-secondary/65">
-              Closing the session ends live editing and unlocks the final summary view for the team.
-              This action can&apos;t be undone.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCloseConfirmation(false)}
-                className={cn(
-                  scrapbookButton({ tone: "neutral", size: "regular", tilt: "flat", depth: "sm" }),
-                  "border-3 border-secondary bg-white px-4 py-2 font-bold uppercase",
-                )}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => advancePhase("summary")}
-                disabled={advancingPhase}
-                className={cn(
-                  scrapbookButton({ tone: "danger", size: "regular", tilt: "left", depth: "md" }),
-                  "border-3 border-secondary bg-red-300 px-4 py-2 font-bold uppercase disabled:opacity-50",
-                )}
-              >
-                {advancingPhase ? "Closing..." : "Yes, Close Session"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@
     "dev": "npx concurrently \"cd packages/api && npm run dev\" \"cd packages/web && npm run dev\"",
     "dev:api": "cd packages/api && npm run dev",
     "dev:web": "cd packages/web && npm run dev",
-    "build": "cd packages/api && npm run build && cd ../web && npm run build",
+    "build": "cd packages/shared && npm run build && cd ../api && npm run build && cd ../web && npm run build",
     "test:api": "npm --workspace @twenty-twenty/api run test",
     "test:web": "npm --workspace @twenty-twenty/web run test",
     "test:unit": "npm run test:api && npm run test:web",

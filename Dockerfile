@@ -16,6 +16,7 @@ RUN npm ci
 
 COPY . .
 
+RUN cd packages/shared && npm run build
 RUN cd packages/api && npm run build
 RUN cd packages/web && npm run build
 
@@ -58,8 +59,9 @@ COPY --from=builder /app/packages/api/package.json ./packages/api/
 COPY --from=builder /app/packages/web/dist ./packages/web/dist
 COPY --from=builder /app/packages/web/package.json ./packages/web/
 
-# Copy shared package (type-only at runtime, but needed for module resolution)
-COPY --from=builder /app/packages/shared ./packages/shared
+# Copy shared package runtime artifacts
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
 # Copy root package.json (needed for workspace resolution)
 COPY --from=builder /app/package.json ./

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../../lib/api-client";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 
 export default function CreateProjectForm() {
   const [name, setName] = useState("");
@@ -52,7 +53,10 @@ export default function CreateProjectForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="border-4 border-secondary bg-primary px-8 py-4 font-bold uppercase text-white text-lg shadow-brutal-lg rotate-[-1deg] transition-all hover:rotate-[1deg] hover:shadow-brutal-tertiary disabled:opacity-50"
+        className={cn(
+          scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "lg" }),
+          "border-4 border-secondary bg-primary px-8 py-4 text-lg font-bold uppercase text-white disabled:opacity-50",
+        )}
       >
         {submitting ? "Creating..." : "Create Project →"}
       </button>

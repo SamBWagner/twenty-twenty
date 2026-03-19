@@ -27,7 +27,15 @@ reviewRoutes.get("/sessions/:sid/reviews/pending", requireAuth, async (c) => {
     )
     .get();
 
-  if (!previousSession) return c.json([]);
+  if (!previousSession) {
+    return c.json({
+      actions: [],
+      reviews: [],
+      pending: [],
+      total: 0,
+      reviewed: 0,
+    });
+  }
 
   // Get actions from previous session
   const previousActions = await db

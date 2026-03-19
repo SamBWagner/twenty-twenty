@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getUser } from "../lib/auth";
+import { cn, scrapbookButton } from "../lib/button-styles";
 
 const user = await getUser(Astro.request.headers.get("cookie") || undefined);
 
@@ -43,7 +44,10 @@ if (user) {
       <!-- CTA as a big sticker -->
       <a
         href="/auth/signin"
-        class="group inline-block border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white shadow-brutal-lg rotate-[-1deg] transition-all hover:rotate-[1deg] hover:shadow-brutal-tertiary hover:scale-105"
+        class={cn(
+          scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "lg" }),
+          "group inline-block border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white",
+        )}
       >
         Sign in with GitHub
         <span class="inline-block transition-transform group-hover:translate-x-1">→</span>

@@ -5,7 +5,15 @@ import { secureHeaders } from "hono/secure-headers";
 import { bodyLimit } from "hono/body-limit";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
-import { auth } from "./auth/index.js";
+import {
+  auth,
+  authBaseUrl,
+  authSecretConfigured,
+  githubAuthConfigured,
+  githubCallbackUrl,
+  trustedOrigins,
+  webUrl,
+} from "./auth/index.js";
 import { projectRoutes } from "./routes/projects.js";
 import { sessionRoutes } from "./routes/sessions.js";
 import { itemRoutes } from "./routes/items.js";
@@ -43,6 +51,31 @@ if (process.env.TEST_AUTH_BYPASS !== "true") {
 
 // Health check
 app.get("/api/health", (c) => c.json({ ok: true }));
+
+app.get("/api/auth/status", (c) => {
+  const missingEnvVars: string[] = [];
+
+  if (!process.env.BETTER_AUTH_SECRET?.trim()) {
+    missingEnvVars.push("BETTER_AUTH_SECRET");
+  }
+  if (!process.env.GITHUB_CLIENT_ID?.trim()) {
+    missingEnvVars.push("GITHUB_CLIENT_ID");
+  }
+  if (!process.env.GITHUB_CLIENT_SECRET?.trim()) {
+    missingEnvVars.push("GITHUB_CLIENT_SECRET");
+  }
+
+  return c.json({
+    githubConfigured: githubAuthConfigured,
+    authSecretConfigured,
+    readyForOAuth: githubAuthConfigured && authSecretConfigured,
+    missingEnvVars,
+    callbackUrl: githubCallbackUrl,
+    apiUrl: authBaseUrl,
+    webUrl,
+    trustedOrigins,
+  });
+});
 
 // Auth routes (better-auth handles /api/auth/*)
 app.all("/api/auth/*", (c) => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
 import type { WsEvent } from "@twenty-twenty/shared";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 
 interface Item {
   id: string;
@@ -214,7 +215,10 @@ export default function ActionBoard({
       {!readOnly && (
         <button
           onClick={createBundle}
-          className="mb-8 border-3 border-dashed border-secondary px-6 py-3 font-bold uppercase text-secondary/40 transition-all hover:border-solid hover:bg-tertiary hover:text-secondary hover:shadow-brutal hover:rotate-[-1deg]"
+          className={cn(
+            scrapbookButton({ tone: "warm", size: "regular", tilt: "left", depth: "sm" }),
+            "mb-8 border-3 border-dashed border-secondary px-6 py-3 font-bold uppercase text-secondary/40 hover:border-solid hover:bg-tertiary hover:text-secondary",
+          )}
         >
           + New Action Group
         </button>
@@ -292,7 +296,10 @@ function BundleCard({
         {!readOnly && (
           <button
             onClick={onDeleteBundle}
-            className="border-2 border-white/40 px-2 py-0.5 text-xs font-bold uppercase text-white/60 hover:border-white hover:text-white transition-colors"
+            className={cn(
+              scrapbookButton({ tone: "secondary", size: "compact", tilt: "flat", depth: "sm" }),
+              "border-2 border-white/40 bg-white/10 px-2 py-0.5 text-xs font-bold uppercase text-white/70 hover:border-white hover:bg-white/20 hover:text-white",
+            )}
           >
             ✕
           </button>
@@ -312,7 +319,15 @@ function BundleCard({
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs font-bold text-secondary/30">{item.voteCount}</span>
               {!readOnly && (
-                <button onClick={() => onRemoveItem(item.id)} className="text-xs font-bold text-secondary/20 hover:text-red-500">✕</button>
+                <button
+                  onClick={() => onRemoveItem(item.id)}
+                  className={cn(
+                    scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                    "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                  )}
+                >
+                  ✕
+                </button>
               )}
             </div>
           </div>
@@ -330,7 +345,15 @@ function BundleCard({
             <div key={action.id} className="flex items-center justify-between border-2 border-secondary bg-white px-3 py-2">
               <span className="text-sm font-bold">{action.description}</span>
               {!readOnly && (
-                <button onClick={() => onDeleteAction(action.id)} className="text-xs font-bold text-secondary/20 hover:text-red-500">✕</button>
+                <button
+                  onClick={() => onDeleteAction(action.id)}
+                  className={cn(
+                    scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                    "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                  )}
+                >
+                  ✕
+                </button>
               )}
             </div>
           ))}
@@ -355,7 +378,10 @@ function BundleCard({
             />
             <button
               type="submit"
-              className="border-3 border-secondary bg-primary px-4 py-2 text-sm font-bold uppercase text-white transition-all hover:shadow-brutal-sm"
+              className={cn(
+                scrapbookButton({ tone: "primary", size: "compact", tilt: "left", depth: "sm" }),
+                "border-3 border-secondary bg-primary px-4 py-2 text-sm font-bold uppercase text-white",
+              )}
             >
               +
             </button>
@@ -408,14 +434,20 @@ function CarriedOverCard({
             />
             <button
               type="submit"
-              className="border-3 border-secondary bg-green-300 px-3 py-2 text-sm font-bold uppercase transition-all hover:shadow-brutal-sm"
+              className={cn(
+                scrapbookButton({ tone: "success", size: "compact", tilt: "left", depth: "sm" }),
+                "border-3 border-secondary bg-green-300 px-3 py-2 text-sm font-bold uppercase",
+              )}
             >
               Save
             </button>
             <button
               type="button"
               onClick={() => { setEditValue(action.description); setEditing(false); }}
-              className="border-3 border-secondary bg-white px-3 py-2 text-sm font-bold uppercase transition-all hover:shadow-brutal-sm"
+              className={cn(
+                scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                "border-3 border-secondary bg-white px-3 py-2 text-sm font-bold uppercase",
+              )}
             >
               Cancel
             </button>
@@ -427,13 +459,19 @@ function CarriedOverCard({
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditing(true)}
-                  className="border-2 border-secondary bg-white px-2 py-1 text-xs font-bold uppercase text-secondary/50 hover:text-secondary transition-colors"
+                  className={cn(
+                    scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
+                    "border-2 border-secondary bg-tertiary px-2 py-1 text-xs font-bold uppercase",
+                  )}
                 >
                   Edit
                 </button>
                 <button
                   onClick={onDelete}
-                  className="text-xs font-bold text-secondary/20 hover:text-red-500 transition-colors"
+                  className={cn(
+                    scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                    "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                  )}
                 >
                   ✕
                 </button>

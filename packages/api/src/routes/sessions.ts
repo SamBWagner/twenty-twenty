@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
 import { newId } from "../lib/id.js";
@@ -112,6 +112,153 @@ sessionRoutes.get("/sessions/:sid", requireAuth, async (c) => {
   }
 
   return c.json(session);
+});
+
+// Get full session summary
+sessionRoutes.get("/sessions/:sid/summary", requireAuth, async (c) => {
+  const user = c.get("user");
+  const sid = c.req.param("sid");
+
+  const access = await canAccessSession(user.id, sid);
+  if (!access.allowed) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
+  if (!session) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  const [participants, items, bundles, actions] = await Promise.all([
+    db
+      .select({
+        userId: schema.sessionParticipants.userId,
+        username: schema.user.name,
+        avatarUrl: schema.user.image,
+        role: schema.sessionParticipants.role,
+        joinedAt: schema.sessionParticipants.joinedAt,
+      })
+      .from(schema.sessionParticipants)
+      .innerJoin(schema.user, eq(schema.sessionParticipants.userId, schema.user.id))
+      .where(eq(schema.sessionParticipants.sessionId, sid))
+      .orderBy(asc(schema.sessionParticipants.joinedAt)),
+    db
+      .select()
+      .from(schema.items)
+      .where(eq(schema.items.sessionId, sid))
+      .orderBy(asc(schema.items.createdAt)),
+    db
+      .select()
+      .from(schema.bundles)
+      .where(eq(schema.bundles.sessionId, sid))
+      .orderBy(asc(schema.bundles.createdAt)),
+    db
+      .select()
+      .from(schema.actions)
+      .where(eq(schema.actions.sessionId, sid))
+      .orderBy(asc(schema.actions.createdAt)),
+  ]);
+
+  const [voteRows, bundleLinks] = await Promise.all([
+    db
+      .select({
+        itemId: schema.votes.itemId,
+        value: schema.votes.value,
+      })
+      .from(schema.votes)
+      .innerJoin(schema.items, eq(schema.votes.itemId, schema.items.id))
+      .where(eq(schema.items.sessionId, sid)),
+    db
+      .select({
+        bundleId: schema.bundleItems.bundleId,
+        itemId: schema.bundleItems.itemId,
+      })
+      .from(schema.bundleItems)
+      .innerJoin(schema.bundles, eq(schema.bundleItems.bundleId, schema.bundles.id))
+      .where(eq(schema.bundles.sessionId, sid)),
+  ]);
+
+  const voteCountByItemId = new Map<string, number>();
+  for (const vote of voteRows) {
+    voteCountByItemId.set(vote.itemId, (voteCountByItemId.get(vote.itemId) || 0) + vote.value);
+  }
+
+  const itemIdsByBundleId = new Map<string, string[]>();
+  for (const link of bundleLinks) {
+    const itemIds = itemIdsByBundleId.get(link.bundleId) || [];
+    itemIds.push(link.itemId);
+    itemIdsByBundleId.set(link.bundleId, itemIds);
+  }
+
+  const previousSession = await db
+    .select()
+    .from(schema.retroSessions)
+    .where(
+      and(
+        eq(schema.retroSessions.projectId, session.projectId),
+        eq(schema.retroSessions.sequence, session.sequence - 1),
+      ),
+    )
+    .get();
+
+  let reviews: Array<{
+    actionId: string;
+    actionDescription: string;
+    reviewerId: string;
+    reviewerName: string;
+    status: "did_nothing" | "actioned" | "disagree";
+    comment: string | null;
+    createdAt: Date;
+  }> = [];
+
+  if (previousSession) {
+    const [previousActions, reviewRows] = await Promise.all([
+      db
+        .select({
+          id: schema.actions.id,
+          description: schema.actions.description,
+        })
+        .from(schema.actions)
+        .where(eq(schema.actions.sessionId, previousSession.id)),
+      db
+        .select({
+          actionId: schema.actionReviews.actionId,
+          reviewerId: schema.actionReviews.reviewerId,
+          reviewerName: schema.user.name,
+          status: schema.actionReviews.status,
+          comment: schema.actionReviews.comment,
+          createdAt: schema.actionReviews.createdAt,
+        })
+        .from(schema.actionReviews)
+        .innerJoin(schema.user, eq(schema.actionReviews.reviewerId, schema.user.id))
+        .where(eq(schema.actionReviews.sessionId, sid))
+        .orderBy(asc(schema.actionReviews.createdAt)),
+    ]);
+
+    const previousActionDescriptionById = new Map(
+      previousActions.map((action) => [action.id, action.description]),
+    );
+
+    reviews = reviewRows.map((review) => ({
+      ...review,
+      actionDescription: previousActionDescriptionById.get(review.actionId) || "Previous action",
+    }));
+  }
+
+  return c.json({
+    session,
+    participants,
+    items: items.map((item) => ({
+      ...item,
+      voteCount: voteCountByItemId.get(item.id) || 0,
+    })),
+    bundles: bundles.map((bundle) => ({
+      ...bundle,
+      itemIds: itemIdsByBundleId.get(bundle.id) || [],
+    })),
+    actions,
+    reviews,
+  });
 });
 
 // Advance phase

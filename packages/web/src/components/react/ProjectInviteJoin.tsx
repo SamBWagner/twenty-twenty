@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 
 interface ProjectInviteInfo {
   projectId: string;
@@ -51,7 +52,10 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
           <p className="font-mono text-sm">{error}</p>
           <a
             href="/projects"
-            className="mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white shadow-brutal-sm transition-shadow hover:shadow-brutal-tertiary"
+            className={cn(
+              scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "sm" }),
+              "mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+            )}
           >
             Go Home
           </a>
@@ -75,7 +79,10 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
           </p>
           <a
             href={`/projects/${info.projectId}`}
-            className="inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white shadow-brutal transition-all hover:shadow-brutal-tertiary"
+            className={cn(
+              scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
+              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+            )}
           >
             Go to Project
           </a>
@@ -121,7 +128,10 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
           type="button"
           onClick={joinProject}
           disabled={!confirmJoin || joining}
-          className="w-full border-3 border-secondary bg-secondary px-6 py-4 font-bold uppercase text-white shadow-brutal transition-all hover:shadow-brutal-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className={cn(
+            scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "md" }),
+            "w-full border-3 border-secondary bg-secondary px-6 py-4 font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+          )}
         >
           {joining ? "Joining..." : "Join Project"}
         </button>

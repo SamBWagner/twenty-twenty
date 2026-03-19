@@ -6,32 +6,101 @@ import Layout from "../../layouts/Layout.astro";
   <div class="flex items-center justify-center py-20">
     <p class="font-mono text-sm">Redirecting to GitHub...</p>
   </div>
-  <script define:vars={{ publicApiUrl: import.meta.env.PUBLIC_API_URL, publicWebUrl: import.meta.env.PUBLIC_WEB_URL }}>
-    const apiUrl = publicApiUrl || window.location.origin;
-    const webUrl = publicWebUrl || window.location.origin;
+  <script define:vars={{
+    publicApiUrl: import.meta.env.PUBLIC_API_URL || process.env.API_URL || "",
+    publicWebUrl: import.meta.env.PUBLIC_WEB_URL || process.env.WEB_URL || "",
+  }}>
+    function isLocalDevHost(hostname) {
+      return hostname === "localhost" || hostname === "127.0.0.1";
+    }
+
+    function resolveApiUrl() {
+      if (publicApiUrl) return publicApiUrl;
+
+      const url = new URL(window.location.origin);
+      if (isLocalDevHost(url.hostname) && url.port === "4321") {
+        url.port = "3001";
+      }
+      return url.origin;
+    }
+
+    function resolveWebUrl() {
+      if (publicWebUrl) return publicWebUrl;
+      return window.location.origin;
+    }
+
+    function normalizeDetails(value) {
+      if (!value) return "";
+      return String(value).replace(/\s+/g, " ").trim().slice(0, 220);
+    }
+
+    function buildLoginUrl(error, details, redirect) {
+      const loginUrl = new URL("/login", window.location.origin);
+      loginUrl.searchParams.set("error", error);
+      if (details) {
+        loginUrl.searchParams.set("details", normalizeDetails(details));
+      }
+      if (redirect) {
+        loginUrl.searchParams.set("redirect", redirect);
+      }
+      return loginUrl.toString();
+    }
+
+    async function readJson(res) {
+      try {
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    const apiUrl = resolveApiUrl();
+    const webUrl = resolveWebUrl();
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect");
     const callbackURL = redirect ? `${webUrl}${redirect}` : `${webUrl}/projects`;
 
-    fetch(`${apiUrl}/api/auth/sign-in/social`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    fetch(`${apiUrl}/api/auth/status`, {
       credentials: "include",
-      body: JSON.stringify({
-        provider: "github",
-        callbackURL,
-      }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          window.location.href = "/login?error=auth_failed";
+      .then(async (statusRes) => {
+        const status = await readJson(statusRes);
+        if (!statusRes.ok || !status) {
+          throw new Error("Could not verify local auth configuration.");
         }
+        if (!status.readyForOAuth) {
+          const missing = Array.isArray(status.missingEnvVars) ? status.missingEnvVars.join(", ") : "";
+          window.location.href = buildLoginUrl(
+            "github_not_configured",
+            missing ? `Missing environment variables: ${missing}` : "GitHub OAuth is not configured.",
+            redirect,
+          );
+          return null;
+        }
+
+        const signInRes = await fetch(`${apiUrl}/api/auth/sign-in/social`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            provider: "github",
+            callbackURL,
+          }),
+        });
+
+        const data = await readJson(signInRes);
+        if (signInRes.ok && data?.url) {
+          window.location.href = data.url;
+          return null;
+        }
+
+        const details = data?.message || data?.error || `Sign-in request failed with status ${signInRes.status}.`;
+        window.location.href = buildLoginUrl("auth_failed", details, redirect);
+        return null;
       })
-      .catch(() => {
-        window.location.href = "/login?error=auth_failed";
+      .catch((error) => {
+        const details = error instanceof Error ? error.message : "Could not reach the API server.";
+        window.location.href = buildLoginUrl("auth_request_failed", details, redirect);
       });
   </script>
 </Layout>

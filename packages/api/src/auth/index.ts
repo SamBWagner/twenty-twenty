@@ -3,9 +3,12 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 
-const authBaseUrl = process.env.BETTER_AUTH_URL || process.env.API_URL || "http://localhost:3001";
-const webUrl = process.env.WEB_URL || "http://localhost:4321";
-const trustedOrigins = Array.from(
+const githubClientId = process.env.GITHUB_CLIENT_ID?.trim() || "";
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim() || "";
+
+export const authBaseUrl = process.env.BETTER_AUTH_URL || process.env.API_URL || "http://localhost:3001";
+export const webUrl = process.env.WEB_URL || "http://localhost:4321";
+export const trustedOrigins = Array.from(
   new Set(
     [webUrl, authBaseUrl, process.env.TRUSTED_ORIGINS]
       .flatMap((value) => value?.split(",") ?? [])
@@ -13,6 +16,9 @@ const trustedOrigins = Array.from(
       .filter(Boolean),
   ),
 );
+export const authSecretConfigured = Boolean(process.env.BETTER_AUTH_SECRET?.trim());
+export const githubAuthConfigured = Boolean(githubClientId && githubClientSecret);
+export const githubCallbackUrl = `${authBaseUrl}/api/auth/callback/github`;
 
 export const auth = betterAuth({
   baseURL: authBaseUrl,
@@ -24,12 +30,16 @@ export const auth = betterAuth({
   ...(process.env.TEST_AUTH_BYPASS === "true"
     ? { emailAndPassword: { enabled: true } }
     : {}),
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    },
-  },
+  ...(githubAuthConfigured
+    ? {
+        socialProviders: {
+          github: {
+            clientId: githubClientId,
+            clientSecret: githubClientSecret,
+          },
+        },
+      }
+    : {}),
   trustedOrigins,
   advanced: {
     useSecureCookies: process.env.NODE_ENV === "production",

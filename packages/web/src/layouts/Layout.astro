@@ -3,6 +3,8 @@ interface Props {
   title: string;
 }
 
+import { cn, scrapbookButton } from "../lib/button-styles";
+
 const { title } = Astro.props;
 ---
 
@@ -52,7 +54,7 @@ const { title } = Astro.props;
 
       /* Button click press-down */
       .btn-pressing {
-        transform: translateY(3px) !important;
+        transform: translate(1px, 2px) scale(0.99) !important;
         transition: transform 0.08s ease-out !important;
       }
 
@@ -113,6 +115,122 @@ const { title } = Astro.props;
         80% { transform: translate(-5vw, -5vh) rotate(3deg); }
       }
     </style>
+    <style is:global>
+      .scrapbook-btn {
+        --sb-rest-rotate: 0deg;
+        --sb-hover-rotate: 0.45deg;
+        --sb-base-shadow-x: 2px;
+        --sb-base-shadow-y: 2px;
+        --sb-hover-shadow-x: 5px;
+        --sb-hover-shadow-y: 5px;
+        --sb-shadow-color: #080708;
+        --sb-hover-shadow-color: #3772FF;
+        --sb-lift-x: -1px;
+        --sb-lift-y: -2px;
+        box-shadow: var(--sb-base-shadow-x) var(--sb-base-shadow-y) 0 0 var(--sb-shadow-color);
+        transform: rotate(var(--sb-rest-rotate));
+        transform-origin: center;
+        transition:
+          transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 160ms cubic-bezier(0.22, 1, 0.36, 1),
+          background-color 140ms ease,
+          color 140ms ease,
+          border-color 140ms ease;
+        will-change: transform, box-shadow;
+        text-decoration: none;
+      }
+
+      .scrapbook-btn:hover:not(:disabled):not([aria-disabled="true"]),
+      .scrapbook-btn:focus-visible:not(:disabled):not([aria-disabled="true"]) {
+        transform: translate(var(--sb-lift-x), var(--sb-lift-y)) rotate(var(--sb-hover-rotate));
+        box-shadow: var(--sb-hover-shadow-x) var(--sb-hover-shadow-y) 0 0 var(--sb-hover-shadow-color);
+      }
+
+      .scrapbook-btn:focus-visible {
+        outline: 2px solid #080708;
+        outline-offset: 2px;
+      }
+
+      .scrapbook-btn:disabled,
+      .scrapbook-btn[aria-disabled="true"] {
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: rotate(var(--sb-rest-rotate));
+        box-shadow: var(--sb-base-shadow-x) var(--sb-base-shadow-y) 0 0 var(--sb-shadow-color);
+      }
+
+      .scrapbook-btn--neutral {
+        --sb-hover-shadow-color: #3772FF;
+      }
+
+      .scrapbook-btn--primary,
+      .scrapbook-btn--secondary {
+        --sb-hover-shadow-color: #FDCA40;
+      }
+
+      .scrapbook-btn--warm {
+        --sb-hover-shadow-color: #3772FF;
+      }
+
+      .scrapbook-btn--danger {
+        --sb-hover-shadow-color: #F87171;
+      }
+
+      .scrapbook-btn--success {
+        --sb-hover-shadow-color: #34D399;
+      }
+
+      .scrapbook-btn--left {
+        --sb-rest-rotate: -0.9deg;
+        --sb-hover-rotate: 0.5deg;
+      }
+
+      .scrapbook-btn--right {
+        --sb-rest-rotate: 0.9deg;
+        --sb-hover-rotate: -0.5deg;
+      }
+
+      .scrapbook-btn--flat {
+        --sb-rest-rotate: 0deg;
+        --sb-hover-rotate: 0.35deg;
+      }
+
+      .scrapbook-btn--regular {
+        --sb-lift-x: -1px;
+        --sb-lift-y: -2px;
+      }
+
+      .scrapbook-btn--compact {
+        --sb-lift-x: -0.75px;
+        --sb-lift-y: -1.5px;
+      }
+
+      .scrapbook-btn--icon {
+        --sb-lift-x: -0.5px;
+        --sb-lift-y: -1px;
+      }
+
+      .scrapbook-btn--sm {
+        --sb-base-shadow-x: 2px;
+        --sb-base-shadow-y: 2px;
+        --sb-hover-shadow-x: 4px;
+        --sb-hover-shadow-y: 4px;
+      }
+
+      .scrapbook-btn--md {
+        --sb-base-shadow-x: 4px;
+        --sb-base-shadow-y: 4px;
+        --sb-hover-shadow-x: 7px;
+        --sb-hover-shadow-y: 7px;
+      }
+
+      .scrapbook-btn--lg {
+        --sb-base-shadow-x: 6px;
+        --sb-base-shadow-y: 6px;
+        --sb-hover-shadow-x: 9px;
+        --sb-hover-shadow-y: 9px;
+      }
+    </style>
   </head>
   <body class="min-h-screen bg-surface bg-grid font-sans text-secondary">
     <!-- Scattered nav -->
@@ -120,7 +238,10 @@ const { title } = Astro.props;
       <div class="flex items-start justify-between">
         <a
           href="/"
-          class="inline-block border-3 border-secondary bg-tertiary px-4 py-2 font-bold uppercase tracking-tight shadow-brutal-sm rotate-[-2deg] hover:rotate-0 transition-transform"
+          class={cn(
+            scrapbookButton({ tone: "warm", size: "compact", tilt: "left", depth: "sm" }),
+            "inline-block border-3 border-secondary bg-tertiary px-4 py-2 font-bold uppercase tracking-tight",
+          )}
         >
           Twenty Twenty
         </a>
@@ -156,14 +277,7 @@ const { title } = Astro.props;
           return false;
         }
 
-        // Match buttons and links that have shadow-brutal (our "interactive" indicator)
-        const classes = el.className || "";
-        if (el.tagName === "BUTTON" || (el.tagName === "A" && classes.includes("shadow-brutal"))) {
-          // Skip tiny vote buttons and delete buttons
-          if (classes.includes("w-7") || classes.includes("w-6") || classes.includes("w-8")) return false;
-          return true;
-        }
-        return false;
+        return el.classList.contains("scrapbook-btn");
       }
 
       document.addEventListener("click", (e) => {

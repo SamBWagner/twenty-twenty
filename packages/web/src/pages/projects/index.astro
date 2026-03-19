@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { getUser } from "../../lib/auth";
 import ProjectList from "../../components/react/ProjectList";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 
 const user = await getUser(Astro.request.headers.get("cookie") || undefined);
 if (!user) return Astro.redirect("/login");
@@ -22,7 +23,10 @@ if (!user) return Astro.redirect("/login");
       </h1>
       <a
         href="/projects/new"
-        class="border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white shadow-brutal rotate-[1deg] transition-all hover:rotate-[-1deg] hover:shadow-brutal-tertiary"
+        class={cn(
+          scrapbookButton({ tone: "primary", size: "regular", tilt: "right", depth: "md" }),
+          "border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white",
+        )}
       >
         + New Project
       </a>

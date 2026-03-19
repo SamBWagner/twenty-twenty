@@ -50,7 +50,7 @@ test.describe("Real-time Collaboration", () => {
     await memberCtx.close();
   });
 
-  test("phase change is seen by other users", async ({ browser }) => {
+  test("phase change updates the live phase without forcing everyone to switch views", async ({ browser }) => {
     const ownerCtx = await browser.newContext();
     const owner = await loginAsOwner(ownerCtx);
     const o = opts(ownerCtx, owner);
@@ -67,17 +67,29 @@ test.describe("Real-time Collaboration", () => {
     await ownerPage.goto(`/projects/${project.id}/sessions/${session.id}`);
     await memberPage.goto(`/projects/${project.id}/sessions/${session.id}`);
 
-    await expect(memberPage.getByText("ideation")).toBeVisible();
+    await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Ideation");
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Ideation");
 
     // Owner adds item and advances to action
     await ownerPage.getByPlaceholder("Something that went well").fill("Test item");
     await ownerPage.getByPlaceholder("Something that went well").press("Enter");
     await expect(ownerPage.getByText("Test item")).toBeVisible();
 
-    await ownerPage.getByRole("button", { name: /Actions/ }).click();
+    await ownerPage.getByRole("button", { name: "Advance to Actions" }).click();
 
-    // Member should see the phase change
-    await expect(memberPage.getByText("action", { exact: true })).toBeVisible({ timeout: 10_000 });
+    // Member should see the live phase change, but stay on ideation until they choose otherwise
+    await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Actions", { timeout: 10_000 });
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await expect(memberPage.getByText("Went Well")).toBeVisible();
+    await expect(memberPage.getByText("Test item")).toBeVisible();
+
+    await memberPage.getByRole("button", { name: "Actions" }).click();
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Actions");
+    await expect(memberPage.getByText("Unactioned Items")).toBeVisible({ timeout: 10_000 });
+
+    await memberPage.getByRole("button", { name: "Ideation" }).click();
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await expect(memberPage.getByText("Went Well")).toBeVisible();
 
     await ownerCtx.close();
     await memberCtx.close();

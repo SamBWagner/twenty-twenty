@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 
 interface SessionInfo {
   sessionId: string;
@@ -56,7 +57,10 @@ export default function JoinSession({ token }: { token: string }) {
           <p className="font-mono text-sm">{error}</p>
           <a
             href="/projects"
-            className="mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white shadow-brutal-sm hover:shadow-brutal-tertiary transition-shadow"
+            className={cn(
+              scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "sm" }),
+              "mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+            )}
           >
             Go Home
           </a>
@@ -79,7 +83,10 @@ export default function JoinSession({ token }: { token: string }) {
           </p>
           <a
             href={`/projects/${info.projectId}/sessions/${info.sessionId}`}
-            className="inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white shadow-brutal rotate-[-0.5deg] hover:rotate-[0.5deg] transition-all hover:shadow-brutal-tertiary"
+            className={cn(
+              scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
+              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+            )}
           >
             Go to Retro
           </a>
@@ -104,7 +111,10 @@ export default function JoinSession({ token }: { token: string }) {
           <button
             onClick={joinAsGuest}
             disabled={joining}
-            className="w-full border-3 border-secondary bg-tertiary px-6 py-4 font-bold uppercase shadow-brutal rotate-[0.5deg] transition-all hover:rotate-[-0.5deg] hover:shadow-brutal-primary disabled:opacity-50"
+            className={cn(
+              scrapbookButton({ tone: "warm", size: "regular", tilt: "right", depth: "md" }),
+              "w-full border-3 border-secondary bg-tertiary px-6 py-4 font-bold uppercase disabled:opacity-50",
+            )}
           >
             Join As Guest
           </button>
@@ -115,7 +125,10 @@ export default function JoinSession({ token }: { token: string }) {
           <button
             onClick={joinProject}
             disabled={joining}
-            className="w-full border-3 border-secondary bg-primary px-6 py-4 font-bold uppercase text-white shadow-brutal rotate-[-0.5deg] transition-all hover:rotate-[0.5deg] hover:shadow-brutal-tertiary disabled:opacity-50"
+            className={cn(
+              scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
+              "w-full border-3 border-secondary bg-primary px-6 py-4 font-bold uppercase text-white disabled:opacity-50",
+            )}
           >
             Join Project
           </button>

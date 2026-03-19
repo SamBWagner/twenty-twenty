@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
 import type { WsEvent } from "@twenty-twenty/shared";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 
 interface Item {
   id: string;
@@ -18,9 +19,11 @@ const cardRotations = [
 
 export default function IdeationBoard({
   sessionId,
+  readOnly,
   onRegisterWsHandler,
 }: {
   sessionId: string;
+  readOnly: boolean;
   onRegisterWsHandler: (handler: (event: WsEvent) => void) => void;
 }) {
   const [items, setItems] = useState<Item[]>([]);
@@ -78,64 +81,96 @@ export default function IdeationBoard({
 
   return (
     <div className="grid grid-cols-2 gap-8">
-      {/* Went Well */}
       <div>
-        <div className="mb-4 inline-block border-3 border-secondary bg-green-300 px-5 py-2 rotate-[-1deg]">
-          <h2 className="font-bold uppercase text-lg">✓ Went Well</h2>
+        <div className="mb-4 inline-block rotate-[-1deg] border-3 border-secondary bg-green-300 px-5 py-2">
+          <h2 className="text-lg font-bold uppercase">✓ Went Well</h2>
         </div>
-        <div className="space-y-10 mb-5">
+        <div className="mb-5 space-y-10">
           {goodItems.map((item, i) => (
-            <ItemCard key={item.id} item={item} onVote={vote} onDelete={deleteItem} color="green" rotation={cardRotations[i % cardRotations.length]} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              onVote={vote}
+              onDelete={deleteItem}
+              color="green"
+              rotation={cardRotations[i % cardRotations.length]}
+              readOnly={readOnly}
+            />
           ))}
         </div>
-        <form
-          onSubmit={(e) => { e.preventDefault(); addItem("good"); }}
-          className="flex gap-2"
-        >
-          <input
-            type="text"
-            value={goodInput}
-            onChange={(e) => setGoodInput(e.target.value)}
-            placeholder="Something that went well..."
-            className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-medium shadow-brutal-sm focus:shadow-brutal-primary focus:outline-none transition-shadow"
-          />
-          <button
-            type="submit"
-            className="border-3 border-secondary bg-green-300 px-5 py-3 font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal hover:scale-105"
+        {readOnly ? (
+          <p className="border-3 border-secondary bg-white px-4 py-3 text-sm font-medium text-secondary/60">
+            This section is read-only now, but you can still look back through everything that was captured.
+          </p>
+        ) : (
+          <form
+            onSubmit={(e) => { e.preventDefault(); addItem("good"); }}
+            className="flex gap-2"
           >
-            +
-          </button>
-        </form>
+            <input
+              type="text"
+              value={goodInput}
+              onChange={(e) => setGoodInput(e.target.value)}
+              placeholder="Something that went well..."
+              className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
+            />
+            <button
+              type="submit"
+              className={cn(
+                scrapbookButton({ tone: "success", size: "compact", tilt: "left", depth: "sm" }),
+                "border-3 border-secondary bg-green-300 px-5 py-3 font-bold uppercase",
+              )}
+            >
+              +
+            </button>
+          </form>
+        )}
       </div>
 
-      {/* Needs Improvement */}
       <div>
-        <div className="mb-4 inline-block border-3 border-secondary bg-red-300 px-5 py-2 rotate-[1deg]">
-          <h2 className="font-bold uppercase text-lg">✗ Needs Work</h2>
+        <div className="mb-4 inline-block rotate-[1deg] border-3 border-secondary bg-red-300 px-5 py-2">
+          <h2 className="text-lg font-bold uppercase">✗ Needs Work</h2>
         </div>
-        <div className="space-y-10 mb-5">
+        <div className="mb-5 space-y-10">
           {badItems.map((item, i) => (
-            <ItemCard key={item.id} item={item} onVote={vote} onDelete={deleteItem} color="red" rotation={cardRotations[(i + 3) % cardRotations.length]} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              onVote={vote}
+              onDelete={deleteItem}
+              color="red"
+              rotation={cardRotations[(i + 3) % cardRotations.length]}
+              readOnly={readOnly}
+            />
           ))}
         </div>
-        <form
-          onSubmit={(e) => { e.preventDefault(); addItem("bad"); }}
-          className="flex gap-2"
-        >
-          <input
-            type="text"
-            value={badInput}
-            onChange={(e) => setBadInput(e.target.value)}
-            placeholder="Something that could improve..."
-            className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-medium shadow-brutal-sm focus:shadow-brutal-primary focus:outline-none transition-shadow"
-          />
-          <button
-            type="submit"
-            className="border-3 border-secondary bg-red-300 px-5 py-3 font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal hover:scale-105"
+        {readOnly ? (
+          <p className="border-3 border-secondary bg-white px-4 py-3 text-sm font-medium text-secondary/60">
+            Live editing has moved on, but the ideas from this stage stay available here for reference.
+          </p>
+        ) : (
+          <form
+            onSubmit={(e) => { e.preventDefault(); addItem("bad"); }}
+            className="flex gap-2"
           >
-            +
-          </button>
-        </form>
+            <input
+              type="text"
+              value={badInput}
+              onChange={(e) => setBadInput(e.target.value)}
+              placeholder="Something that could improve..."
+              className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
+            />
+            <button
+              type="submit"
+              className={cn(
+                scrapbookButton({ tone: "danger", size: "compact", tilt: "right", depth: "sm" }),
+                "border-3 border-secondary bg-red-300 px-5 py-3 font-bold uppercase",
+              )}
+            >
+              +
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -147,35 +182,54 @@ function ItemCard({
   onDelete,
   color,
   rotation,
+  readOnly,
 }: {
   item: Item;
   onVote: (id: string, value: 1 | -1) => void;
   onDelete: (id: string) => void;
   color: "green" | "red";
   rotation: string;
+  readOnly: boolean;
 }) {
   const bg = color === "green" ? "bg-green-50" : "bg-red-50";
 
   return (
     <div className={`relative z-0 border-3 border-secondary ${bg} p-4 transition-all hover:z-10 ${rotation}`}>
-      {/* Vote controls */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-10">
+      <div className="absolute -left-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1">
         <button
           onClick={() => onVote(item.id, 1)}
-          className={`border-2 border-secondary w-7 h-7 flex items-center justify-center text-sm font-bold transition-colors ${
-            item.userVote === 1 ? "bg-primary text-white" : "bg-white hover:bg-blue-200"
-          }`}
+          disabled={readOnly}
+          className={cn(
+            scrapbookButton({
+              tone: item.userVote === 1 ? "primary" : "neutral",
+              size: "icon",
+              tilt: "flat",
+              depth: "sm",
+            }),
+            `h-7 w-7 border-2 border-secondary text-sm font-bold transition-colors ${
+              item.userVote === 1 ? "bg-primary text-white" : "bg-white hover:bg-blue-200"
+            } ${readOnly ? "cursor-not-allowed opacity-50" : ""}`,
+          )}
         >
           ▲
         </button>
-        <div className="border-2 border-secondary bg-white w-7 h-7 flex items-center justify-center font-mono text-xs font-bold">
+        <div className="flex h-7 w-7 items-center justify-center border-2 border-secondary bg-white font-mono text-xs font-bold">
           {item.voteCount}
         </div>
         <button
           onClick={() => onVote(item.id, -1)}
-          className={`border-2 border-secondary w-7 h-7 flex items-center justify-center text-sm font-bold transition-colors ${
-            item.userVote === -1 ? "bg-red-500 text-white" : "bg-white hover:bg-red-200"
-          }`}
+          disabled={readOnly}
+          className={cn(
+            scrapbookButton({
+              tone: item.userVote === -1 ? "danger" : "neutral",
+              size: "icon",
+              tilt: "flat",
+              depth: "sm",
+            }),
+            `h-7 w-7 border-2 border-secondary text-sm font-bold transition-colors ${
+              item.userVote === -1 ? "bg-red-500 text-white" : "bg-white hover:bg-red-200"
+            } ${readOnly ? "cursor-not-allowed opacity-50" : ""}`,
+          )}
         >
           ▼
         </button>
@@ -185,10 +239,13 @@ function ItemCard({
         <p className="font-medium">{item.content}</p>
       </div>
 
-      {item.isOwn && (
+      {item.isOwn && !readOnly && (
         <button
           onClick={() => onDelete(item.id)}
-          className="absolute -top-2 -right-2 border-2 border-secondary bg-white w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-300 transition-colors"
+          className={cn(
+            scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+            "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-300",
+          )}
         >
           ✕
         </button>

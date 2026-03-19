@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 import MarchingAnts from "./MarchingAnts";
 
 interface Project {
@@ -27,7 +28,10 @@ export default function ProjectList() {
         <p className="text-xl font-bold mb-4">Nothing here yet.</p>
         <a
           href="/projects/new"
-          className="inline-block border-3 border-secondary bg-tertiary px-6 py-3 font-bold uppercase shadow-brutal rotate-[-2deg] transition-all hover:rotate-[1deg] hover:shadow-brutal-primary"
+          className={cn(
+            scrapbookButton({ tone: "warm", size: "regular", tilt: "left", depth: "md" }),
+            "inline-block border-3 border-secondary bg-tertiary px-6 py-3 font-bold uppercase",
+          )}
         >
           Create your first project
         </a>

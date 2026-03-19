@@ -46,6 +46,17 @@ test.describe("Review Phase", () => {
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
     await expect(page.getByText("Reviewing Previous Actions")).toBeVisible();
     await expect(page.getByText("Optimize CI pipeline")).toBeVisible();
+    await expect(page.getByText("Disagreed", { exact: true })).toBeVisible();
+    await expect(page.getByText("We did nothing, try again")).toBeVisible();
+
+    const optionOrder = await page.locator('[data-testid="review-options"] > *').evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-testid")),
+    );
+    expect(optionOrder).toEqual([
+      "review-option-actioned",
+      "review-option-disagreed",
+      "review-option-did-nothing",
+    ]);
 
     await ctx.close();
   });
@@ -76,7 +87,7 @@ test.describe("Review Phase", () => {
 
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
 
-    await page.getByRole("button", { name: /We did nothing/ }).click();
+    await page.getByRole("button", { name: /We did nothing, try again/ }).click();
     await expect(page.getByText("2/2")).toBeVisible();
 
     await ctx.close();
@@ -91,8 +102,8 @@ test.describe("Review Phase", () => {
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
 
     // Fill in disagree comment and submit
-    await page.getByPlaceholder("Explain why").fill("This was the wrong approach");
-    await page.getByRole("button", { name: /Submit/ }).click();
+    await page.getByPlaceholder("Tell us what happened...").fill("This was the wrong approach");
+    await page.getByRole("button", { name: /Submit Disagreed/ }).click();
 
     await expect(page.getByText("2/2")).toBeVisible();
 
@@ -113,7 +124,8 @@ test.describe("Review Phase", () => {
     await page.getByRole("button", { name: /Actioned/ }).click();
 
     // Should transition to ideation phase after all reviews complete
-    await expect(page.getByText("ideation", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Ideation", { timeout: 10_000 });
+    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Ideation");
 
     await ctx.close();
   });

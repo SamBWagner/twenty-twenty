@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api-client";
 import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
+import { cn, scrapbookButton } from "../../lib/button-styles";
 import MarchingAnts from "./MarchingAnts";
 
 interface Session {
@@ -319,7 +320,10 @@ export default function ProjectDetail({
       <div className="mb-6">
         <a
           href="/projects"
-          className="inline-block border-2 border-secondary bg-white px-3 py-1 text-sm font-bold uppercase shadow-brutal-sm transition-shadow hover:shadow-brutal-primary"
+          className={cn(
+            scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+            "inline-block border-2 border-secondary bg-white px-3 py-1 text-sm font-bold uppercase",
+          )}
         >
           ← All Projects
         </a>
@@ -342,7 +346,10 @@ export default function ProjectDetail({
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none shadow-brutal-sm transition-all hover:-translate-y-0.5 hover:bg-[#ff7f7f] hover:text-white hover:shadow-brutal"
+              className={cn(
+                scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                "absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none hover:bg-[#ff7f7f] hover:text-white",
+              )}
               aria-label="Delete project"
             >
               ×
@@ -371,7 +378,10 @@ export default function ProjectDetail({
                     type="button"
                     onClick={closeDeleteConfirmation}
                     disabled={deletingProject}
-                    className="border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                    className={cn(
+                      scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                      "border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                    )}
                   >
                     Cancel
                   </button>
@@ -379,7 +389,10 @@ export default function ProjectDetail({
                     type="button"
                     onClick={handleDeleteProject}
                     disabled={deleteConfirmationText.trim() !== "DELETE" || deletingProject}
-                    className="border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                    className={cn(
+                      scrapbookButton({ tone: "danger", size: "compact", tilt: "left", depth: "sm" }),
+                      "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                    )}
                   >
                     {deletingProject ? "Deleting..." : "Delete Project"}
                   </button>
@@ -402,7 +415,10 @@ export default function ProjectDetail({
                   type="button"
                   onClick={handleCreateInvite}
                   disabled={creatingInvite}
-                  className="border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white shadow-brutal transition-all hover:shadow-brutal-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+                  className={cn(
+                    scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
+                    "border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
                 >
                   {creatingInvite ? "Creating..." : "Create Invite Link"}
                 </button>
@@ -420,7 +436,10 @@ export default function ProjectDetail({
                 type="button"
                 onClick={handleLeaveProject}
                 disabled={leavingProject}
-                className="border-3 border-secondary bg-white px-5 py-3 font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                className={cn(
+                  scrapbookButton({ tone: "neutral", size: "regular", tilt: "flat", depth: "sm" }),
+                  "border-3 border-secondary bg-white px-5 py-3 font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                )}
               >
                 {leavingProject ? "Leaving..." : "Leave Project"}
               </button>
@@ -466,7 +485,10 @@ export default function ProjectDetail({
                       type="button"
                       onClick={() => handleRemoveMember(member)}
                       disabled={removingMemberId === member.userId}
-                      className="shrink-0 border-2 border-secondary bg-white px-3 py-1 text-xs font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                      className={cn(
+                        scrapbookButton({ tone: "danger", size: "compact", tilt: "flat", depth: "sm" }),
+                        "shrink-0 border-2 border-secondary bg-white px-3 py-1 text-xs font-bold uppercase hover:bg-[#ff7f7f] hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
+                      )}
                       aria-label={`Kick ${member.username}`}
                     >
                       {removingMemberId === member.userId ? "..." : "Kick"}
@@ -493,7 +515,10 @@ export default function ProjectDetail({
           <button
             type="submit"
             disabled={creating}
-            className="border-3 border-secondary bg-secondary px-6 py-3 font-bold uppercase text-white shadow-brutal-sm transition-all hover:shadow-brutal-primary disabled:opacity-50"
+            className={cn(
+              scrapbookButton({ tone: "neutral", size: "regular", tilt: "right", depth: "sm" }),
+              "border-3 border-secondary bg-secondary px-6 py-3 font-bold uppercase text-white disabled:opacity-50",
+            )}
           >
             {creating ? "..." : "Go →"}
           </button>
@@ -570,7 +595,10 @@ export default function ProjectDetail({
                         <button
                           type="button"
                           onClick={() => handleCopyInvite(invitation.token)}
-                          className="border-2 border-secondary bg-tertiary px-4 py-2 text-xs font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal-primary"
+                          className={cn(
+                            scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
+                            "border-2 border-secondary bg-tertiary px-4 py-2 text-xs font-bold uppercase",
+                          )}
                         >
                           Copy Link
                         </button>
@@ -578,7 +606,10 @@ export default function ProjectDetail({
                           type="button"
                           onClick={() => handleRevokeInvite(invitation)}
                           disabled={revokingInviteId === invitation.id}
-                          className="border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                          className={cn(
+                            scrapbookButton({ tone: "danger", size: "compact", tilt: "flat", depth: "sm" }),
+                            "border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase hover:bg-[#ff7f7f] hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
+                          )}
                         >
                           {revokingInviteId === invitation.id ? "Revoking..." : "Revoke"}
                         </button>

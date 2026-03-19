@@ -31,7 +31,25 @@ test.describe("Session Lifecycle", () => {
 
     // Should navigate to session page showing ideation phase
     await expect(page).toHaveURL(/\/sessions\//);
-    await expect(page.getByText("ideation")).toBeVisible();
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Ideation");
+    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+
+    await ctx.close();
+  });
+
+  test("review tab shows an empty state on the first session", async ({ browser }) => {
+    const ctx = await browser.newContext();
+    const owner = await loginAsOwner(ctx);
+    const opts = ownerOpts(ctx, owner);
+    const project = await createProject(opts, { name: "First Review State" });
+    const session = await createSession(opts, project.id, { name: "Retro 1" });
+
+    const page = await ctx.newPage();
+    await page.goto(`/projects/${project.id}/sessions/${session.id}`);
+
+    await page.getByRole("button", { name: "Review" }).click();
+    await expect(page.getByText("Nothing to review yet")).toBeVisible();
+    await expect(page.getByText("doesn't have any actions from a previous retrospective yet")).toBeVisible();
 
     await ctx.close();
   });
@@ -66,11 +84,12 @@ test.describe("Session Lifecycle", () => {
 
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
-    await expect(page.getByText("ideation")).toBeVisible();
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Ideation");
 
     // Click advance button
-    await page.getByRole("button", { name: /Actions/ }).click();
-    await expect(page.getByText("action", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Advance to Actions" }).click();
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Actions");
+    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Actions");
 
     await ctx.close();
   });
@@ -100,11 +119,19 @@ test.describe("Session Lifecycle", () => {
     const session = await createSession(opts, project.id, { name: "Retro 1" });
     await createItem(opts, session.id, { type: "good", content: "Good stuff" });
     await advancePhase(opts, session.id); // ideation -> action
+    await createAction(opts, session.id, { description: "Publish retro recap" });
 
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
-    await page.getByRole("button", { name: /Close/ }).click();
-    await expect(page.getByText("closed", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Close Session" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Close this retrospective?");
+    await page.getByRole("button", { name: "Yes, Close Session" }).click();
+
+    await expect(page.getByText("Final Summary")).toBeVisible();
+    await expect(page.getByText("Publish retro recap")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy Summary" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Summarize" })).toHaveCount(0);
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Summary");
 
     await ctx.close();
   });

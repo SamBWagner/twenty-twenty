@@ -34,6 +34,12 @@ app.all("/api/auth/*", (c) => {
   return auth.handler(c.req.raw);
 });
 
+// Test-only auth bypass routes (guarded by env var)
+if (process.env.TEST_AUTH_BYPASS === "true") {
+  const { testAuthRoutes } = await import("./routes/test-auth.js");
+  app.route("/api", testAuthRoutes);
+}
+
 // API routes
 app.route("/api", projectRoutes);
 app.route("/api", sessionRoutes);

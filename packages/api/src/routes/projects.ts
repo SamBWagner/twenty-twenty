@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and, gt, or, lt } from "drizzle-orm";
+import { eq, and, gt, or } from "drizzle-orm";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
 import { newId } from "../lib/id.js";
@@ -357,7 +357,7 @@ projectRoutes.post("/projects/invite/:token", async (c) => {
   }
 
   const now = new Date();
-  if (lt(now, invitation.expiresAt)) {
+  if (now > new Date(invitation.expiresAt)) {
     return c.json({ error: "Invitation expired" }, 400);
   }
 
@@ -385,7 +385,7 @@ projectRoutes.post("/projects/invite/:token", async (c) => {
       .returning({ id: schema.user.id })
       .get();
 
-    userId = newUser[0];
+    userId = newUser;
   }
 
   const existingMembership = await db

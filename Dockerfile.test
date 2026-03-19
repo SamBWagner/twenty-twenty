@@ -1,0 +1,31 @@
+# Single-stage build for test environment
+FROM node:20-slim
+
+# Install build tools for better-sqlite3
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package.json package-lock.json ./
+COPY packages/api/package.json packages/api/
+COPY packages/web/package.json packages/web/
+COPY packages/shared/package.json packages/shared/
+
+RUN npm ci
+
+# Copy source
+COPY . .
+
+# Build web only (API runs via tsx like dev mode)
+RUN cd packages/web && npm run build
+
+# Copy and set up entrypoint
+COPY scripts/test-entrypoint.sh /usr/local/bin/test-entrypoint.sh
+RUN chmod +x /usr/local/bin/test-entrypoint.sh
+
+EXPOSE 3001 4321
+
+ENTRYPOINT ["test-entrypoint.sh"]

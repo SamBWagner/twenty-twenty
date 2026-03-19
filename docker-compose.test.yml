@@ -1,0 +1,26 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    ports:
+      - "3001:3001"
+      - "4321:4321"
+    environment:
+      - NODE_ENV=test
+      - DATABASE_PATH=/tmp/test.db
+      - API_URL=http://localhost:3001
+      - WEB_URL=http://localhost:4321
+      - PUBLIC_API_URL=http://localhost:3001
+      - GITHUB_CLIENT_ID=fake-test-client-id
+      - GITHUB_CLIENT_SECRET=fake-test-client-secret
+      - BETTER_AUTH_SECRET=test-secret-key-for-e2e
+      - TEST_AUTH_BYPASS=true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r => { if (!r.ok) process.exit(1) })"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 10s

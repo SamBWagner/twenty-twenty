@@ -9,6 +9,10 @@ export const auth = betterAuth({
     provider: "sqlite",
     schema,
   }),
+  // Enable email+password auth in test mode for E2E test user seeding
+  ...(process.env.TEST_AUTH_BYPASS === "true"
+    ? { emailAndPassword: { enabled: true } }
+    : {}),
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,

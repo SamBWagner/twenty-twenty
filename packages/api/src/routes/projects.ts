@@ -170,6 +170,17 @@ projectRoutes.delete("/projects/:pid", requireAuth, async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  const members = await db
+    .select({
+      userId: schema.projectMembers.userId,
+    })
+    .from(schema.projectMembers)
+    .where(eq(schema.projectMembers.projectId, pid));
+
+  if (members.length !== 1 || members[0]?.userId !== user.id) {
+    return c.json({ error: "Kick everyone else from the project before deleting it." }, 400);
+  }
+
   await db.delete(schema.projects).where(eq(schema.projects.id, pid));
   return c.json({ ok: true });
 });

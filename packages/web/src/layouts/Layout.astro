@@ -152,6 +152,10 @@ const { title } = Astro.props;
       ];
 
       function isInteractiveButton(el: Element): el is HTMLElement {
+        if (!(el instanceof HTMLElement) || el.dataset.noClickOverlay === "true") {
+          return false;
+        }
+
         // Match buttons and links that have shadow-brutal (our "interactive" indicator)
         const classes = el.className || "";
         if (el.tagName === "BUTTON" || (el.tagName === "A" && classes.includes("shadow-brutal"))) {

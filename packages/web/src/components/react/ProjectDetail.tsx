@@ -102,6 +102,9 @@ export default function ProjectDetail({
   const [revokingInviteId, setRevokingInviteId] = useState<string | null>(null);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [leavingProject, setLeavingProject] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletingProject, setDeletingProject] = useState(false);
   const [newName, setNewName] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
@@ -244,6 +247,65 @@ export default function ProjectDetail({
     }
   }
 
+  function closeDeleteConfirmation() {
+    setDeleteConfirmOpen(false);
+    setDeleteConfirmationText("");
+  }
+
+  function handleDeleteClick() {
+    if (!project) {
+      return;
+    }
+
+    const viewerMembership = project.members.find((member) => member.userId === currentUserId) || null;
+    if (viewerMembership?.role !== "owner") {
+      return;
+    }
+
+    if (project.members.length > 1) {
+      closeDeleteConfirmation();
+      setFeedback({
+        tone: "error",
+        message: "Kick everyone else from this project before you delete it.",
+      });
+      return;
+    }
+
+    setFeedback(null);
+
+    if (deleteConfirmOpen) {
+      closeDeleteConfirmation();
+      return;
+    }
+
+    setDeleteConfirmOpen(true);
+  }
+
+  async function handleDeleteProject() {
+    if (!project) {
+      return;
+    }
+
+    if (deleteConfirmationText.trim() !== "DELETE") {
+      setFeedback({
+        tone: "error",
+        message: 'Type "DELETE" to confirm project deletion.',
+      });
+      return;
+    }
+
+    setDeletingProject(true);
+    setFeedback(null);
+
+    try {
+      await api.delete(`/api/projects/${projectId}`);
+      window.location.href = "/projects";
+    } catch (err: any) {
+      setFeedback({ tone: "error", message: err.message || "Failed to delete project." });
+      setDeletingProject(false);
+    }
+  }
+
   if (loading) return <p className="font-mono text-sm">Loading...</p>;
   if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!project) return <p className="font-bold text-red-600">Project not found</p>;
@@ -275,8 +337,59 @@ export default function ProjectDetail({
 
       <div className="relative mb-10 border-3 border-secondary bg-white p-8 rotate-[-0.5deg]">
         <div className="absolute -top-2 left-1/2 h-6 w-20 -translate-x-1/2 rotate-[-2deg] border-2 border-secondary bg-tertiary/70"></div>
+        {isOwner && (
+          <>
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none shadow-brutal-sm transition-all hover:-translate-y-0.5 hover:bg-[#ff7f7f] hover:text-white hover:shadow-brutal"
+              aria-label="Delete project"
+            >
+              ×
+            </button>
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            {deleteConfirmOpen && (
+              <div className="absolute right-4 top-[4.75rem] z-20 w-[min(22rem,calc(100%-2rem))] border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal">
+                <p className="text-sm font-bold uppercase">Delete Project</p>
+                <p className="mt-2 text-xs font-mono text-secondary/70">
+                  This permanently deletes the project, sessions, actions, and invite links.
+                </p>
+                <label htmlFor="delete-project-confirmation" className="mt-4 block text-xs font-bold uppercase">
+                  Type DELETE to confirm
+                </label>
+                <input
+                  id="delete-project-confirmation"
+                  type="text"
+                  autoFocus
+                  value={deleteConfirmationText}
+                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                  placeholder="DELETE"
+                  className="mt-2 w-full border-3 border-secondary bg-white px-3 py-2 font-bold uppercase shadow-brutal-sm transition-shadow focus:outline-none focus:shadow-brutal-primary"
+                />
+                <div className="mt-4 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeDeleteConfirmation}
+                    disabled={deletingProject}
+                    className="border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteProject}
+                    disabled={deleteConfirmationText.trim() !== "DELETE" || deletingProject}
+                    className="border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white shadow-brutal-sm transition-all hover:shadow-brutal disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {deletingProject ? "Deleting..." : "Delete Project"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="flex flex-col gap-6 pr-14 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-4xl font-bold uppercase">{project.name}</h1>
             {project.description && <p className="mt-2 text-lg text-secondary/60">{project.description}</p>}
@@ -400,6 +513,7 @@ export default function ProjectDetail({
               <a
                 key={session.id}
                 href={`/projects/${projectId}/sessions/${session.id}`}
+                data-no-click-overlay="true"
                 className={`flex items-center justify-between border-3 border-secondary bg-white p-5 shadow-brutal-sm transition-all hover:scale-[1.01] hover:shadow-brutal ${rotation}`}
               >
                 <div className="flex items-center gap-4">

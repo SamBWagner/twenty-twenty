@@ -1,5 +1,5 @@
 app = "twenty-twenty"
-primary_region = "ord"
+primary_region = "syd"
 
 [build]
   dockerfile = "Dockerfile"

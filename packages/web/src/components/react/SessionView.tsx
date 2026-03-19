@@ -119,7 +119,7 @@ export default function SessionView({
 
   async function handleShare() {
     try {
-      const { shareToken } = await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`);
+      const { shareToken } = await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`, {});
       const webUrl = import.meta.env.PUBLIC_WEB_URL || "http://localhost:4321";
       const url = `${webUrl}/join/${shareToken}`;
 

@@ -5,6 +5,7 @@ interface Props {
 
 import { cn, scrapbookButton } from "../lib/button-styles";
 import Footer from "../components/Footer.astro";
+import BrandLink from "../components/react/BrandLink";
 
 const { title } = Astro.props;
 ---
@@ -268,15 +269,14 @@ const { title } = Astro.props;
     <!-- Scattered nav -->
     <nav class="relative mx-auto w-full max-w-6xl px-6 pb-2 pt-6">
       <div class="flex w-full items-center justify-between gap-4">
-        <a
-          href="/"
-          class={cn(
+        <BrandLink
+          currentPathname={Astro.url.pathname}
+          client:load
+          className={cn(
             scrapbookButton({ tone: "warm", size: "compact", tilt: "left", depth: "sm" }),
             "inline-block shrink-0 border-3 border-secondary bg-tertiary px-4 py-2 font-bold uppercase tracking-tight",
           )}
-        >
-          Twenty Twenty
-        </a>
+        />
         <div class="ml-auto flex min-w-0 items-center justify-end gap-2 self-center">
           <slot name="nav" />
         </div>

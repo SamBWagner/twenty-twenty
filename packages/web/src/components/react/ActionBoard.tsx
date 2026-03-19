@@ -47,6 +47,7 @@ export default function ActionBoard({
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -54,12 +55,15 @@ export default function ActionBoard({
       api.get<Bundle[]>(`/api/sessions/${sessionId}/bundles`),
       api.get<Action[]>(`/api/sessions/${sessionId}/actions`),
       api.get<Member[]>(`/api/projects/${projectId}/members`),
-    ]).then(([i, b, a, m]) => {
-      setItems(i);
-      setBundles(b);
-      setActions(a);
-      setMembers(m);
-    });
+    ])
+      .then(([i, b, a, m]) => {
+        setItems(i);
+        setBundles(b);
+        setActions(a);
+        setMembers(m);
+        setLoadError(null);
+      })
+      .catch((err: Error) => setLoadError(err.message || "Failed to load the action board."));
   }, [sessionId, projectId]);
 
   useEffect(() => {
@@ -143,6 +147,7 @@ export default function ActionBoard({
 
   return (
     <div>
+      {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
       {/* Carried over from previous retro */}
       {carriedOverActions.length > 0 && (
         <div className="mb-10">

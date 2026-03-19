@@ -1,14 +1,15 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { getUser } from "../lib/auth";
+import AuthBlockedState from "../components/AuthBlockedState.astro";
+import { buildApiRequestHeaders, getServerApiBaseUrl } from "../lib/auth";
 import { cn, scrapbookButton } from "../lib/button-styles";
 
-const apiUrl = process.env.API_URL || "http://localhost:3001";
+const auth = Astro.locals.auth;
+const apiUrl = getServerApiBaseUrl();
 const redirect = Astro.url.searchParams.get("redirect") || "";
 const error = Astro.url.searchParams.get("error") || "";
 const details = Astro.url.searchParams.get("details") || "";
 const signinUrl = redirect ? `/auth/signin?redirect=${encodeURIComponent(redirect)}` : "/auth/signin";
-const user = await getUser(Astro.request.headers.get("cookie") || undefined);
 
 interface AuthStatus {
   githubConfigured: boolean;
@@ -22,16 +23,20 @@ interface AuthStatus {
 }
 
 let authStatus: AuthStatus | null = null;
-try {
-  const res = await fetch(`${apiUrl}/api/auth/status`);
-  if (res.ok) {
-    authStatus = await res.json();
+if (auth.state === "anonymous") {
+  try {
+    const res = await fetch(`${apiUrl}/api/auth/status`, {
+      headers: buildApiRequestHeaders(Astro.request.headers, { includeCookie: false }),
+    });
+    if (res.ok) {
+      authStatus = await res.json();
+    }
+  } catch {
+    authStatus = null;
   }
-} catch {
-  authStatus = null;
 }
 
-if (user) {
+if (auth.state === "authenticated") {
   return Astro.redirect(redirect || "/projects");
 }
 
@@ -57,52 +62,56 @@ if (error === "github_not_configured") {
 ---
 
 <Layout title="Sign In">
-  <div class="flex flex-col items-center justify-center py-20 relative">
-    <div class="absolute top-16 left-20 text-5xl rotate-[12deg] select-none">★</div>
-    <div class="absolute top-24 right-32 text-3xl rotate-[-8deg] text-primary select-none">✦</div>
+  {auth.state === "anonymous" ? (
+    <div class="flex flex-col items-center justify-center py-20 relative">
+      <div class="absolute top-16 left-20 text-5xl rotate-[12deg] select-none">★</div>
+      <div class="absolute top-24 right-32 text-3xl rotate-[-8deg] text-primary select-none">✦</div>
 
-    <h1 class="text-5xl font-bold uppercase text-stroke mb-10">
-      <span class="text-tertiary">Get</span> <span class="text-primary">In</span>
-    </h1>
+      <h1 class="text-5xl font-bold uppercase text-stroke mb-10">
+        <span class="text-tertiary">Get</span> <span class="text-primary">In</span>
+      </h1>
 
-    {(errorTitle || authNotConfigured) && (
-      <div class="mb-8 max-w-2xl border-4 border-secondary bg-white p-5 rotate-[-0.4deg]">
-        <p class="text-sm font-bold uppercase tracking-[0.18em] text-secondary/45">
-          {errorTitle || "Local auth setup needed"}
-        </p>
-        <p class="mt-3 text-base font-medium text-secondary/75">
-          {errorBody || "GitHub OAuth needs to be configured before local sign-in will work."}
-        </p>
+      {(errorTitle || authNotConfigured) && (
+        <div class="mb-8 max-w-2xl border-4 border-secondary bg-white p-5 rotate-[-0.4deg]">
+          <p class="text-sm font-bold uppercase tracking-[0.18em] text-secondary/45">
+            {errorTitle || "Local auth setup needed"}
+          </p>
+          <p class="mt-3 text-base font-medium text-secondary/75">
+            {errorBody || "GitHub OAuth needs to be configured before local sign-in will work."}
+          </p>
 
-        <div class="mt-4 border-3 border-secondary bg-surface p-4 font-mono text-sm">
-          <p><strong>Expected callback URL:</strong> {callbackUrl}</p>
-          {missingEnvVars.length > 0 && <p class="mt-2"><strong>Missing:</strong> {missingEnvVars.join(", ")}</p>}
-          {authStatus?.trustedOrigins?.length ? (
-            <p class="mt-2"><strong>Trusted origins:</strong> {authStatus.trustedOrigins.join(", ")}</p>
-          ) : null}
+          <div class="mt-4 border-3 border-secondary bg-surface p-4 font-mono text-sm">
+            <p><strong>Expected callback URL:</strong> {callbackUrl}</p>
+            {missingEnvVars.length > 0 && <p class="mt-2"><strong>Missing:</strong> {missingEnvVars.join(", ")}</p>}
+            {authStatus?.trustedOrigins?.length ? (
+              <p class="mt-2"><strong>Trusted origins:</strong> {authStatus.trustedOrigins.join(", ")}</p>
+            ) : null}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {authNotConfigured ? (
-      <span
-        class={cn(
-          scrapbookButton({ tone: "neutral", size: "regular", tilt: "left", depth: "lg" }),
-          "cursor-not-allowed border-4 border-secondary bg-secondary/50 px-10 py-5 text-xl font-bold uppercase text-white opacity-60",
-        )}
-      >
-        Sign in with GitHub →
-      </span>
-    ) : (
-      <a
-        href={signinUrl}
-        class={cn(
-          scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "lg" }),
-          "border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white",
-        )}
-      >
-        Sign in with GitHub →
-      </a>
-    )}
-  </div>
+      {authNotConfigured ? (
+        <span
+          class={cn(
+            scrapbookButton({ tone: "neutral", size: "regular", tilt: "left", depth: "lg" }),
+            "cursor-not-allowed border-4 border-secondary bg-secondary/50 px-10 py-5 text-xl font-bold uppercase text-white opacity-60",
+          )}
+        >
+          Sign in with GitHub →
+        </span>
+      ) : (
+        <a
+          href={signinUrl}
+          class={cn(
+            scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "lg" }),
+            "border-4 border-secondary bg-secondary px-10 py-5 text-xl font-bold uppercase text-white",
+          )}
+        >
+          Sign in with GitHub →
+        </a>
+      )}
+    </div>
+  ) : (
+    <AuthBlockedState auth={auth} />
+  )}
 </Layout>

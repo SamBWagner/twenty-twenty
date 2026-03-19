@@ -16,12 +16,21 @@ const rotations = ["rotate-[-2deg]", "rotate-[1deg]", "rotate-[-1deg]", "rotate-
 export default function ProjectList() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<Project[]>("/api/projects").then(setProjects).finally(() => setLoading(false));
+    api
+      .get<Project[]>("/api/projects")
+      .then((data) => {
+        setProjects(data);
+        setError(null);
+      })
+      .catch((err: Error) => setError(err.message || "Failed to load projects."))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <p className="font-mono text-sm">Loading projects...</p>;
+  if (error) return <p className="font-bold text-red-600">{error}</p>;
   if (projects.length === 0) {
     return (
       <MarchingAnts className="p-16 text-center rotate-[0.5deg]">

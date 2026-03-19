@@ -27,11 +27,18 @@ export default function IdeationBoard({
   onRegisterWsHandler: (handler: (event: WsEvent) => void) => void;
 }) {
   const [items, setItems] = useState<Item[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [goodInput, setGoodInput] = useState("");
   const [badInput, setBadInput] = useState("");
 
   useEffect(() => {
-    api.get<Item[]>(`/api/sessions/${sessionId}/items`).then(setItems);
+    api
+      .get<Item[]>(`/api/sessions/${sessionId}/items`)
+      .then((data) => {
+        setItems(data);
+        setLoadError(null);
+      })
+      .catch((err: Error) => setLoadError(err.message || "Failed to load ideas."));
   }, [sessionId]);
 
   useEffect(() => {
@@ -80,7 +87,9 @@ export default function IdeationBoard({
   const badItems = items.filter((i) => i.type === "bad").sort((a, b) => b.voteCount - a.voteCount);
 
   return (
-    <div className="grid grid-cols-2 gap-8">
+    <div>
+      {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
+      <div className="grid grid-cols-2 gap-8">
       <div>
         <div className="mb-4 inline-block rotate-[-1deg] border-3 border-secondary bg-green-300 px-5 py-2">
           <h2 className="text-lg font-bold uppercase">✓ Went Well</h2>
@@ -171,6 +180,7 @@ export default function IdeationBoard({
             </button>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

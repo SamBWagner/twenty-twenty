@@ -1,17 +1,21 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { getUser } from "../../lib/auth";
+import AuthBlockedState from "../../components/AuthBlockedState.astro";
 import CreateProjectForm from "../../components/react/CreateProjectForm";
 
-const user = await getUser(Astro.request.headers.get("cookie") || undefined);
-if (!user) return Astro.redirect("/login");
+const auth = Astro.locals.auth;
+if (auth.state === "anonymous") return Astro.redirect("/login");
 ---
 
 <Layout title="New Project">
-  <div class="max-w-lg">
-    <h1 class="text-4xl font-bold uppercase text-stroke mb-8">
-      <span class="text-primary">New</span> <span class="text-tertiary">Project</span>
-    </h1>
-    <CreateProjectForm client:load />
-  </div>
+  {auth.state === "authenticated" ? (
+    <div class="max-w-lg">
+      <h1 class="text-4xl font-bold uppercase text-stroke mb-8">
+        <span class="text-primary">New</span> <span class="text-tertiary">Project</span>
+      </h1>
+      <CreateProjectForm client:load />
+    </div>
+  ) : (
+    <AuthBlockedState auth={auth} />
+  )}
 </Layout>

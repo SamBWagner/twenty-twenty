@@ -34,6 +34,22 @@ import Layout from "../../layouts/Layout.astro";
       return String(value).replace(/\s+/g, " ").trim().slice(0, 220);
     }
 
+    function parseRetryAfterSeconds(res) {
+      const retryAfter = Number.parseInt(res.headers.get("Retry-After") || "", 10);
+      return Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null;
+    }
+
+    function buildRequestFailureDetails(res, data, fallback) {
+      if (res.status === 429) {
+        const retryAfter = parseRetryAfterSeconds(res);
+        return retryAfter
+          ? `Too many requests. Try again in ${retryAfter} seconds.`
+          : "Too many requests. Please try again shortly.";
+      }
+
+      return data?.message || data?.error || fallback;
+    }
+
     function buildLoginUrl(error, details, redirect) {
       const loginUrl = new URL("/login", window.location.origin);
       loginUrl.searchParams.set("error", error);
@@ -66,7 +82,11 @@ import Layout from "../../layouts/Layout.astro";
       .then(async (statusRes) => {
         const status = await readJson(statusRes);
         if (!statusRes.ok || !status) {
-          throw new Error("Could not verify local auth configuration.");
+          throw new Error(buildRequestFailureDetails(
+            statusRes,
+            status,
+            "Could not verify local auth configuration.",
+          ));
         }
         if (!status.readyForOAuth) {
           const missing = Array.isArray(status.missingEnvVars) ? status.missingEnvVars.join(", ") : "";
@@ -94,7 +114,11 @@ import Layout from "../../layouts/Layout.astro";
           return null;
         }
 
-        const details = data?.message || data?.error || `Sign-in request failed with status ${signInRes.status}.`;
+        const details = buildRequestFailureDetails(
+          signInRes,
+          data,
+          `Sign-in request failed with status ${signInRes.status}.`,
+        );
         window.location.href = buildLoginUrl("auth_failed", details, redirect);
         return null;
       })

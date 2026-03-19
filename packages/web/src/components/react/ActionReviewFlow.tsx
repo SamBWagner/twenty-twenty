@@ -26,17 +26,23 @@ export default function ActionReviewFlow({
   onComplete: () => void;
 }) {
   const [data, setData] = useState<ReviewData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api.get<ReviewData>(`/api/sessions/${sessionId}/reviews/pending`).then((d) => {
-      setData(d);
-      if (d.pending.length === 0 && sessionPhase === "review") onComplete();
-    });
+    api
+      .get<ReviewData>(`/api/sessions/${sessionId}/reviews/pending`)
+      .then((d) => {
+        setData(d);
+        setLoadError(null);
+        if (d.pending.length === 0 && sessionPhase === "review") onComplete();
+      })
+      .catch((err: Error) => setLoadError(err.message || "Failed to load reviews."));
   }, [sessionId, sessionPhase, onComplete]);
 
+  if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!data) return <p className="font-mono text-sm">Loading reviews...</p>;
 
   if (data.total === 0) {

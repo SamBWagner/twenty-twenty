@@ -1,14 +1,19 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-import { getUser } from "../../../lib/auth";
+import AuthBlockedState from "../../../components/AuthBlockedState.astro";
 import ProjectDetail from "../../../components/react/ProjectDetail";
 
-const user = await getUser(Astro.request.headers.get("cookie") || undefined);
-if (!user) return Astro.redirect("/login");
+const auth = Astro.locals.auth;
+if (auth.state === "anonymous") return Astro.redirect("/login");
+const user = auth.user;
 
 const { projectId } = Astro.params;
 ---
 
 <Layout title="Project">
-  <ProjectDetail projectId={projectId!} currentUserId={user.id} client:load />
+  {auth.state === "authenticated" && user ? (
+    <ProjectDetail projectId={projectId!} currentUserId={user.id} client:load />
+  ) : (
+    <AuthBlockedState auth={auth} />
+  )}
 </Layout>

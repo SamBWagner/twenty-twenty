@@ -1,5 +1,23 @@
 import { getPublicApiBaseUrl } from "./runtime-urls";
 
+export class ApiError extends Error {
+  status: number;
+  retryAfterSeconds?: number;
+
+  constructor(message: string, status: number, retryAfterSeconds?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+function parseRetryAfterSeconds(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${getPublicApiBaseUrl()}${path}`, {
     credentials: "include",
@@ -12,7 +30,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body.error || `Request failed: ${res.status}`);
+    const retryAfterSeconds = parseRetryAfterSeconds(res.headers.get("Retry-After"));
+    const message = res.status === 429
+      ? `Too many requests. ${retryAfterSeconds ? `Try again in ${retryAfterSeconds} second${retryAfterSeconds === 1 ? "" : "s"}.` : "Please try again shortly."}`
+      : (body.error || `Request failed: ${res.status}`);
+    throw new ApiError(message, res.status, retryAfterSeconds);
   }
 
   return res.json();

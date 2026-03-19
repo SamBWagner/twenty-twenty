@@ -66,6 +66,7 @@ export default function SessionView({
 }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
   const [showParticipants, setShowParticipants] = useState(false);
@@ -115,11 +116,15 @@ export default function SessionView({
   useSessionWebSocket(sessionId, handleWsEvent);
 
   useEffect(() => {
-    api.get<Session>(`/api/sessions/${sessionId}`).then((s) => {
-      setSession(s);
-      setActiveSection((prev) => prev || defaultSectionForPhase(s.phase));
-      setLoading(false);
-    });
+    api
+      .get<Session>(`/api/sessions/${sessionId}`)
+      .then((s) => {
+        setSession(s);
+        setActiveSection((prev) => prev || defaultSectionForPhase(s.phase));
+        setLoadError(null);
+      })
+      .catch((err: Error) => setLoadError(err.message || "Failed to load session."))
+      .finally(() => setLoading(false));
   }, [sessionId]);
 
   useEffect(() => {
@@ -211,6 +216,7 @@ export default function SessionView({
   }
 
   if (loading) return <p className="font-mono text-sm">Loading session...</p>;
+  if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!session) return <p className="font-bold text-red-600">Session not found</p>;
 
   const isCreator = session.createdBy === userId;

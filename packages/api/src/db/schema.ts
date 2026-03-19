@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 // better-auth managed tables (defined here for FK references and queries)
 export const user = sqliteTable("user", {
@@ -186,4 +186,23 @@ export const sessionParticipants = sqliteTable(
     joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.sessionId, table.userId] })],
+);
+
+export const projectInvitations = sqliteTable(
+  "project_invitations",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => user.id),
+    token: text("token").notNull().unique(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    acceptedAt: integer("accepted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [index("projectInvitations_projectId_idx").on(table.projectId), index("projectInvitations_email_idx").on(table.email)],
 );

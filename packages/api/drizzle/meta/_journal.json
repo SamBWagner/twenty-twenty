@@ -15,6 +15,13 @@
       "when": 1773807531417,
       "tag": "0001_fat_loners",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773816897200,
+      "tag": "0002_calm_silver_surfer",
+      "breakpoints": true
     }
   ]
 }

@@ -27,7 +27,7 @@ npm install
 
 # Configure environment
 cp .env.example .env
-# Fill in GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, and SESSION_SECRET
+# Fill in GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, and BETTER_AUTH_SECRET
 
 # Run database migrations
 npm run db:migrate

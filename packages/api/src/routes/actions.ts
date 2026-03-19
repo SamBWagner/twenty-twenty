@@ -31,6 +31,7 @@ actionRoutes.post("/sessions/:sid/actions", requireAuth, async (c) => {
 
   const body = await c.req.json<{ description: string; bundleId?: string; assigneeId?: string }>();
   if (!body.description?.trim()) return c.json({ error: "Description is required" }, 400);
+  if (body.description.trim().length > 2000) return c.json({ error: "Description must be 2000 characters or less" }, 400);
 
   const action = {
     id: newId(),
@@ -70,6 +71,7 @@ actionRoutes.patch("/sessions/:sid/actions/:aid", requireAuth, async (c) => {
   if (!action || action.sessionId !== sid) return c.json({ error: "Not found" }, 404);
 
   const body = await c.req.json<{ description?: string; bundleId?: string; assigneeId?: string }>();
+  if (body.description && body.description.trim().length > 2000) return c.json({ error: "Description must be 2000 characters or less" }, 400);
   const updates: Record<string, unknown> = {};
   if (body.description?.trim()) updates.description = body.description.trim();
   if (body.bundleId !== undefined) updates.bundleId = body.bundleId || null;

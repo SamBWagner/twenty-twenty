@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "../../lib/api-client";
 import { useSessionWebSocket } from "../../lib/ws-client";
+import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
 import type { WsEvent } from "@twenty-twenty/shared";
 import IdeationBoard from "./IdeationBoard";
 import ActionBoard from "./ActionBoard";
@@ -120,8 +121,7 @@ export default function SessionView({
   async function handleShare() {
     try {
       const { shareToken } = await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`, {});
-      const webUrl = import.meta.env.PUBLIC_WEB_URL || "http://localhost:4321";
-      const url = `${webUrl}/join/${shareToken}`;
+      const url = `${getPublicWebBaseUrl()}/join/${shareToken}`;
 
       if (navigator.clipboard?.writeText) {
         try {

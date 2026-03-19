@@ -53,6 +53,9 @@ sessionRoutes.post("/projects/:pid/sessions", requireAuth, async (c) => {
   if (!body.name?.trim()) {
     return c.json({ error: "Name is required" }, 400);
   }
+  if (body.name.trim().length > 200) {
+    return c.json({ error: "Name must be 200 characters or less" }, 400);
+  }
 
   // Find the latest session to determine sequence and check for pending actions
   const latestSession = await db

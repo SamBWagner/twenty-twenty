@@ -6,7 +6,9 @@ import Layout from "../../layouts/Layout.astro";
   <div class="flex items-center justify-center py-20">
     <p class="font-mono text-sm">Redirecting to GitHub...</p>
   </div>
-  <script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL || "http://localhost:3001", webUrl: import.meta.env.PUBLIC_WEB_URL || "http://localhost:4321" }}>
+  <script define:vars={{ publicApiUrl: import.meta.env.PUBLIC_API_URL, publicWebUrl: import.meta.env.PUBLIC_WEB_URL }}>
+    const apiUrl = publicApiUrl || window.location.origin;
+    const webUrl = publicWebUrl || window.location.origin;
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect");
     const callbackURL = redirect ? `${webUrl}${redirect}` : `${webUrl}/projects`;

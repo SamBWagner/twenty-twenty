@@ -10,5 +10,5 @@ const { projectId } = Astro.params;
 ---
 
 <Layout title="Project">
-  <ProjectDetail projectId={projectId!} client:load />
+  <ProjectDetail projectId={projectId!} currentUserId={user.id} client:load />
 </Layout>

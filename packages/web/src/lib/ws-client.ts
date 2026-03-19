@@ -1,7 +1,6 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import type { WsEvent } from "@twenty-twenty/shared";
-
-const WS_URL = (import.meta.env.PUBLIC_API_URL || "http://localhost:3001").replace(/^http/, "ws");
+import { getPublicWebSocketBaseUrl } from "./runtime-urls";
 
 export function useSessionWebSocket(
   sessionId: string | null,
@@ -14,7 +13,7 @@ export function useSessionWebSocket(
   useEffect(() => {
     if (!sessionId) return;
 
-    const ws = new WebSocket(`${WS_URL}/api/ws?sessionId=${sessionId}`);
+    const ws = new WebSocket(`${getPublicWebSocketBaseUrl()}/api/ws?sessionId=${sessionId}`);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {

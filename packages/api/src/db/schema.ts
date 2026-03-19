@@ -195,14 +195,12 @@ export const projectInvitations = sqliteTable(
     projectId: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
-    email: text("email").notNull(),
     invitedByUserId: text("invited_by_user_id")
       .notNull()
       .references(() => user.id),
     token: text("token").notNull().unique(),
     expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-    acceptedAt: integer("accepted_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
-  (table) => [index("projectInvitations_projectId_idx").on(table.projectId), index("projectInvitations_email_idx").on(table.email)],
+  (table) => [index("projectInvitations_projectId_idx").on(table.projectId)],
 );

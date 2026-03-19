@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { loginAsOwner, loginAsMember } from "../helpers/auth";
-import { createProject, createInvitation, addMember } from "../helpers/factories";
+import { createProject, createInvitation, addMember, expireInvitation } from "../helpers/factories";
 import { resetDatabase } from "../helpers/db-reset";
-import type { APIRequestContext } from "@playwright/test";
 
 const API_URL = "http://localhost:3001";
 
@@ -14,120 +13,138 @@ function opts(ctx: any, user: any) {
   return { request: ctx.request, cookie: user.cookie };
 }
 
-/** Fetch pending invitations for a project and get the first one's real ID + token */
-async function getFirstInvitation(
-  request: APIRequestContext,
-  cookie: string,
-  projectId: string,
-): Promise<{ id: string; token: string; email: string }> {
-  // Get invitation list (returns real IDs)
-  const listRes = await request.get(
-    `${API_URL}/api/projects/${projectId}/invitations`,
-    { headers: { Cookie: cookie } },
-  );
-  const invitations = await listRes.json();
-  if (!invitations.length) throw new Error("No invitations found");
-  const inv = invitations[0];
-
-  // Get token via test-only endpoint
-  const tokenRes = await request.get(
-    `${API_URL}/api/test-auth/invitation-token/${inv.id}`,
-  );
-  const { token } = await tokenRes.json();
-
-  return { id: inv.id, token, email: inv.email };
-}
-
-test.describe("Invitations", () => {
-  test("create an invitation via API", async ({ browser }) => {
-    const ctx = await browser.newContext();
-    const owner = await loginAsOwner(ctx);
-    const o = opts(ctx, owner);
-    const project = await createProject(o, { name: "Invite Test" });
-
-    await createInvitation(o, project.id, "newuser@test.local");
-
-    // Verify via list endpoint
-    const inv = await getFirstInvitation(ctx.request, owner.cookie, project.id);
-    expect(inv.token).toBeDefined();
-    expect(inv.email).toBe("newuser@test.local");
-
-    await ctx.close();
-  });
-
-  test("cancel an invitation via API", async ({ browser }) => {
-    const ctx = await browser.newContext();
-    const owner = await loginAsOwner(ctx);
-    const o = opts(ctx, owner);
-    const project = await createProject(o, { name: "Cancel Test" });
-
-    await createInvitation(o, project.id, "cancel@test.local");
-    const inv = await getFirstInvitation(ctx.request, owner.cookie, project.id);
-
-    const res = await ctx.request.delete(
-      `${API_URL}/api/projects/${project.id}/invitations/${inv.id}`,
-      { headers: { Cookie: owner.cookie } },
-    );
-    expect(res.ok()).toBeTruthy();
-
-    // Verify it's gone from the list
-    const listRes = await ctx.request.get(
-      `${API_URL}/api/projects/${project.id}/invitations`,
-      { headers: { Cookie: owner.cookie } },
-    );
-    const invitations = await listRes.json();
-    expect(invitations).toHaveLength(0);
-
-    await ctx.close();
-  });
-
-  test("accept invitation via token", async ({ browser }) => {
+test.describe("Project invite links", () => {
+  test("owner can create and revoke an invite link from the project page", async ({ browser }) => {
     const ownerCtx = await browser.newContext();
     const owner = await loginAsOwner(ownerCtx);
-    const o = opts(ownerCtx, owner);
-    const project = await createProject(o, { name: "Accept Test" });
+    const project = await createProject(opts(ownerCtx, owner), { name: "Invite Board" });
+    const page = await ownerCtx.newPage();
 
-    await createInvitation(o, project.id, "member@test.local");
-    const inv = await getFirstInvitation(ownerCtx.request, owner.cookie, project.id);
+    await page.goto(`/projects/${project.id}`);
 
-    // Member (member@test.local) accepts the invitation
+    await page.getByRole("button", { name: "Create Invite Link" }).click();
+    await expect(page.getByText("Invite link created")).toBeVisible();
+    await expect(page.getByText("/projects/invite/")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Revoke" })).toBeVisible();
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Revoke" }).click();
+
+    await expect(page.getByText("Invite link revoked.")).toBeVisible();
+    await expect(page.getByText("No active invite links yet.")).toBeVisible();
+
+    await ownerCtx.close();
+  });
+
+  test("unauthenticated visitor returns to invite after login and can join the project", async ({ browser }) => {
+    const ownerCtx = await browser.newContext();
+    const owner = await loginAsOwner(ownerCtx);
+    const project = await createProject(opts(ownerCtx, owner), { name: "Join Me" });
+    const invitation = await createInvitation(opts(ownerCtx, owner), project.id);
+
+    const visitorCtx = await browser.newContext();
+    const page = await visitorCtx.newPage();
+
+    await page.goto(`/projects/invite/${invitation.token}`);
+    await expect(page).toHaveURL(new RegExp(`/login\\?redirect=.*${invitation.token}`));
+
+    await loginAsMember(visitorCtx);
+    await page.reload();
+
+    await expect(page).toHaveURL(new RegExp(`/projects/invite/${invitation.token}$`));
+    await expect(page.getByRole("heading", { name: "Join Me" })).toBeVisible();
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "Join Project" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/projects/${project.id}$`));
+    await expect(page.getByText("Join Me", { exact: true })).toBeVisible();
+
+    await ownerCtx.close();
+    await visitorCtx.close();
+  });
+
+  test("existing members see the already-member state", async ({ browser }) => {
+    const ownerCtx = await browser.newContext();
+    const owner = await loginAsOwner(ownerCtx);
+    const ownerOptions = opts(ownerCtx, owner);
+    const project = await createProject(ownerOptions, { name: "Already In" });
+
     const memberCtx = await browser.newContext();
     const member = await loginAsMember(memberCtx);
+    await addMember(ownerOptions, project.id, member.userId);
+    const invitation = await createInvitation(ownerOptions, project.id);
 
-    const res = await memberCtx.request.post(
-      `${API_URL}/api/projects/invite/${inv.token}`,
-      { headers: { Cookie: member.cookie } },
-    );
-    expect(res.ok()).toBeTruthy();
-
-    // Verify member can see the project
     const page = await memberCtx.newPage();
-    await page.goto("/projects");
-    await expect(page.getByText("Accept Test")).toBeVisible();
+    await page.goto(`/projects/invite/${invitation.token}`);
+
+    await expect(page.getByText("You are already a member of this project.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Go to Project" })).toBeVisible();
 
     await ownerCtx.close();
     await memberCtx.close();
   });
 
-  test("non-owner cannot create invitations", async ({ browser }) => {
+  test("revoked invite links show an unavailable state", async ({ browser }) => {
     const ownerCtx = await browser.newContext();
     const owner = await loginAsOwner(ownerCtx);
-    const o = opts(ownerCtx, owner);
-    const project = await createProject(o, { name: "Restricted Invite" });
+    const ownerOptions = opts(ownerCtx, owner);
+    const project = await createProject(ownerOptions, { name: "Revoked" });
+    const invitation = await createInvitation(ownerOptions, project.id);
+
+    const revokeResponse = await ownerCtx.request.delete(
+      `${API_URL}/api/projects/${project.id}/invitations/${invitation.id}`,
+      { headers: { Cookie: owner.cookie } },
+    );
+    expect(revokeResponse.ok()).toBeTruthy();
+
+    const memberCtx = await browser.newContext();
+    await loginAsMember(memberCtx);
+    const page = await memberCtx.newPage();
+    await page.goto(`/projects/invite/${invitation.token}`);
+
+    await expect(page.getByText("Invite Unavailable")).toBeVisible();
+    await expect(page.getByText("Invalid invitation")).toBeVisible();
+
+    await ownerCtx.close();
+    await memberCtx.close();
+  });
+
+  test("expired invite links show an unavailable state", async ({ browser }) => {
+    const ownerCtx = await browser.newContext();
+    const owner = await loginAsOwner(ownerCtx);
+    const ownerOptions = opts(ownerCtx, owner);
+    const project = await createProject(ownerOptions, { name: "Expired" });
+    const invitation = await createInvitation(ownerOptions, project.id);
+
+    await expireInvitation({ request: ownerCtx.request }, invitation.id);
+
+    const memberCtx = await browser.newContext();
+    await loginAsMember(memberCtx);
+    const page = await memberCtx.newPage();
+    await page.goto(`/projects/invite/${invitation.token}`);
+
+    await expect(page.getByText("Invite Unavailable")).toBeVisible();
+    await expect(page.getByText("Invitation expired")).toBeVisible();
+
+    await ownerCtx.close();
+    await memberCtx.close();
+  });
+
+  test("non-owners cannot create invite links", async ({ browser }) => {
+    const ownerCtx = await browser.newContext();
+    const owner = await loginAsOwner(ownerCtx);
+    const ownerOptions = opts(ownerCtx, owner);
+    const project = await createProject(ownerOptions, { name: "Restricted Invite" });
 
     const memberCtx = await browser.newContext();
     const member = await loginAsMember(memberCtx);
-    await addMember(o, project.id, member.userId);
+    await addMember(ownerOptions, project.id, member.userId);
 
-    // Member tries to create invitation
-    const res = await memberCtx.request.post(
+    const response = await memberCtx.request.post(
       `${API_URL}/api/projects/${project.id}/invitations`,
-      {
-        data: { email: "sneaky@test.local" },
-        headers: { Cookie: member.cookie },
-      },
+      { headers: { Cookie: member.cookie } },
     );
-    expect(res.status()).toBe(403);
+    expect(response.status()).toBe(403);
 
     await ownerCtx.close();
     await memberCtx.close();

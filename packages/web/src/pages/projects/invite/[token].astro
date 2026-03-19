@@ -1,0 +1,16 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { getUser } from "../../../lib/auth";
+import ProjectInviteJoin from "../../../components/react/ProjectInviteJoin";
+
+const user = await getUser(Astro.request.headers.get("cookie") || undefined);
+const { token } = Astro.params;
+
+if (!user) {
+  return Astro.redirect(`/login?redirect=/projects/invite/${token}`);
+}
+---
+
+<Layout title="Join Project">
+  <ProjectInviteJoin token={token!} client:load />
+</Layout>

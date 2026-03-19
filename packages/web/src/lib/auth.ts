@@ -1,4 +1,9 @@
-const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3001";
+import { getPublicApiBaseUrl } from "./runtime-urls";
+
+// SSR calls use internal URL to avoid hairpinning through the public internet
+const API_URL = import.meta.env.SSR
+  ? (process.env.API_URL || "http://localhost:3001")
+  : getPublicApiBaseUrl();
 
 export interface User {
   id: string;

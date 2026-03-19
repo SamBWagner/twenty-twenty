@@ -1,7 +1,7 @@
-const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3001";
+import { getPublicApiBaseUrl } from "./runtime-urls";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${getPublicApiBaseUrl()}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",

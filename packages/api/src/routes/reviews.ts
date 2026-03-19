@@ -76,6 +76,9 @@ reviewRoutes.post("/sessions/:sid/reviews", requireAuth, async (c) => {
   if (body.status === "disagree" && !body.comment?.trim()) {
     return c.json({ error: "Comment required when disagreeing" }, 400);
   }
+  if (body.comment && body.comment.trim().length > 2000) {
+    return c.json({ error: "Comment must be 2000 characters or less" }, 400);
+  }
 
   // Check action exists and belongs to previous session
   const action = await db.select().from(schema.actions).where(eq(schema.actions.id, body.actionId)).get();

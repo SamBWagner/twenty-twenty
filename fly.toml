@@ -1,0 +1,34 @@
+app = "twenty-twenty"
+primary_region = "ord"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  API_URL = "http://localhost:3001"
+  WEB_URL = "https://www.twenty-twenty.dev"
+  BETTER_AUTH_URL = "https://www.twenty-twenty.dev"
+  PUBLIC_API_URL = "https://www.twenty-twenty.dev"
+  PUBLIC_WEB_URL = "https://www.twenty-twenty.dev"
+  TRUSTED_ORIGINS = "https://twenty-twenty.dev,https://www.twenty-twenty.dev"
+  DATABASE_PATH = "/data/twenty-twenty.db"
+  API_PORT = "3001"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  path = "/api/health"
+  timeout = "5s"
+
+[mounts]
+  source = "twenty_twenty_data"
+  destination = "/data"

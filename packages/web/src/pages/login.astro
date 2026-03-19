@@ -1,8 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { getUser } from "../lib/auth";
 
 const redirect = Astro.url.searchParams.get("redirect") || "";
 const signinUrl = redirect ? `/auth/signin?redirect=${encodeURIComponent(redirect)}` : "/auth/signin";
+const user = await getUser(Astro.request.headers.get("cookie") || undefined);
+
+if (user) {
+  return Astro.redirect(redirect || "/projects");
+}
 ---
 
 <Layout title="Sign In">

@@ -45,13 +45,23 @@ export async function addMember(
 export async function createInvitation(
   opts: RequestOptions,
   projectId: string,
-  email: string,
 ) {
   const res = await opts.request.post(
     `${API_URL}/api/projects/${projectId}/invitations`,
-    { data: { email }, headers: headers(opts.cookie) },
+    { headers: headers(opts.cookie) },
   );
   if (!res.ok()) throw new Error(`createInvitation failed: ${res.status()}`);
+  return res.json();
+}
+
+export async function expireInvitation(
+  opts: Pick<RequestOptions, "request">,
+  invitationId: string,
+) {
+  const res = await opts.request.post(
+    `${API_URL}/api/test-auth/invitations/${invitationId}/expire`,
+  );
+  if (!res.ok()) throw new Error(`expireInvitation failed: ${res.status()}`);
   return res.json();
 }
 

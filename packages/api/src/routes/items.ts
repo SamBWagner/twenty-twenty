@@ -60,6 +60,7 @@ itemRoutes.post("/sessions/:sid/items", requireAuth, async (c) => {
 
   const body = await c.req.json<{ type: "good" | "bad"; content: string }>();
   if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
+  if (body.content.trim().length > 2000) return c.json({ error: "Content must be 2000 characters or less" }, 400);
   if (!["good", "bad"].includes(body.type)) return c.json({ error: "Type must be good or bad" }, 400);
 
   const item = {

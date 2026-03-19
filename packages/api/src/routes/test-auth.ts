@@ -75,11 +75,11 @@ testAuthRoutes.post("/test-auth/reset-db", async (c) => {
   return c.json({ ok: true });
 });
 
-// Get invitation token by invitation ID (test-only, since the real API hides tokens)
-testAuthRoutes.get("/test-auth/invitation-token/:id", async (c) => {
+// Expire an invitation immediately so E2E can cover expired-link behaviour
+testAuthRoutes.post("/test-auth/invitations/:id/expire", async (c) => {
   const id = c.req.param("id");
   const invitation = await db
-    .select({ token: schema.projectInvitations.token })
+    .select({ id: schema.projectInvitations.id })
     .from(schema.projectInvitations)
     .where(eq(schema.projectInvitations.id, id))
     .get();
@@ -88,7 +88,13 @@ testAuthRoutes.get("/test-auth/invitation-token/:id", async (c) => {
     return c.json({ error: "Invitation not found" }, 404);
   }
 
-  return c.json({ token: invitation.token });
+  await db
+    .update(schema.projectInvitations)
+    .set({ expiresAt: new Date(Date.now() - 60_000) })
+    .where(eq(schema.projectInvitations.id, id))
+    .run();
+
+  return c.json({ ok: true });
 });
 
 export { testAuthRoutes };

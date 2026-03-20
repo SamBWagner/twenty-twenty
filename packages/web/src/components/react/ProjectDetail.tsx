@@ -581,11 +581,7 @@ export default function ProjectDetail({
       </section>
 
       {viewerCapabilities?.canManageInvitations && (
-        <section
-          className="note-shell rotate-[0.3deg] p-6"
-          data-note-theme="sun"
-          data-tape-position="side-left"
-        >
+        <section className="space-y-4 px-1">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold uppercase">Invite Links</h2>
@@ -594,7 +590,7 @@ export default function ProjectDetail({
           </div>
 
           {invitations.length === 0 ? (
-            <MarchingAnts className="note-panel border-3 border-secondary p-10 text-center">
+            <MarchingAnts className="note-panel p-10 text-center">
               <p className="scribble-help text-2xl text-secondary">No active invite links yet.</p>
               <p className="scribble-help mt-2 text-base text-secondary/60">Create one above and it will appear here.</p>
             </MarchingAnts>

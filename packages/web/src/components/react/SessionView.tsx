@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, type CSSProperties } from "react";
 import { api } from "../../lib/api-client";
 import { useSessionWebSocket } from "../../lib/ws-client";
 import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
@@ -99,6 +99,8 @@ export default function SessionView({
   const [pendingAdvance, setPendingAdvance] = useState<PendingAdvance | null>(null);
   const [advancingPhase, setAdvancingPhase] = useState(false);
   const participantsPanelRef = useRef<HTMLDivElement>(null);
+  const participantsButtonRef = useRef<HTMLButtonElement>(null);
+  const [participantsPopoverStyle, setParticipantsPopoverStyle] = useState<CSSProperties | null>(null);
 
   const [itemEventHandlers, setItemEventHandlers] = useState<{
     onWsEvent?: (event: WsEvent) => void;
@@ -178,6 +180,29 @@ export default function SessionView({
     setItemEventHandlers({ onWsEvent: handler });
   }, []);
 
+  const updateParticipantsPopoverPosition = useCallback(() => {
+    const button = participantsButtonRef.current;
+    if (!button || typeof window === "undefined") {
+      return;
+    }
+
+    const rect = button.getBoundingClientRect();
+    const viewportPadding = 12;
+    const preferredWidth = 288;
+    const width = Math.min(preferredWidth, window.innerWidth - viewportPadding * 2);
+    const left = Math.min(
+      Math.max(rect.right - width, viewportPadding),
+      window.innerWidth - width - viewportPadding,
+    );
+
+    setParticipantsPopoverStyle({
+      position: "fixed",
+      top: `${rect.bottom + 12}px`,
+      left: `${left}px`,
+      width: `${width}px`,
+    });
+  }, []);
+
   // Close participant panel on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -186,10 +211,17 @@ export default function SessionView({
       }
     }
     if (showParticipants) {
+      updateParticipantsPopoverPosition();
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      window.addEventListener("resize", updateParticipantsPopoverPosition);
+      window.addEventListener("scroll", updateParticipantsPopoverPosition, true);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        window.removeEventListener("resize", updateParticipantsPopoverPosition);
+        window.removeEventListener("scroll", updateParticipantsPopoverPosition, true);
+      };
     }
-  }, [showParticipants]);
+  }, [showParticipants, updateParticipantsPopoverPosition]);
 
   function copyToClipboard(text: string): boolean {
     const textarea = document.createElement("textarea");
@@ -236,6 +268,7 @@ export default function SessionView({
       setShowParticipants(false);
       return;
     }
+    updateParticipantsPopoverPosition();
     setShowParticipants(true);
   }
 
@@ -337,7 +370,11 @@ export default function SessionView({
             <div className="flex flex-wrap items-center gap-3 lg:justify-end">
               <div className="relative" ref={participantsPanelRef}>
                 <button
+                  ref={participantsButtonRef}
                   onClick={toggleParticipants}
+                  type="button"
+                  aria-expanded={showParticipants}
+                  aria-haspopup="dialog"
                   className={cn(
                     scrapbookButton({ tone: "sun", size: "compact", tilt: "flat", depth: "sm" }),
                     "flex -space-x-1 border-3 border-secondary bg-white p-1",
@@ -361,9 +398,10 @@ export default function SessionView({
 
                 {showParticipants && (
                   <div
-                    className="note-shell absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(20rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] p-4 lg:w-72"
+                    className="note-shell z-50 p-4"
                     data-note-theme="sun"
                     data-tape-position="top-right"
+                    style={participantsPopoverStyle ?? undefined}
                   >
                     <h3 className="mb-3 text-sm font-bold uppercase">Participants</h3>
                     {participants.length === 0 && (

@@ -550,7 +550,7 @@ export default function ProjectDetail({
           </span>
         </div>
         {sessions.length === 0 ? (
-          <MarchingAnts className="note-panel border-3 border-secondary p-10 text-center">
+          <MarchingAnts className="note-panel mb-2 border-3 border-secondary p-10 text-center">
             <p className="scribble-help text-2xl text-secondary">No sessions yet. Start one above!</p>
           </MarchingAnts>
         ) : (

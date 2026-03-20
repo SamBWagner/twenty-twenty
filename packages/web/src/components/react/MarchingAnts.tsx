@@ -8,7 +8,7 @@ interface MarchingAntsProps {
 export default function MarchingAnts({ children, className = "" }: MarchingAntsProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const rectRef = useRef<SVGRectElement>(null);
-  const inset = 6;
+  const inset = 10;
 
   useEffect(() => {
     const updateSize = () => {

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../../lib/api-client";
 import { useSessionWebSocket } from "../../lib/ws-client";
 import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
@@ -64,6 +65,35 @@ function isSectionUnlocked(section: SessionSection, phase: SessionPhase): boolea
   return phaseOrder.indexOf(phase) >= phaseOrder.indexOf(requiredPhase);
 }
 
+function renderBodyPortal(node: React.ReactNode) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(node, document.body);
+}
+
+function getAnchoredPopoverStyle(button: HTMLElement | null, preferredWidth: number): CSSProperties | null {
+  if (!button || typeof window === "undefined") {
+    return null;
+  }
+
+  const rect = button.getBoundingClientRect();
+  const viewportPadding = 12;
+  const width = Math.min(preferredWidth, window.innerWidth - viewportPadding * 2);
+  const left = Math.min(
+    Math.max(rect.right - width, viewportPadding),
+    window.innerWidth - width - viewportPadding,
+  );
+
+  return {
+    position: "fixed",
+    top: `${rect.bottom + 12}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+  };
+}
+
 interface PresenceUser {
   userId: string;
   username: string;
@@ -101,6 +131,10 @@ export default function SessionView({
   const participantsPanelRef = useRef<HTMLDivElement>(null);
   const participantsButtonRef = useRef<HTMLButtonElement>(null);
   const [participantsPopoverStyle, setParticipantsPopoverStyle] = useState<CSSProperties | null>(null);
+  const pendingAdvancePanelRef = useRef<HTMLDivElement>(null);
+  const actionAdvanceButtonRef = useRef<HTMLButtonElement>(null);
+  const closeSessionButtonRef = useRef<HTMLButtonElement>(null);
+  const [pendingAdvancePopoverStyle, setPendingAdvancePopoverStyle] = useState<CSSProperties | null>(null);
 
   const [itemEventHandlers, setItemEventHandlers] = useState<{
     onWsEvent?: (event: WsEvent) => void;
@@ -181,27 +215,37 @@ export default function SessionView({
   }, []);
 
   const updateParticipantsPopoverPosition = useCallback(() => {
-    const button = participantsButtonRef.current;
-    if (!button || typeof window === "undefined") {
-      return;
-    }
-
-    const rect = button.getBoundingClientRect();
-    const viewportPadding = 12;
-    const preferredWidth = 288;
-    const width = Math.min(preferredWidth, window.innerWidth - viewportPadding * 2);
-    const left = Math.min(
-      Math.max(rect.right - width, viewportPadding),
-      window.innerWidth - width - viewportPadding,
-    );
-
-    setParticipantsPopoverStyle({
-      position: "fixed",
-      top: `${rect.bottom + 12}px`,
-      left: `${left}px`,
-      width: `${width}px`,
-    });
+    setParticipantsPopoverStyle(getAnchoredPopoverStyle(participantsButtonRef.current, 288));
   }, []);
+
+  const getPendingAdvanceButton = useCallback(
+    (nextSection?: SessionSection | null) => {
+      if (nextSection === "action") {
+        return actionAdvanceButtonRef.current;
+      }
+      if (nextSection === "summary") {
+        return closeSessionButtonRef.current;
+      }
+      return null;
+    },
+    [],
+  );
+
+  const updatePendingAdvancePopoverPosition = useCallback(() => {
+    setPendingAdvancePopoverStyle(
+      getAnchoredPopoverStyle(getPendingAdvanceButton(pendingAdvance?.nextSection), 384),
+    );
+  }, [getPendingAdvanceButton, pendingAdvance?.nextSection]);
+
+  const openPendingAdvance = useCallback(
+    (config: PendingAdvance) => {
+      setPendingAdvancePopoverStyle(
+        getAnchoredPopoverStyle(getPendingAdvanceButton(config.nextSection), 384),
+      );
+      setPendingAdvance(config);
+    },
+    [getPendingAdvanceButton],
+  );
 
   // Close participant panel on click outside
   useEffect(() => {
@@ -222,6 +266,35 @@ export default function SessionView({
       };
     }
   }, [showParticipants, updateParticipantsPopoverPosition]);
+
+  useEffect(() => {
+    if (!pendingAdvance) {
+      setPendingAdvancePopoverStyle(null);
+      return;
+    }
+
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      const activeButton = getPendingAdvanceButton(pendingAdvance.nextSection);
+
+      if (pendingAdvancePanelRef.current?.contains(target) || activeButton?.contains(target)) {
+        return;
+      }
+
+      setPendingAdvance(null);
+    }
+
+    updatePendingAdvancePopoverPosition();
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", updatePendingAdvancePopoverPosition);
+    window.addEventListener("scroll", updatePendingAdvancePopoverPosition, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", updatePendingAdvancePopoverPosition);
+      window.removeEventListener("scroll", updatePendingAdvancePopoverPosition, true);
+    };
+  }, [pendingAdvance, getPendingAdvanceButton, updatePendingAdvancePopoverPosition]);
 
   function copyToClipboard(text: string): boolean {
     const textarea = document.createElement("textarea");
@@ -450,8 +523,9 @@ export default function SessionView({
             {viewerCapabilities?.canAdvancePhase && session.phase === "ideation" && (
               <div className="relative w-full lg:w-auto lg:self-end">
                 <button
+                  ref={actionAdvanceButtonRef}
                   onClick={() =>
-                    setPendingAdvance({
+                    openPendingAdvance({
                       nextSection: "action",
                       title: "Move to Actions?",
                       message: "This ends ideation editing and moves everyone into the action planning stage. This action can't be undone.",
@@ -467,42 +541,46 @@ export default function SessionView({
                   Advance to Actions
                 </button>
 
-                {pendingAdvance?.nextSection === "action" && (
-                  <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="pending-advance-title"
-                    className="note-shell absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(24rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] p-4 lg:w-[min(24rem,calc(100vw-4rem))]"
-                    data-note-theme="plum"
-                    data-tape-position="top-right"
-                  >
-                    <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
-                    <p className="scribble-help note-muted mt-2 text-sm">{pendingAdvance.message}</p>
-                    <div className="mt-4 flex flex-wrap justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setPendingAdvance(null)}
-                        disabled={advancingPhase}
-                        className={cn(
-                          scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
-                          "border-2 border-secondary note-panel px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
-                        )}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => advancePhase(pendingAdvance.nextSection)}
-                        disabled={advancingPhase}
-                        className={cn(
-                          scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
-                          "border-2 border-secondary bg-[#8f63ef] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
-                        )}
-                      >
-                        {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
-                      </button>
-                    </div>
-                  </div>
+                {pendingAdvance?.nextSection === "action" && pendingAdvancePopoverStyle && (
+                  renderBodyPortal(
+                    <div
+                      ref={pendingAdvancePanelRef}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="pending-advance-title"
+                      className="note-shell z-40 max-w-[calc(100vw-1.5rem)] p-4"
+                      data-note-theme="plum"
+                      data-tape-position="top-right"
+                      style={pendingAdvancePopoverStyle ?? undefined}
+                    >
+                      <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
+                      <p className="scribble-help note-muted mt-2 text-sm">{pendingAdvance.message}</p>
+                      <div className="mt-4 flex flex-wrap justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPendingAdvance(null)}
+                          disabled={advancingPhase}
+                          className={cn(
+                            scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                            "border-2 border-secondary note-panel px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                          )}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => advancePhase(pendingAdvance.nextSection)}
+                          disabled={advancingPhase}
+                          className={cn(
+                            scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
+                            "border-2 border-secondary bg-[#8f63ef] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                          )}
+                        >
+                          {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
+                        </button>
+                      </div>
+                    </div>,
+                  )
                 )}
               </div>
             )}
@@ -510,8 +588,9 @@ export default function SessionView({
             {viewerCapabilities?.canAdvancePhase && session.phase === "action" && (
               <div className="relative w-full lg:w-auto lg:self-end">
                 <button
+                  ref={closeSessionButtonRef}
                   onClick={() =>
-                    setPendingAdvance({
+                    openPendingAdvance({
                       nextSection: "summary",
                       title: "Close this retrospective?",
                       message: "This ends live editing and opens the final summary view for the team. This action can't be undone.",
@@ -526,42 +605,46 @@ export default function SessionView({
                   Close Session
                 </button>
 
-                {pendingAdvance?.nextSection === "summary" && (
-                  <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="pending-advance-title"
-                    className="note-shell absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(24rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] p-4 lg:w-[min(24rem,calc(100vw-4rem))]"
-                    data-note-theme="sun"
-                    data-tape-position="top-right"
-                  >
-                    <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
-                    <p className="scribble-help note-muted mt-2 text-sm">{pendingAdvance.message}</p>
-                    <div className="mt-4 flex flex-wrap justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setPendingAdvance(null)}
-                        disabled={advancingPhase}
-                        className={cn(
-                          scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
-                          "border-2 border-secondary note-panel px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
-                        )}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => advancePhase(pendingAdvance.nextSection)}
-                        disabled={advancingPhase}
-                        className={cn(
-                          scrapbookButton({ tone: "sun", size: "compact", tilt: "left", depth: "sm" }),
-                          "border-2 border-secondary bg-[#f9d258] px-4 py-2 text-xs font-bold uppercase text-secondary disabled:cursor-not-allowed disabled:opacity-50",
-                        )}
-                      >
-                        {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
-                      </button>
-                    </div>
-                  </div>
+                {pendingAdvance?.nextSection === "summary" && pendingAdvancePopoverStyle && (
+                  renderBodyPortal(
+                    <div
+                      ref={pendingAdvancePanelRef}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="pending-advance-title"
+                      className="note-shell z-40 max-w-[calc(100vw-1.5rem)] p-4"
+                      data-note-theme="sun"
+                      data-tape-position="top-right"
+                      style={pendingAdvancePopoverStyle ?? undefined}
+                    >
+                      <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
+                      <p className="scribble-help note-muted mt-2 text-sm">{pendingAdvance.message}</p>
+                      <div className="mt-4 flex flex-wrap justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPendingAdvance(null)}
+                          disabled={advancingPhase}
+                          className={cn(
+                            scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                            "border-2 border-secondary note-panel px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                          )}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => advancePhase(pendingAdvance.nextSection)}
+                          disabled={advancingPhase}
+                          className={cn(
+                            scrapbookButton({ tone: "sun", size: "compact", tilt: "left", depth: "sm" }),
+                            "border-2 border-secondary bg-[#f9d258] px-4 py-2 text-xs font-bold uppercase text-secondary disabled:cursor-not-allowed disabled:opacity-50",
+                          )}
+                        >
+                          {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
+                        </button>
+                      </div>
+                    </div>,
+                  )
                 )}
               </div>
             )}

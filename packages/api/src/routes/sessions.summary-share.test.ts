@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test, { after, beforeEach } from "node:test";
 import Database from "better-sqlite3";
+import { eq } from "drizzle-orm";
 
 const databasePath = path.join(
   os.tmpdir(),
@@ -44,6 +45,7 @@ runMigrations();
 
 const { createApp } = await import("../app.ts");
 const { db, schema } = await import("../db/index.ts");
+const { recordAttendance } = await import("../ws/handler.ts");
 
 const app = createApp({ disableRateLimit: true });
 
@@ -96,6 +98,8 @@ async function seedSessionFixture(options: { phase?: "review" | "ideation" | "ac
   const carriedActionId = "action-carried";
   const previousActionId = "action-previous";
   const now = new Date("2026-03-20T00:00:00.000Z");
+  const closedAt = phase === "closed" ? new Date(now.getTime() + 30_000) : null;
+  const shareToken = "share-current";
 
   await db.insert(schema.projects).values({
     id: projectId,
@@ -134,8 +138,8 @@ async function seedSessionFixture(options: { phase?: "review" | "ideation" | "ac
       sequence: 2,
       createdBy: owner.userId,
       createdAt: new Date(now.getTime() - 60_000),
-      closedAt: phase === "closed" ? new Date(now.getTime() - 30_000) : null,
-      shareToken: null,
+      closedAt,
+      shareToken,
       summaryShareToken: null,
     },
   ]);
@@ -258,6 +262,8 @@ async function seedSessionFixture(options: { phase?: "review" | "ideation" | "ac
     guest,
     projectId,
     sessionId,
+    shareToken,
+    closedAt,
   };
 }
 
@@ -331,6 +337,7 @@ test("public summary links return a readonly payload without internal ids", asyn
   const payload = await publicResponse.json() as Record<string, any>;
   assert.equal(payload.session.name, "Sprint 10 Retro");
   assert.equal(payload.participants[0].username, "Owner");
+  assert.deepEqual(payload.participants.map((participant: { username: string }) => participant.username), ["Owner", "Guest"]);
   assert.equal(payload.goodItems[0].content, "Pairing kept momentum high");
   assert.equal(payload.goodItems[0].voteCount, 2);
   assert.equal(payload.actionGroups[0].label, "Build Stability");
@@ -346,4 +353,74 @@ test("public summary links return a readonly payload without internal ids", asyn
 test("invalid public summary tokens return 404", async () => {
   const response = await requestJson("/api/v1/sessions/summary-share/not-a-real-token");
   assert.equal(response.status, 404);
+});
+
+test("late participant rows are excluded from closed-session summaries", async () => {
+  const { owner, sessionId, closedAt } = await seedSessionFixture();
+  assert.ok(closedAt);
+
+  const lateUser = await seedUser("Late Guest", `late-${Date.now()}@test.local`);
+
+  await db.insert(schema.sessionParticipants).values({
+    sessionId,
+    userId: lateUser.userId,
+    role: "guest",
+    joinedAt: new Date(closedAt.getTime() + 1_000),
+  });
+
+  const memberSummaryResponse = await requestJson(`/api/v1/sessions/${sessionId}/summary`, {
+    headers: { Cookie: owner.cookieHeader },
+  });
+  assert.equal(memberSummaryResponse.status, 200);
+
+  const memberSummary = await memberSummaryResponse.json() as { participants: Array<{ username: string }> };
+  assert.deepEqual(memberSummary.participants.map((participant) => participant.username), ["Owner", "Guest"]);
+
+  const shareResponse = await requestJson(`/api/v1/sessions/${sessionId}/summary-share`, {
+    method: "POST",
+    headers: { Cookie: owner.cookieHeader },
+  });
+  assert.equal(shareResponse.status, 200);
+
+  const { summaryShareToken } = await shareResponse.json() as { summaryShareToken: string };
+  const publicSummaryResponse = await requestJson(`/api/v1/sessions/summary-share/${summaryShareToken}`);
+  assert.equal(publicSummaryResponse.status, 200);
+
+  const publicSummary = await publicSummaryResponse.json() as { participants: Array<{ username: string }> };
+  assert.deepEqual(publicSummary.participants.map((participant) => participant.username), ["Owner", "Guest"]);
+});
+
+test("closed session join links reject new attendees", async () => {
+  const { sessionId, shareToken } = await seedSessionFixture();
+  const outsider = await seedUser("Outsider", `outsider-${Date.now()}@test.local`);
+
+  const response = await requestJson(`/api/v1/sessions/join/${shareToken}`, {
+    method: "POST",
+    headers: { Cookie: outsider.cookieHeader },
+  });
+
+  assert.equal(response.status, 400);
+
+  const participant = await db
+    .select()
+    .from(schema.sessionParticipants)
+    .where(eq(schema.sessionParticipants.sessionId, sessionId))
+    .all();
+
+  assert.equal(participant.some((entry) => entry.userId === outsider.userId), false);
+});
+
+test("websocket attendance does not add participants after a session closes", async () => {
+  const { sessionId } = await seedSessionFixture();
+  const outsider = await seedUser("Outsider", `ws-outsider-${Date.now()}@test.local`);
+
+  await recordAttendance(sessionId, outsider.userId);
+
+  const participant = await db
+    .select()
+    .from(schema.sessionParticipants)
+    .where(eq(schema.sessionParticipants.sessionId, sessionId))
+    .all();
+
+  assert.equal(participant.some((entry) => entry.userId === outsider.userId), false);
 });

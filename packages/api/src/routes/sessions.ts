@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lte } from "drizzle-orm";
 import {
   createSessionBodySchema,
   retroSessionSchema,
@@ -355,6 +355,10 @@ sessionRoutes.post("/sessions/join/:token", requireAuth, async (c) => {
     return jsonError(c, 404, "not_found", "Invalid or expired link.");
   }
 
+  if (session.phase === "closed") {
+    return jsonError(c, 400, "invalid_phase", "This retrospective is closed and can no longer be joined.");
+  }
+
   const membership = await db
     .select()
     .from(schema.projectMembers)
@@ -391,6 +395,10 @@ sessionRoutes.post("/sessions/join/:token/project", requireAuth, async (c) => {
 
   if (!session) {
     return jsonError(c, 404, "not_found", "Invalid or expired link.");
+  }
+
+  if (session.phase === "closed") {
+    return jsonError(c, 400, "invalid_phase", "This retrospective is closed and can no longer be joined.");
   }
 
   await db
@@ -437,6 +445,23 @@ sessionRoutes.get("/sessions/:sid/participants", requireAuth, async (c) => {
     return jsonError(c, 404, "not_found", "Session not found.");
   }
 
+  const session = await db
+    .select({ closedAt: schema.retroSessions.closedAt })
+    .from(schema.retroSessions)
+    .where(eq(schema.retroSessions.id, sid))
+    .get();
+
+  if (!session) {
+    return jsonError(c, 404, "not_found", "Session not found.");
+  }
+
+  const participantFilter = session.closedAt
+    ? and(
+      eq(schema.sessionParticipants.sessionId, sid),
+      lte(schema.sessionParticipants.joinedAt, session.closedAt),
+    )
+    : eq(schema.sessionParticipants.sessionId, sid);
+
   const participants = await db
     .select({
       userId: schema.sessionParticipants.userId,
@@ -447,7 +472,7 @@ sessionRoutes.get("/sessions/:sid/participants", requireAuth, async (c) => {
     })
     .from(schema.sessionParticipants)
     .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
-    .where(eq(schema.sessionParticipants.sessionId, sid));
+    .where(participantFilter);
 
   return c.json(participants.map(serializeParticipant));
 });

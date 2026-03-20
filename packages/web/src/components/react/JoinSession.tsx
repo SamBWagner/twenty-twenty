@@ -87,6 +87,29 @@ export default function JoinSession({ token }: { token: string }) {
     );
   }
 
+  if (info.phase === "closed") {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
+          <h2 className="text-2xl font-bold uppercase mb-2">{info.sessionName}</h2>
+          <p className="scribble-help mb-6 text-base text-secondary/60">
+            This retrospective has already closed. Ask a project member for the summary link if you still need to
+            review the outcome.
+          </p>
+          <a
+            href="/projects"
+            className={cn(
+              scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
+              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+            )}
+          >
+            Go Home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center py-20 relative">
       <div className="absolute top-16 left-20 text-5xl rotate-[12deg] select-none">★</div>

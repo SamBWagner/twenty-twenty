@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lte } from "drizzle-orm";
 import {
   actionReviewSchema,
   actionSchema,
@@ -225,6 +225,12 @@ function buildItemIdsByBundleId(bundleLinks: Array<{ bundleId: string; itemId: s
 
 async function buildSessionSummary(session: typeof schema.retroSessions.$inferSelect): Promise<SessionSummary> {
   const sid = session.id;
+  const participantFilter = session.closedAt
+    ? and(
+      eq(schema.sessionParticipants.sessionId, sid),
+      lte(schema.sessionParticipants.joinedAt, session.closedAt),
+    )
+    : eq(schema.sessionParticipants.sessionId, sid);
 
   const [participants, items, bundles, actions] = await Promise.all([
     db
@@ -237,7 +243,7 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
       })
       .from(schema.sessionParticipants)
       .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
-      .where(eq(schema.sessionParticipants.sessionId, sid))
+      .where(participantFilter)
       .orderBy(asc(schema.sessionParticipants.joinedAt)),
     db
       .select()
@@ -525,6 +531,13 @@ export async function getSessionView(sessionId: string, userId: string) {
     return null;
   }
 
+  const participantFilter = session.closedAt
+    ? and(
+      eq(schema.sessionParticipants.sessionId, sessionId),
+      lte(schema.sessionParticipants.joinedAt, session.closedAt),
+    )
+    : eq(schema.sessionParticipants.sessionId, sessionId);
+
   const [projectMembership, projectMembers, participants, items, bundles, actions, voteRows, bundleLinks, reviewState] = await Promise.all([
     db
       .select()
@@ -542,7 +555,7 @@ export async function getSessionView(sessionId: string, userId: string) {
       })
       .from(schema.sessionParticipants)
       .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
-      .where(eq(schema.sessionParticipants.sessionId, sessionId))
+      .where(participantFilter)
       .orderBy(asc(schema.sessionParticipants.joinedAt)),
     db
       .select()

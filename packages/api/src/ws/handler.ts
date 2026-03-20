@@ -23,7 +23,7 @@ export function createWsHandler(upgradeWebSocket: Function) {
           avatarUrl: user.image || null,
         }, ws);
 
-        // Record attendance
+        // Record attendance for active sessions only.
         recordAttendance(sessionId, user.id).catch(() => {});
       },
       onClose() {
@@ -35,14 +35,18 @@ export function createWsHandler(upgradeWebSocket: Function) {
   });
 }
 
-async function recordAttendance(sessionId: string, userId: string) {
+export async function recordAttendance(sessionId: string, userId: string) {
   const session = await db
-    .select({ projectId: schema.retroSessions.projectId })
+    .select({
+      projectId: schema.retroSessions.projectId,
+      phase: schema.retroSessions.phase,
+    })
     .from(schema.retroSessions)
     .where(eq(schema.retroSessions.id, sessionId))
     .get();
 
   if (!session) return;
+  if (session.phase === "closed") return;
 
   const membership = await db
     .select()

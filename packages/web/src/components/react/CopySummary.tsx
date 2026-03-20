@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { cn, scrapbookButton } from "../../lib/button-styles";
+import { cn, scrapbookButton, type ScrapbookButtonTone } from "../../lib/button-styles";
 
 function copyToClipboard(text: string): boolean {
   // Fallback: use a temporary textarea (works without clipboard API permissions)
@@ -23,9 +23,13 @@ function copyToClipboard(text: string): boolean {
 export default function CopySummary({
   text,
   label = "Copy Summary",
+  tone = "warm",
+  className,
 }: {
   text: string | null;
   label?: string;
+  tone?: ScrapbookButtonTone;
+  className?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -58,8 +62,9 @@ export default function CopySummary({
       onClick={handleClick}
       disabled={!text}
       className={cn(
-        scrapbookButton({ tone: "warm", size: "regular", tilt: "right", depth: "md" }),
+        scrapbookButton({ tone, size: "regular", tilt: "right", depth: "md" }),
         "mb-6 border-3 border-secondary bg-tertiary px-5 py-3 font-bold uppercase disabled:opacity-50",
+        className,
       )}
     >
       {copied ? "Copied!" : text === null ? "Preparing..." : label}

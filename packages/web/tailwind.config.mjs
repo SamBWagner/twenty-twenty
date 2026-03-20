@@ -31,7 +31,7 @@ export default {
         3: "3deg",
       },
       backgroundImage: {
-        grid: "linear-gradient(#e5e5e5 1px, transparent 1px), linear-gradient(90deg, #e5e5e5 1px, transparent 1px)",
+        grid: "url(\"data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%3E%3Cpath%20d%3D%27M23.5%200V24%27%20stroke%3D%27%23e5e5e5%27%20stroke-width%3D%271%27%2F%3E%3Cpath%20d%3D%27M0%2023.5H24%27%20stroke%3D%27%23e5e5e5%27%20stroke-width%3D%271%27%2F%3E%3C%2Fsvg%3E\")",
       },
       backgroundSize: {
         grid: "24px 24px",

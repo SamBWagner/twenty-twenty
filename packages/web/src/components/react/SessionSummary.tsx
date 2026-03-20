@@ -18,9 +18,9 @@ function formatDateTime(value: string | null): string {
 }
 
 const reviewToneClasses = {
-  actioned: "bg-green-300",
-  did_nothing: "bg-amber-200",
-  disagree: "bg-red-300",
+  actioned: "bg-[#7ce29a]",
+  did_nothing: "bg-[#f9d258]",
+  disagree: "bg-[#ff9ab8]",
 } as const;
 
 export default function SessionSummary({
@@ -72,58 +72,66 @@ export default function SessionSummary({
 
   return (
     <div className="space-y-8">
-      <div className="border-3 border-secondary bg-white p-6 rotate-[-0.4deg]">
+      <div
+        className="note-shell rotate-[-0.4deg] p-6"
+        data-note-theme="sun"
+        data-tape-position="top-center"
+      >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/50">
+            <p className="inline-block border-2 border-secondary note-chip px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">
               Final Summary
             </p>
             <h2 className="mt-2 text-3xl font-bold uppercase">{summary.session.name}</h2>
-            <p className="scribble-help mt-3 max-w-2xl text-base text-secondary/60">
+            <p className="scribble-help note-muted mt-3 max-w-2xl text-base">
               Everything from this retrospective is collected here, including attendance, review outcomes,
               ideation notes, and the action plan that came out of it.
             </p>
           </div>
-          <CopySummary text={markdown} />
+          <CopySummary text={markdown} tone="cobalt" className="mb-0 bg-[#5d83f9] text-white" />
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
-          <div className="border-3 border-secondary bg-surface p-3">
+          <div className="note-panel border-3 border-secondary p-3">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Sequence</p>
             <p className="mt-2 text-2xl font-bold">#{summary.session.sequence}</p>
           </div>
-          <div className="border-3 border-secondary bg-surface p-3">
+          <div className="note-panel border-3 border-secondary p-3">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Closed</p>
             <p className="mt-2 text-sm font-bold">{formatDateTime(summary.session.closedAt)}</p>
           </div>
-          <div className="border-3 border-secondary bg-surface p-3">
+          <div className="note-panel border-3 border-secondary p-3">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Participants</p>
             <p className="mt-2 text-2xl font-bold">{summary.participants.length}</p>
           </div>
-          <div className="border-3 border-secondary bg-surface p-3">
+          <div className="note-panel border-3 border-secondary p-3">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Actions</p>
             <p className="mt-2 text-2xl font-bold">{summary.actions.length}</p>
           </div>
         </div>
       </div>
 
-      <section className="border-3 border-secondary bg-white p-5 rotate-[0.2deg]">
+      <section
+        className="note-shell rotate-[0.2deg] p-5"
+        data-note-theme="sun"
+        data-tape-position="side-left"
+      >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-lg font-bold uppercase">Who Was There</h3>
-          <span className="border-2 border-secondary bg-tertiary px-2 py-0.5 text-xs font-bold uppercase">
+          <span className="border-2 border-secondary note-chip px-2 py-0.5 text-xs font-bold uppercase">
             {summary.participants.length} total
           </span>
         </div>
         {summary.participants.length === 0 ? (
-          <p className="scribble-help text-base text-secondary/60">No participants were recorded for this session.</p>
+          <p className="scribble-help note-muted text-base">No participants were recorded for this session.</p>
         ) : (
           <div className="flex flex-wrap gap-3">
             {summary.participants.map((participant) => (
               <div
                 key={participant.userId}
-                className="flex items-center gap-3 border-2 border-secondary bg-surface px-3 py-2"
+                className="note-panel flex items-center gap-3 border-2 border-secondary px-3 py-2"
               >
-                <div className="flex h-9 w-9 items-center justify-center border-2 border-secondary bg-tertiary text-sm font-bold overflow-hidden">
+                <div className="note-chip flex h-9 w-9 items-center justify-center overflow-hidden border-2 border-secondary text-sm font-bold">
                   {participant.avatarUrl ? (
                     <img
                       src={participant.avatarUrl}
@@ -145,16 +153,20 @@ export default function SessionSummary({
       </section>
 
       {summary.reviews.length > 0 && (
-        <section className="border-3 border-secondary bg-white p-5 rotate-[-0.25deg]">
+        <section
+          className="note-shell rotate-[-0.25deg] p-5"
+          data-note-theme="lavender"
+          data-tape-position="top-right"
+        >
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-lg font-bold uppercase">Previous Action Review</h3>
-            <span className="border-2 border-secondary bg-purple-200 px-2 py-0.5 text-xs font-bold uppercase">
+            <span className="border-2 border-secondary note-chip px-2 py-0.5 text-xs font-bold uppercase">
               {summary.reviews.length} reviewed
             </span>
           </div>
           <div className="space-y-3">
             {summary.reviews.map((review) => (
-              <div key={`${review.actionId}-${review.createdAt}`} className="border-2 border-secondary bg-surface p-4">
+              <div key={`${review.actionId}-${review.createdAt}`} className="note-panel border-2 border-secondary p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
@@ -181,19 +193,23 @@ export default function SessionSummary({
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="border-3 border-secondary bg-green-50 p-5 rotate-[-0.3deg]">
-          <div className="mb-4 inline-block border-3 border-secondary bg-green-300 px-4 py-2">
+        <section
+          className="note-shell rotate-[-0.3deg] p-5"
+          data-note-theme="mint"
+          data-tape-position="top-center"
+        >
+          <div className="note-accent mb-4 inline-block border-3 border-secondary px-4 py-2">
             <h3 className="text-sm font-bold uppercase">Went Well</h3>
           </div>
           {goodItems.length === 0 ? (
-            <p className="scribble-help text-base text-secondary/60">No wins were captured in this session.</p>
+            <p className="scribble-help note-muted text-base">No wins were captured in this session.</p>
           ) : (
             <div className="space-y-3">
               {goodItems.map((item) => (
-                <div key={item.id} className="border-2 border-secondary bg-white p-3">
+                <div key={item.id} className="note-panel border-2 border-secondary p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-medium">{item.content}</p>
-                    <span className="shrink-0 border-2 border-secondary bg-tertiary px-2 py-0.5 text-xs font-bold">
+                    <span className="note-chip shrink-0 border-2 border-secondary px-2 py-0.5 text-xs font-bold">
                       {formatVoteCount(item.voteCount)}
                     </span>
                   </div>
@@ -203,19 +219,23 @@ export default function SessionSummary({
           )}
         </section>
 
-        <section className="border-3 border-secondary bg-red-50 p-5 rotate-[0.35deg]">
-          <div className="mb-4 inline-block border-3 border-secondary bg-red-300 px-4 py-2">
+        <section
+          className="note-shell rotate-[0.35deg] p-5"
+          data-note-theme="blush"
+          data-tape-position="top-right"
+        >
+          <div className="note-accent mb-4 inline-block border-3 border-secondary px-4 py-2">
             <h3 className="text-sm font-bold uppercase">Needs Work</h3>
           </div>
           {badItems.length === 0 ? (
-            <p className="scribble-help text-base text-secondary/60">No follow-up issues were captured in this session.</p>
+            <p className="scribble-help note-muted text-base">No follow-up issues were captured in this session.</p>
           ) : (
             <div className="space-y-3">
               {badItems.map((item) => (
-                <div key={item.id} className="border-2 border-secondary bg-white p-3">
+                <div key={item.id} className="note-panel border-2 border-secondary p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-medium">{item.content}</p>
-                    <span className="shrink-0 border-2 border-secondary bg-tertiary px-2 py-0.5 text-xs font-bold">
+                    <span className="note-chip shrink-0 border-2 border-secondary px-2 py-0.5 text-xs font-bold">
                       {formatVoteCount(item.voteCount)}
                     </span>
                   </div>
@@ -226,10 +246,14 @@ export default function SessionSummary({
         </section>
       </div>
 
-      <section className="border-3 border-secondary bg-white p-5 rotate-[0.25deg]">
+      <section
+        className="note-shell rotate-[0.25deg] p-5"
+        data-note-theme="plum"
+        data-tape-position="side-left"
+      >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-lg font-bold uppercase">Action Plan</h3>
-          <span className="border-2 border-secondary bg-primary px-2 py-0.5 text-xs font-bold uppercase text-white">
+          <span className="border-2 border-secondary note-chip px-2 py-0.5 text-xs font-bold uppercase">
             {summary.actions.length} actions
           </span>
         </div>
@@ -244,24 +268,21 @@ export default function SessionSummary({
             }
 
             return (
-              <div key={bundle.id} className="border-3 border-secondary bg-surface">
-                <div className="border-b-3 border-secondary bg-primary px-4 py-3 text-white">
+              <div key={bundle.id} className="note-inset border-3 border-secondary">
+                <div className="note-chip border-b-3 border-secondary px-4 py-3">
                   <h4 className="text-lg font-bold uppercase">{bundle.label || "Unnamed Action Group"}</h4>
                 </div>
                 <div className="grid gap-4 p-4 lg:grid-cols-2">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Context</p>
                     {bundleItems.length === 0 ? (
-                      <p className="scribble-help mt-3 text-base text-secondary/60">No source items linked.</p>
+                      <p className="scribble-help note-muted mt-3 text-base">No source items linked.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {bundleItems.map((item) => (
                           <div
                             key={item.id}
-                            className={cn(
-                              "border-2 border-secondary px-3 py-2 text-sm font-medium",
-                              item.type === "good" ? "bg-green-100" : "bg-red-100",
-                            )}
+                            className="note-panel border-2 border-secondary px-3 py-2 text-sm font-medium"
                           >
                             {item.content}
                           </div>
@@ -273,11 +294,11 @@ export default function SessionSummary({
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Actions</p>
                     {bundleActions.length === 0 ? (
-                      <p className="scribble-help mt-3 text-base text-secondary/60">No actions were created for this group.</p>
+                      <p className="scribble-help note-muted mt-3 text-base">No actions were created for this group.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {bundleActions.map((action) => (
-                          <div key={action.id} className="border-2 border-secondary bg-white px-3 py-2">
+                          <div key={action.id} className="note-row border-2 border-secondary px-3 py-2">
                             <p className="font-bold">{action.description}</p>
                           </div>
                         ))}
@@ -290,13 +311,13 @@ export default function SessionSummary({
           })}
 
           {carriedOverActions.length > 0 && (
-            <div className="border-3 border-secondary bg-purple-50">
-              <div className="border-b-3 border-secondary bg-purple-300 px-4 py-3">
+            <div className="note-row border-3 border-secondary">
+              <div className="note-chip border-b-3 border-secondary px-4 py-3">
                 <h4 className="text-lg font-bold uppercase">Carried Over</h4>
               </div>
               <div className="space-y-2 p-4">
                 {carriedOverActions.map((action) => (
-                  <div key={action.id} className="border-2 border-secondary bg-white px-3 py-2">
+                  <div key={action.id} className="note-panel border-2 border-secondary px-3 py-2">
                     <p className="font-bold">{action.description}</p>
                   </div>
                 ))}
@@ -305,7 +326,9 @@ export default function SessionSummary({
           )}
 
           {summary.bundles.length === 0 && carriedOverActions.length === 0 && (
-            <p className="scribble-help text-base text-secondary/60">No action groups or actions were captured in this session.</p>
+            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+              No action groups or actions were captured in this session.
+            </p>
           )}
         </div>
       </section>

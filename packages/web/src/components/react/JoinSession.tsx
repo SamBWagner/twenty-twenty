@@ -44,7 +44,7 @@ export default function JoinSession({ token }: { token: string }) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="border-3 border-secondary bg-white p-8 shadow-brutal max-w-md text-center">
+        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="text-2xl font-bold uppercase mb-4">Oops</h2>
           <p className="font-mono text-sm">{error}</p>
           <a
@@ -68,7 +68,7 @@ export default function JoinSession({ token }: { token: string }) {
   if (info.isMember) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="border-3 border-secondary bg-white p-8 shadow-brutal max-w-md text-center">
+        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="text-2xl font-bold uppercase mb-2">{info.sessionName}</h2>
           <p className="scribble-help mb-6 text-base text-secondary/60">
             You're already a member of <strong>{info.projectName}</strong>
@@ -92,7 +92,7 @@ export default function JoinSession({ token }: { token: string }) {
       <div className="absolute top-16 left-20 text-5xl rotate-[12deg] select-none">★</div>
       <div className="absolute top-24 right-32 text-3xl rotate-[-8deg] text-primary select-none">✦</div>
 
-      <div className="border-3 border-secondary bg-white p-8 shadow-brutal-lg max-w-md w-full">
+      <div className="w-full max-w-md border-3 border-secondary bg-white p-8">
         <h2 className="text-3xl font-bold uppercase mb-1">{info.sessionName}</h2>
         <p className="font-mono text-sm text-secondary/60 mb-2">{info.projectName}</p>
         <p className="text-xs font-bold uppercase text-secondary/40 mb-8">

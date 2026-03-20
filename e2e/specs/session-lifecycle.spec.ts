@@ -92,6 +92,7 @@ test.describe("Session Lifecycle", () => {
     await page.getByRole("button", { name: "Yes, Move to Actions" }).click();
     await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Actions");
     await expect(page.locator('button[data-active-section="true"]')).toHaveText("Actions");
+    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Action Groups");
 
     await ctx.close();
   });
@@ -134,6 +135,10 @@ test.describe("Session Lifecycle", () => {
     await expect(page.getByRole("button", { name: "Copy Summary" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Summarize" })).toHaveCount(0);
     await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Summary");
+    await expect(page.locator('[data-note-theme="sun"][data-tape-position="top-center"]')).toContainText("Final Summary");
+    await expect(page.locator('[data-note-theme="mint"][data-tape-position="top-center"]')).toContainText("Went Well");
+    await expect(page.locator('[data-note-theme="blush"][data-tape-position="top-right"]')).toContainText("Needs Work");
+    await expect(page.locator('[data-note-theme="plum"][data-tape-position="side-left"]')).toContainText("Action Plan");
 
     await ctx.close();
   });
@@ -156,6 +161,7 @@ test.describe("Session Lifecycle", () => {
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
     await expect(page.getByText("Reviewing Previous Actions")).toBeVisible();
+    await expect(page.locator('[data-note-theme="lavender"][data-tape-position="top-center"]')).toContainText("Reviewing Previous Actions");
 
     await ctx.close();
   });

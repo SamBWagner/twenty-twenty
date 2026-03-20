@@ -39,7 +39,7 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center shadow-brutal">
+        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="mb-4 text-2xl font-bold uppercase">Invite Unavailable</h2>
           <p className="font-mono text-sm">{error}</p>
           <a
@@ -63,7 +63,7 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
   if (info.isMember) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center shadow-brutal">
+        <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="mb-2 text-3xl font-bold uppercase">{info.projectName}</h2>
           {info.projectDescription && <p className="mb-4 text-sm text-secondary/60">{info.projectDescription}</p>}
           <p className="scribble-help mb-6 text-base text-secondary/60">
@@ -88,7 +88,7 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
       <div className="absolute left-20 top-16 select-none text-5xl rotate-[12deg]">+</div>
       <div className="absolute right-32 top-24 select-none text-3xl text-primary rotate-[-8deg]">!</div>
 
-      <div className="w-full max-w-xl border-3 border-secondary bg-white p-8 shadow-brutal-lg">
+      <div className="w-full max-w-xl border-3 border-secondary bg-white p-8">
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">Project Invite</p>
         <h1 className="mb-2 text-4xl font-bold uppercase">{info.projectName}</h1>
         {info.projectDescription && <p className="mb-5 text-secondary/60">{info.projectDescription}</p>}

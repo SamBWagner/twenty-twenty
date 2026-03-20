@@ -82,97 +82,105 @@ export default function IdeationBoard({
     <div>
       {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-      <div>
-        <div className="mb-4 inline-block rotate-[-1deg] border-3 border-secondary bg-green-300 px-5 py-2">
-          <h2 className="text-lg font-bold uppercase">✓ Went Well</h2>
-        </div>
-        <div className="mb-5 space-y-10">
-          {goodItems.map((item, i) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onVote={vote}
-              onDelete={deleteItem}
-              color="green"
-              rotation={cardRotations[i % cardRotations.length]}
-              readOnly={readOnly}
-            />
-          ))}
-        </div>
-        {readOnly ? (
-          <p className="scribble-help border-3 border-secondary bg-white px-4 py-3 text-base text-secondary/60">
-            This section is read-only now, but you can still look back through everything that was captured.
-          </p>
-        ) : (
-          <form
-            onSubmit={(e) => { e.preventDefault(); addItem("good"); }}
-            className="flex flex-col gap-2 sm:flex-row"
-          >
-            <input
-              type="text"
-              value={goodInput}
-              onChange={(e) => setGoodInput(e.target.value)}
-              placeholder="Something that went well..."
-              className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
-            />
-            <button
-              type="submit"
-              className={cn(
-                scrapbookButton({ tone: "success", size: "compact", tilt: "left", depth: "sm" }),
-                "w-full border-3 border-secondary bg-green-300 px-5 py-3 font-bold uppercase sm:w-auto",
-              )}
+        <section
+          className="note-shell rotate-[-0.35deg] p-5"
+          data-note-theme="mint"
+          data-tape-position="top-center"
+        >
+          <div className="mb-4 inline-block rotate-[-1deg] border-3 border-secondary note-accent px-5 py-2">
+            <h2 className="text-lg font-bold uppercase">✓ Went Well</h2>
+          </div>
+          <div className="mb-5 space-y-10">
+            {goodItems.map((item, i) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onVote={vote}
+                onDelete={deleteItem}
+                color="green"
+                rotation={cardRotations[i % cardRotations.length]}
+                readOnly={readOnly}
+              />
+            ))}
+          </div>
+          {readOnly ? (
+            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+              This section is read-only now, but you can still look back through everything that was captured.
+            </p>
+          ) : (
+            <form
+              onSubmit={(e) => { e.preventDefault(); addItem("good"); }}
+              className="flex flex-col gap-2 sm:flex-row"
             >
-              +
-            </button>
-          </form>
-        )}
-      </div>
+              <input
+                type="text"
+                value={goodInput}
+                onChange={(e) => setGoodInput(e.target.value)}
+                placeholder="Something that went well..."
+                className="note-panel flex-1 border-3 border-secondary px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
+              />
+              <button
+                type="submit"
+                className={cn(
+                  scrapbookButton({ tone: "mint", size: "compact", tilt: "left", depth: "sm" }),
+                  "w-full border-3 border-secondary note-accent px-5 py-3 font-bold uppercase sm:w-auto",
+                )}
+              >
+                +
+              </button>
+            </form>
+          )}
+        </section>
 
-      <div>
-        <div className="mb-4 inline-block rotate-[1deg] border-3 border-secondary bg-red-300 px-5 py-2">
-          <h2 className="text-lg font-bold uppercase">✗ Needs Work</h2>
-        </div>
-        <div className="mb-5 space-y-10">
-          {badItems.map((item, i) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onVote={vote}
-              onDelete={deleteItem}
-              color="red"
-              rotation={cardRotations[(i + 3) % cardRotations.length]}
-              readOnly={readOnly}
-            />
-          ))}
-        </div>
-        {readOnly ? (
-          <p className="scribble-help border-3 border-secondary bg-white px-4 py-3 text-base text-secondary/60">
-            Live editing has moved on, but the ideas from this stage stay available here for reference.
-          </p>
-        ) : (
-          <form
-            onSubmit={(e) => { e.preventDefault(); addItem("bad"); }}
-            className="flex flex-col gap-2 sm:flex-row"
-          >
-            <input
-              type="text"
-              value={badInput}
-              onChange={(e) => setBadInput(e.target.value)}
-              placeholder="Something that could improve..."
-              className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
-            />
-            <button
-              type="submit"
-              className={cn(
-                scrapbookButton({ tone: "danger", size: "compact", tilt: "right", depth: "sm" }),
-                "w-full border-3 border-secondary bg-red-300 px-5 py-3 font-bold uppercase sm:w-auto",
-              )}
+        <section
+          className="note-shell rotate-[0.35deg] p-5"
+          data-note-theme="blush"
+          data-tape-position="top-right"
+        >
+          <div className="mb-4 inline-block rotate-[1deg] border-3 border-secondary note-accent px-5 py-2">
+            <h2 className="text-lg font-bold uppercase">✗ Needs Work</h2>
+          </div>
+          <div className="mb-5 space-y-10">
+            {badItems.map((item, i) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onVote={vote}
+                onDelete={deleteItem}
+                color="red"
+                rotation={cardRotations[(i + 3) % cardRotations.length]}
+                readOnly={readOnly}
+              />
+            ))}
+          </div>
+          {readOnly ? (
+            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+              Live editing has moved on, but the ideas from this stage stay available here for reference.
+            </p>
+          ) : (
+            <form
+              onSubmit={(e) => { e.preventDefault(); addItem("bad"); }}
+              className="flex flex-col gap-2 sm:flex-row"
             >
-              +
-            </button>
-          </form>
-        )}
-      </div>
+              <input
+                type="text"
+                value={badInput}
+                onChange={(e) => setBadInput(e.target.value)}
+                placeholder="Something that could improve..."
+                className="note-panel flex-1 border-3 border-secondary px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
+              />
+              <button
+                type="submit"
+                className={cn(
+                  scrapbookButton({ tone: "blush", size: "compact", tilt: "right", depth: "sm" }),
+                  "w-full border-3 border-secondary note-accent px-5 py-3 font-bold uppercase sm:w-auto",
+                )}
+              >
+                +
+              </button>
+            </form>
+          )}
+        </section>
       </div>
     </div>
   );
@@ -193,7 +201,7 @@ function ItemCard({
   rotation: string;
   readOnly: boolean;
 }) {
-  const bg = color === "green" ? "bg-green-50" : "bg-red-50";
+  const bg = "note-panel";
 
   return (
     <div className={`relative z-0 border-3 border-secondary ${bg} p-4 transition-all hover:z-10 ${rotation}`}>

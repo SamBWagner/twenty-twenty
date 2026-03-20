@@ -128,22 +128,26 @@ export default function ActionBoard({
   return (
     <div>
       {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
-      <section className="rotate-[0.25deg] border-3 border-secondary bg-white p-6">
+      <section
+        className="note-shell rotate-[0.25deg] p-6"
+        data-note-theme="plum"
+        data-tape-position="top-center"
+      >
         <div className="mb-6">
-          <div className="mb-3 inline-block rotate-[-0.5deg] border-3 border-secondary bg-purple-300 px-5 py-2">
+          <div className="note-chip mb-3 inline-block rotate-[-0.5deg] border-3 border-secondary px-5 py-2">
             <h2 className="text-lg font-bold uppercase">Action Groups</h2>
           </div>
-          <p className="scribble-help max-w-3xl text-base text-secondary/60">
+          <p className="scribble-help note-muted max-w-3xl text-base">
             Group related retro notes together, turn them into concrete actions, and make sure someone owns the next step.
           </p>
         </div>
 
         {carriedOverActions.length > 0 && (
           <div className="mb-10">
-            <div className="mb-3 inline-block border-3 border-secondary bg-purple-300 px-4 py-2 rotate-[0.5deg]">
+            <div className="note-chip mb-3 inline-block rotate-[0.5deg] border-3 border-secondary px-4 py-2">
               <h3 className="text-sm font-bold uppercase">Carried Over from Last Retro</h3>
             </div>
-            <p className="scribble-help mb-4 text-base text-secondary/50">
+            <p className="scribble-help note-muted mb-4 text-base">
               These actions weren't completed last time. Update them or add new actions below.
             </p>
             <div className="space-y-3">
@@ -163,16 +167,16 @@ export default function ActionBoard({
 
         {unbundledItems.length > 0 && (
           <div className="mb-10">
-            <div className="mb-3 inline-block border-3 border-secondary bg-tertiary px-4 py-2 rotate-[-1deg]">
+            <div className="note-chip mb-3 inline-block rotate-[-1deg] border-3 border-secondary px-4 py-2">
               <h3 className="text-sm font-bold uppercase">Unactioned Items</h3>
             </div>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {unbundledItems.map((item, i) => (
                 <div
                   key={item.id}
-                  className={`border-3 border-secondary p-3 ${
-                    item.type === "good" ? "bg-green-100" : "bg-red-100"
-                  } ${i % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]"}`}
+                  className={`note-panel border-3 border-secondary p-3 ${
+                    i % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]"
+                  }`}
                 >
                   <p className="text-sm font-medium">{item.content}</p>
                   <div className="mt-2 flex items-center justify-between gap-3">
@@ -183,7 +187,7 @@ export default function ActionBoard({
                           if (e.target.value) addItemToBundle(e.target.value, item.id);
                           e.target.value = "";
                         }}
-                        className="border-2 border-secondary bg-white px-2 py-1 text-xs font-bold"
+                        className="note-surface border-2 border-secondary px-2 py-1 text-xs font-bold"
                       >
                         <option value="">→ Action group...</option>
                         {bundles.map((b) => (
@@ -249,9 +253,9 @@ function ActionGroupPlaceholder({
   const content = (
     <MarchingAnts
       className={cn(
-        "relative overflow-hidden transition-colors duration-150",
+        "note-panel relative overflow-hidden border-3 border-secondary transition-colors duration-150",
         compact ? "px-5 py-6" : "px-6 py-8",
-        !readOnly && "group-hover:bg-tertiary/15 group-focus-visible:bg-tertiary/15",
+        !readOnly && "group-hover:bg-[#d9c0ff] group-focus-visible:bg-[#d9c0ff]",
       )}
     >
       <div className={cn("max-w-2xl", !compact && "md:pr-56")}>
@@ -264,7 +268,7 @@ function ActionGroupPlaceholder({
             : "Create the first action group to gather related retro notes, then turn that pile into owned follow-up work."}
         </p>
         {!readOnly && (
-          <span className="mt-4 inline-block border-3 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase transition-colors duration-150 group-hover:bg-tertiary group-focus-visible:bg-tertiary">
+          <span className="note-chip mt-4 inline-block border-3 border-secondary px-4 py-2 text-xs font-bold uppercase transition-colors duration-150 group-hover:bg-[#ceb0ff] group-focus-visible:bg-[#ceb0ff]">
             + New Action Group
           </span>
         )}
@@ -272,9 +276,9 @@ function ActionGroupPlaceholder({
 
       <div className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 md:block">
         <div className={cn("relative", compact ? "h-20 w-32" : "h-24 w-40")}>
-          <div className="absolute bottom-1 left-6 h-14 w-24 border-3 border-secondary bg-white/60 transition-transform duration-150 group-hover:translate-x-3 group-hover:-translate-y-1 group-hover:rotate-[3deg] group-focus-visible:translate-x-3 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[3deg]"></div>
-          <div className="absolute bottom-3 left-3 h-14 w-24 border-3 border-secondary bg-surface/80 transition-transform duration-150 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:rotate-[-2deg] group-focus-visible:translate-x-1 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[-2deg]"></div>
-          <div className="absolute bottom-5 left-0 h-14 w-24 border-3 border-secondary bg-white transition-transform duration-150 group-hover:-translate-y-2 group-hover:rotate-[1deg] group-focus-visible:-translate-y-2 group-focus-visible:rotate-[1deg]"></div>
+          <div className="note-row absolute bottom-1 left-6 h-14 w-24 border-3 border-secondary transition-transform duration-150 group-hover:translate-x-3 group-hover:-translate-y-1 group-hover:rotate-[3deg] group-focus-visible:translate-x-3 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[3deg]"></div>
+          <div className="note-surface absolute bottom-3 left-3 h-14 w-24 border-3 border-secondary transition-transform duration-150 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:rotate-[-2deg] group-focus-visible:translate-x-1 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[-2deg]"></div>
+          <div className="note-panel absolute bottom-5 left-0 h-14 w-24 border-3 border-secondary transition-transform duration-150 group-hover:-translate-y-2 group-hover:rotate-[1deg] group-focus-visible:-translate-y-2 group-focus-visible:rotate-[1deg]"></div>
         </div>
       </div>
     </MarchingAnts>
@@ -324,9 +328,13 @@ function BundleCard({
   const hasLabel = Boolean(bundle.label?.trim());
 
   return (
-    <div className={`border-3 border-secondary bg-white ${rotation}`}>
+    <div
+      className={`note-shell ${rotation}`}
+      data-note-theme="plum"
+      data-tape-position="top-right"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b-3 border-secondary bg-primary px-5 py-3">
+      <div className="flex items-center justify-between border-b-3 border-secondary bg-[#8f63ef] px-5 py-3">
         {readOnly ? (
           <h3 className="font-bold uppercase text-white text-lg">{bundle.label || "Unnamed Action Group"}</h3>
         ) : (
@@ -362,87 +370,96 @@ function BundleCard({
         )}
       </div>
 
-      {/* Items */}
-      <div className="p-4 space-y-2">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={`flex items-center justify-between border-2 border-secondary px-3 py-2 ${
-              item.type === "good" ? "bg-green-100" : "bg-red-100"
-            }`}
-          >
-            <span className="text-sm font-medium">{item.content}</span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-secondary/30">{item.voteCount}</span>
-              {!readOnly && (
-                <button
-                  onClick={() => onRemoveItem(item.id)}
-                  className={cn(
-                    scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                    "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
-                  )}
+      <div className="note-inset p-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/55">
+              Context
+            </p>
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="note-panel flex items-center justify-between border-2 border-secondary px-3 py-2"
                 >
-                  ✕
-                </button>
+                  <span className="text-sm font-medium">{item.content}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-secondary/35">{item.voteCount}</span>
+                    {!readOnly && (
+                      <button
+                        onClick={() => onRemoveItem(item.id)}
+                        className={cn(
+                          scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                          "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                        )}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {items.length === 0 && (
+                <p className="scribble-help py-2 text-base text-secondary/40">
+                  No items yet — use the &quot;→ Action group...&quot; dropdown on unactioned items above
+                </p>
               )}
             </div>
           </div>
-        ))}
-        {items.length === 0 && <p className="scribble-help py-2 text-base text-secondary/30">No items yet — use the "→ Action group..." dropdown on unactioned items above</p>}
-      </div>
 
-      {/* Actions section */}
-      <div className="border-t-3 border-secondary bg-surface p-4">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-secondary/40 mb-3">
-          What should we do about this?
-        </h4>
-        <div className="space-y-2 mb-3">
-          {actions.map((action) => (
-            <div key={action.id} className="flex items-center justify-between border-2 border-secondary bg-tertiary px-3 py-2">
-              <span className="text-sm font-bold">{action.description}</span>
-              {!readOnly && (
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/55">
+              Actions
+            </p>
+            <div className="mb-3 space-y-2">
+              {actions.map((action) => (
+                <div key={action.id} className="note-row flex items-center justify-between border-2 border-secondary px-3 py-2">
+                  <span className="text-sm font-bold">{action.description}</span>
+                  {!readOnly && (
+                    <button
+                      onClick={() => onDeleteAction(action.id)}
+                      className={cn(
+                        scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                        "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                      )}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {!readOnly && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newAction.trim()) return;
+                  onAddAction(newAction, null);
+                  setNewAction("");
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  value={newAction}
+                  onChange={(e) => setNewAction(e.target.value)}
+                  placeholder="e.g. Set up weekly check-ins..."
+                  className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-medium focus:outline-none"
+                />
                 <button
-                  onClick={() => onDeleteAction(action.id)}
+                  type="submit"
                   className={cn(
-                    scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                    "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                    scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
+                    "border-3 border-secondary bg-[#8f63ef] px-4 py-2 text-sm font-bold uppercase text-white",
                   )}
                 >
-                  ✕
+                  +
                 </button>
-              )}
-            </div>
-          ))}
+              </form>
+            )}
+          </div>
         </div>
-
-        {!readOnly && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!newAction.trim()) return;
-              onAddAction(newAction, null);
-              setNewAction("");
-            }}
-            className="flex gap-2"
-          >
-            <input
-              type="text"
-              value={newAction}
-              onChange={(e) => setNewAction(e.target.value)}
-              placeholder="e.g. Set up weekly check-ins..."
-              className="flex-1 border-3 border-secondary bg-white px-3 py-2 text-sm font-medium focus:outline-none"
-            />
-            <button
-              type="submit"
-              className={cn(
-                scrapbookButton({ tone: "primary", size: "compact", tilt: "left", depth: "sm" }),
-                "border-3 border-secondary bg-primary px-4 py-2 text-sm font-bold uppercase text-white",
-              )}
-            >
-              +
-            </button>
-          </form>
-        )}
       </div>
     </div>
   );
@@ -465,8 +482,12 @@ function CarriedOverCard({
   const [editValue, setEditValue] = useState(action.description);
 
   return (
-    <div className={`border-3 border-secondary bg-purple-50 ${rotation}`}>
-      <div className="flex items-center justify-between border-b-3 border-secondary bg-purple-300 px-4 py-2">
+    <div
+      className={`note-shell ${rotation}`}
+      data-note-theme="plum"
+      data-tape-position="top-right"
+    >
+      <div className="note-accent flex items-center justify-between border-b-3 border-secondary px-4 py-2">
         <span className="text-xs font-bold uppercase tracking-wider">From Previous Retro</span>
       </div>
       <div className="p-4">
@@ -485,14 +506,14 @@ function CarriedOverCard({
               type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 border-3 border-secondary bg-white px-3 py-2 text-sm font-bold focus:outline-none"
+              className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-bold focus:outline-none"
               autoFocus
             />
             <button
               type="submit"
               className={cn(
-                scrapbookButton({ tone: "success", size: "compact", tilt: "left", depth: "sm" }),
-                "border-3 border-secondary bg-green-300 px-3 py-2 text-sm font-bold uppercase",
+                scrapbookButton({ tone: "mint", size: "compact", tilt: "left", depth: "sm" }),
+                "border-3 border-secondary bg-[#7ce29a] px-3 py-2 text-sm font-bold uppercase",
               )}
             >
               Save
@@ -502,7 +523,7 @@ function CarriedOverCard({
               onClick={() => { setEditValue(action.description); setEditing(false); }}
               className={cn(
                 scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
-                "border-3 border-secondary bg-white px-3 py-2 text-sm font-bold uppercase",
+                "border-3 border-secondary note-panel px-3 py-2 text-sm font-bold uppercase",
               )}
             >
               Cancel
@@ -516,8 +537,8 @@ function CarriedOverCard({
                 <button
                   onClick={() => setEditing(true)}
                   className={cn(
-                    scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
-                    "border-2 border-secondary bg-tertiary px-2 py-1 text-xs font-bold uppercase",
+                    scrapbookButton({ tone: "plum", size: "compact", tilt: "flat", depth: "sm" }),
+                    "note-chip border-2 border-secondary px-2 py-1 text-xs font-bold uppercase",
                   )}
                 >
                   Edit

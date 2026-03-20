@@ -119,6 +119,10 @@ const { title } = Astro.props;
       }
     </style>
     <style is:global>
+      :root {
+        --note-border: #080708;
+      }
+
       @keyframes section-bounce {
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(-6px); }
@@ -212,6 +216,175 @@ const { title } = Astro.props;
 
       .scrapbook-btn--success {
         --sb-hover-shadow-color: #34D399;
+      }
+
+      .scrapbook-btn--sun {
+        --sb-hover-shadow-color: #f4c953;
+      }
+
+      .scrapbook-btn--lavender {
+        --sb-hover-shadow-color: #c1a5ff;
+      }
+
+      .scrapbook-btn--plum {
+        --sb-hover-shadow-color: #9760f3;
+      }
+
+      .scrapbook-btn--mint {
+        --sb-hover-shadow-color: #66d98d;
+      }
+
+      .scrapbook-btn--blush {
+        --sb-hover-shadow-color: #ff97ba;
+      }
+
+      .scrapbook-btn--cobalt {
+        --sb-hover-shadow-color: #5f82f9;
+      }
+
+      .note-shell {
+        --note-bg: #fffdf7;
+        --note-surface: #fffefb;
+        --note-panel: #fffefb;
+        --note-accent: #ffffff;
+        --note-chip: #ffffff;
+        --note-inset: #fffefb;
+        --note-row: #fffefb;
+        --note-tape: rgba(253, 202, 64, 0.72);
+        --note-ink: #080708;
+        --note-muted: rgba(8, 7, 8, 0.64);
+        position: relative;
+        overflow: visible;
+        color: var(--note-ink);
+        border: 3px solid var(--note-border);
+        background-color: var(--note-bg);
+      }
+
+      .note-shell[data-tape-position]::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        border: 2px solid var(--note-border);
+        background: var(--note-tape);
+        box-shadow: 2px 2px 0 0 rgba(8, 7, 8, 0.12);
+      }
+
+      .note-shell[data-tape-position="top-center"]::before {
+        top: 0;
+        left: 50%;
+        width: 5.5rem;
+        height: 1.6rem;
+        transform: translate(-50%, -56%) rotate(-3deg);
+      }
+
+      .note-shell[data-tape-position="top-right"]::before {
+        top: 0.35rem;
+        right: 1.5rem;
+        width: 4.75rem;
+        height: 1.45rem;
+        transform: translateY(-78%) rotate(8deg);
+      }
+
+      .note-shell[data-tape-position="side-left"]::before {
+        left: 0;
+        top: 2.1rem;
+        width: 1.55rem;
+        height: 5.1rem;
+        transform: translate(-56%, 0) rotate(-7deg);
+      }
+
+      .note-panel {
+        background-color: var(--note-panel);
+      }
+
+      .note-surface {
+        background-color: var(--note-surface);
+      }
+
+      .note-accent {
+        background-color: var(--note-accent);
+      }
+
+      .note-chip {
+        background-color: var(--note-chip);
+      }
+
+      .note-inset {
+        background-color: var(--note-inset);
+      }
+
+      .note-row {
+        background-color: var(--note-row);
+      }
+
+      .note-muted {
+        color: var(--note-muted);
+      }
+
+      .note-shell[data-note-theme="sun"] {
+        --note-bg: #ffe793;
+        --note-surface: #fff6ca;
+        --note-panel: #fffdf0;
+        --note-accent: #f9d258;
+        --note-chip: #ffebb0;
+        --note-inset: #fff1b7;
+        --note-row: #fff9e2;
+        --note-tape: rgba(255, 151, 124, 0.8);
+      }
+
+      .note-shell[data-note-theme="lavender"] {
+        --note-bg: #e9ddff;
+        --note-surface: #f5efff;
+        --note-panel: #fcf9ff;
+        --note-accent: #cab2ff;
+        --note-chip: #e4d6ff;
+        --note-inset: #f6f0ff;
+        --note-row: #efe4ff;
+        --note-tape: rgba(167, 196, 255, 0.8);
+      }
+
+      .note-shell[data-note-theme="plum"] {
+        --note-bg: #bc96ff;
+        --note-surface: #ceb0ff;
+        --note-panel: #e2d0ff;
+        --note-accent: #8f63ef;
+        --note-chip: #d9c0ff;
+        --note-inset: #c8a6ff;
+        --note-row: #eadfff;
+        --note-tape: rgba(255, 203, 175, 0.82);
+      }
+
+      .note-shell[data-note-theme="mint"] {
+        --note-bg: #c7f5d2;
+        --note-surface: #e9fff0;
+        --note-panel: #fbfffc;
+        --note-accent: #7ce29a;
+        --note-chip: #c6f4d6;
+        --note-inset: #f2fff5;
+        --note-row: #ddfbe6;
+        --note-tape: rgba(112, 221, 192, 0.8);
+      }
+
+      .note-shell[data-note-theme="blush"] {
+        --note-bg: #ffd9e4;
+        --note-surface: #fff0f5;
+        --note-panel: #fffafc;
+        --note-accent: #ff9ab8;
+        --note-chip: #ffc8d7;
+        --note-inset: #fff3f7;
+        --note-row: #ffe4ed;
+        --note-tape: rgba(255, 198, 129, 0.78);
+      }
+
+      .note-shell[data-note-theme="cobalt"] {
+        --note-bg: #abc4ff;
+        --note-surface: #dce7ff;
+        --note-panel: #f1f5ff;
+        --note-accent: #5d83f9;
+        --note-chip: #c6d7ff;
+        --note-inset: #edf3ff;
+        --note-row: #d5e2ff;
+        --note-tape: rgba(255, 214, 118, 0.8);
       }
 
       .scrapbook-btn--left {

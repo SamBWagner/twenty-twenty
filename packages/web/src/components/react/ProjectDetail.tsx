@@ -16,10 +16,10 @@ type FeedbackState =
   | null;
 
 const phaseStyles: Record<string, string> = {
-  review: "bg-tertiary",
-  ideation: "bg-primary text-white",
-  action: "bg-purple-400 text-white",
-  closed: "bg-secondary text-white",
+  review: "bg-[#e4d6ff] text-secondary",
+  ideation: "bg-[#ffeab0] text-secondary",
+  action: "bg-[#bc96ff] text-secondary",
+  closed: "bg-[#f9d258] text-secondary",
 };
 
 function fallbackCopy(text: string): boolean {
@@ -281,7 +281,7 @@ export default function ProjectDetail({
   const canLeaveProject = viewerMembership?.role === "member";
 
   return (
-    <div>
+    <div className="space-y-10">
       <div className="mb-6">
         <a
           href="/projects"
@@ -296,7 +296,7 @@ export default function ProjectDetail({
 
       {feedback && (
         <div
-          className={`mb-6 border-3 border-secondary px-4 py-3 text-sm font-bold uppercase shadow-brutal-sm ${
+          className={`mb-6 border-3 border-secondary px-4 py-3 text-sm font-bold uppercase ${
             feedback.tone === "success" ? "bg-primary text-white" : "bg-white text-red-600"
           }`}
         >
@@ -304,16 +304,22 @@ export default function ProjectDetail({
         </div>
       )}
 
-      <div className="relative mb-10 border-3 border-secondary bg-white p-8 rotate-[-0.5deg]">
-        <div className="absolute -top-2 left-1/2 h-6 w-20 -translate-x-1/2 rotate-[-2deg] border-2 border-secondary bg-tertiary/70"></div>
+      <section
+        className={cn(
+          "note-shell relative rotate-[-0.55deg] p-8",
+          deleteConfirmOpen ? "z-30" : "z-10",
+        )}
+        data-note-theme="sun"
+        data-tape-position="top-center"
+      >
         {isOwner && (
-          <>
+          <div className="absolute right-4 top-4 z-20">
             <button
               type="button"
               onClick={handleDeleteClick}
               className={cn(
                 scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                "absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none hover:bg-[#ff7f7f] hover:text-white",
+                "flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none hover:bg-[#ff7f7f] hover:text-white",
               )}
               aria-label="Delete project"
             >
@@ -321,7 +327,7 @@ export default function ProjectDetail({
             </button>
 
             {deleteConfirmOpen && (
-              <div className="absolute right-4 top-[4.75rem] z-20 w-[min(22rem,calc(100%-2rem))] border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal">
+              <div className="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[min(22rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] border-3 border-secondary bg-[#fff1ea] p-4">
                 <p className="text-sm font-bold uppercase">Delete Project</p>
                 <p className="scribble-help mt-2 text-sm text-secondary/70">
                   This permanently deletes the project, sessions, actions, and invite links.
@@ -364,13 +370,33 @@ export default function ProjectDetail({
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
 
         <div className="flex min-w-0 flex-col gap-6 pr-14 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
+            <p className="mb-3 inline-block border-2 border-secondary note-chip px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em]">
+              Project Space
+            </p>
             <h1 className="break-words text-4xl font-bold uppercase">{project.name}</h1>
-            {project.description && <p className="mt-2 break-words text-lg text-secondary/60">{project.description}</p>}
+            {project.description && (
+              <p className="note-muted mt-3 max-w-3xl break-words text-lg">
+                {project.description}
+              </p>
+            )}
+            <div className="mt-5 flex flex-wrap gap-3">
+              <span className="border-2 border-secondary note-chip px-3 py-1 text-xs font-bold uppercase">
+                {members.length} members
+              </span>
+              <span className="border-2 border-secondary note-chip px-3 py-1 text-xs font-bold uppercase">
+                {sessions.length} sessions
+              </span>
+              {viewerMembership && (
+                <span className="border-2 border-secondary note-chip px-3 py-1 text-xs font-bold uppercase">
+                  You&apos;re a {viewerMembership.role}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 lg:min-w-[18rem]">
@@ -381,16 +407,16 @@ export default function ProjectDetail({
                   onClick={handleCreateInvite}
                   disabled={creatingInvite}
                   className={cn(
-                    scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
-                    "border-3 border-secondary bg-primary px-5 py-3 font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                    scrapbookButton({ tone: "cobalt", size: "regular", tilt: "left", depth: "md" }),
+                    "border-3 border-secondary bg-[#5d83f9] px-5 py-3 font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                 >
                   {creatingInvite ? "Creating..." : "Create Invite Link"}
                 </button>
-                <p className="scribble-help text-sm text-secondary/50">
+                <p className="scribble-help note-muted text-sm">
                   Invite links are multi-use and expire 1 hour after creation.
                 </p>
-                <p className="scribble-help text-sm text-secondary/50">
+                <p className="scribble-help note-muted text-sm">
                   Owners cannot leave a project until ownership transfer exists.
                 </p>
               </>
@@ -403,7 +429,7 @@ export default function ProjectDetail({
                 disabled={leavingProject}
                 className={cn(
                   scrapbookButton({ tone: "neutral", size: "regular", tilt: "flat", depth: "sm" }),
-                  "border-3 border-secondary bg-white px-5 py-3 font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                  "border-3 border-secondary note-panel px-5 py-3 font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
                 )}
               >
                 {leavingProject ? "Leaving..." : "Leave Project"}
@@ -412,10 +438,15 @@ export default function ProjectDetail({
           </div>
         </div>
 
-        <div className="mt-8">
-          <div className="mb-3 flex items-center justify-between gap-4">
-            <h2 className="text-lg font-bold uppercase">Members</h2>
-            <span className="font-mono text-xs uppercase text-secondary/40">{members.length} total</span>
+        <div className="mt-8 border-t-3 border-secondary pt-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold uppercase">Members</h2>
+              <p className="scribble-help note-muted mt-1 text-base">Everyone who can jump into this project.</p>
+            </div>
+            <span className="border-2 border-secondary note-chip px-3 py-1 font-mono text-xs font-bold uppercase">
+              {members.length} total
+            </span>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
@@ -426,7 +457,7 @@ export default function ProjectDetail({
               return (
                 <div
                   key={member.userId}
-                  className="flex min-w-0 items-center justify-between gap-3 border-3 border-secondary bg-surface px-4 py-3"
+                  className="note-panel flex min-w-0 items-center justify-between gap-3 border-3 border-secondary px-4 py-3"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     {member.avatarUrl && (
@@ -441,7 +472,7 @@ export default function ProjectDetail({
                         {member.username}
                         {isCurrentUser ? " (You)" : ""}
                       </p>
-                      <p className="font-mono text-xs uppercase text-secondary/50">{member.role}</p>
+                      <p className="note-muted font-mono text-xs uppercase">{member.role}</p>
                     </div>
                   </div>
 
@@ -464,76 +495,106 @@ export default function ProjectDetail({
             })}
           </div>
         </div>
-      </div>
+      </section>
 
       {viewerCapabilities?.canCreateSession && (
-        <div className="mb-10 border-3 border-secondary bg-tertiary p-6 rotate-[0.5deg]">
-        <h2 className="mb-4 text-lg font-bold uppercase">Start a New Session</h2>
-        <form onSubmit={createSession} className="flex gap-3">
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="e.g. Sprint 14 Retro"
-            required
-            className="flex-1 border-3 border-secondary bg-white px-4 py-3 font-bold shadow-brutal-sm transition-shadow focus:outline-none focus:shadow-brutal-primary"
-          />
-          <button
-            type="submit"
-            disabled={creating}
-            className={cn(
-              scrapbookButton({ tone: "neutral", size: "regular", tilt: "right", depth: "sm" }),
-              "border-3 border-secondary bg-secondary px-6 py-3 font-bold uppercase text-white disabled:opacity-50",
-            )}
-          >
-            {creating ? "..." : "Go →"}
-          </button>
-        </form>
-        </div>
+        <section
+          className="note-shell rotate-[0.45deg] p-6"
+          data-note-theme="cobalt"
+          data-tape-position="top-right"
+        >
+          <div className="mb-4 max-w-2xl">
+            <p className="mb-3 inline-block border-2 border-secondary note-chip px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.2em]">
+              New Session
+            </p>
+            <h2 className="text-2xl font-bold uppercase">Start a New Session</h2>
+            <p className="scribble-help note-muted mt-2 text-base">
+              Kick off the next retro with a clear title so the list of sessions stays easy to scan.
+            </p>
+          </div>
+          <form onSubmit={createSession} className="flex flex-col gap-3 md:flex-row">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. Sprint 14 Retro"
+              required
+              className="flex-1 border-3 border-secondary note-panel px-4 py-3 font-bold shadow-brutal-sm transition-shadow focus:outline-none focus:shadow-brutal-primary"
+            />
+            <button
+              type="submit"
+              disabled={creating}
+              className={cn(
+                scrapbookButton({ tone: "secondary", size: "regular", tilt: "right", depth: "sm" }),
+                "border-3 border-secondary bg-secondary px-6 py-3 font-bold uppercase text-white disabled:opacity-50",
+              )}
+            >
+              {creating ? "..." : "Go →"}
+            </button>
+          </form>
+        </section>
       )}
 
-      <h2 className="mb-4 text-2xl font-bold uppercase">Sessions</h2>
-      {sessions.length === 0 ? (
-        <MarchingAnts className="p-10 text-center">
-          <p className="scribble-help text-2xl text-secondary">No sessions yet. Start one above!</p>
-        </MarchingAnts>
-      ) : (
-        <div className="space-y-3">
-          {sessions.map((session, index) => {
-            const rotation = index % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]";
-            return (
-              <a
-                key={session.id}
-                href={`/projects/${projectId}/sessions/${session.id}`}
-                data-no-click-overlay="true"
-                className={`flex min-w-0 flex-col gap-3 border-3 border-secondary bg-white p-5 shadow-brutal-sm transition-all hover:scale-[1.01] hover:shadow-brutal sm:flex-row sm:items-center sm:justify-between ${rotation}`}
-              >
-                <div className="flex min-w-0 items-center gap-4">
-                  <span className="shrink-0 border-3 border-secondary bg-surface px-3 py-1 font-mono text-sm font-bold">
-                    #{session.sequence}
-                  </span>
-                  <span className="truncate text-lg font-bold">{session.name}</span>
-                </div>
-                <span className={`self-start border-3 border-secondary px-3 py-1 text-xs font-bold uppercase sm:self-auto ${phaseStyles[session.phase] || ""}`}>
-                  {session.phase}
-                </span>
-              </a>
-            );
-          })}
+      <section
+        className="note-shell rotate-[-0.25deg] p-6"
+        data-note-theme="sun"
+        data-tape-position="top-right"
+      >
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold uppercase">Sessions</h2>
+            <p className="scribble-help note-muted mt-1 text-base">The full retro timeline for this project.</p>
+          </div>
+          <span className="border-2 border-secondary note-chip px-3 py-1 font-mono text-xs font-bold uppercase">
+            {sessions.length} total
+          </span>
         </div>
-      )}
+        {sessions.length === 0 ? (
+          <MarchingAnts className="note-panel border-3 border-secondary p-10 text-center">
+            <p className="scribble-help text-2xl text-secondary">No sessions yet. Start one above!</p>
+          </MarchingAnts>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((session, index) => {
+              const rotation = index % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]";
+              return (
+                <a
+                  key={session.id}
+                  href={`/projects/${projectId}/sessions/${session.id}`}
+                  data-no-click-overlay="true"
+                  className={`note-panel flex min-w-0 flex-col gap-3 border-3 border-secondary p-5 shadow-brutal-sm transition-all hover:scale-[1.01] hover:shadow-brutal sm:flex-row sm:items-center sm:justify-between ${rotation}`}
+                >
+                  <div className="flex min-w-0 items-center gap-4">
+                    <span className="shrink-0 border-3 border-secondary note-chip px-3 py-1 font-mono text-sm font-bold">
+                      #{session.sequence}
+                    </span>
+                    <span className="truncate text-lg font-bold">{session.name}</span>
+                  </div>
+                  <span className={`self-start border-3 border-secondary px-3 py-1 text-xs font-bold uppercase sm:self-auto ${phaseStyles[session.phase] || ""}`}>
+                    {session.phase}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {viewerCapabilities?.canManageInvitations && (
-        <div className="mt-12">
+        <section
+          className="note-shell rotate-[0.3deg] p-6"
+          data-note-theme="sun"
+          data-tape-position="side-left"
+        >
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold uppercase">Invite Links</h2>
-              <p className="scribble-help text-base text-secondary/60">Share these links to let people join the project.</p>
+              <p className="scribble-help note-muted text-base">Share these links to let people join the project.</p>
             </div>
           </div>
 
           {invitations.length === 0 ? (
-            <MarchingAnts className="p-10 text-center">
+            <MarchingAnts className="note-panel border-3 border-secondary p-10 text-center">
               <p className="scribble-help text-2xl text-secondary">No active invite links yet.</p>
               <p className="scribble-help mt-2 text-base text-secondary/60">Create one above and it will appear here.</p>
             </MarchingAnts>
@@ -546,7 +607,7 @@ export default function ProjectDetail({
                 return (
                   <div
                     key={invitation.id}
-                    className={`border-3 border-secondary bg-white p-5 shadow-brutal-sm ${rotation}`}
+                    className={`note-panel border-3 border-secondary p-5 ${rotation}`}
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0">
@@ -563,8 +624,8 @@ export default function ProjectDetail({
                           type="button"
                           onClick={() => handleCopyInvite(invitation.token)}
                           className={cn(
-                            scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
-                            "border-2 border-secondary bg-tertiary px-4 py-2 text-xs font-bold uppercase",
+                            scrapbookButton({ tone: "sun", size: "compact", tilt: "flat", depth: "sm" }),
+                            "border-2 border-secondary note-chip px-4 py-2 text-xs font-bold uppercase",
                           )}
                         >
                           Copy Link
@@ -587,7 +648,7 @@ export default function ProjectDetail({
               })}
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   );

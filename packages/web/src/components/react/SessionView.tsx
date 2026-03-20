@@ -28,6 +28,33 @@ const sectionLabels: Record<SessionSection, string> = {
   summary: "Summary",
 };
 
+const sectionStyles = {
+  review: {
+    tone: "lavender",
+    activeClass: "bg-[#cab2ff] text-secondary",
+    inactiveClass: "bg-white text-secondary hover:bg-[#f5efff]",
+    indicatorClass: "text-[#8f63ef]",
+  },
+  ideation: {
+    tone: "sun",
+    activeClass: "bg-[#f9d258] text-secondary",
+    inactiveClass: "bg-white text-secondary hover:bg-[#fff2bf]",
+    indicatorClass: "text-[#f2c744]",
+  },
+  action: {
+    tone: "plum",
+    activeClass: "bg-[#bc96ff] text-secondary",
+    inactiveClass: "bg-white text-secondary hover:bg-[#efe3ff]",
+    indicatorClass: "text-[#8f63ef]",
+  },
+  summary: {
+    tone: "sun",
+    activeClass: "bg-[#ffe793] text-secondary",
+    inactiveClass: "bg-white text-secondary hover:bg-[#fff2bf]",
+    indicatorClass: "text-[#f2c744]",
+  },
+} as const;
+
 function defaultSectionForPhase(phase: SessionPhase): SessionSection {
   return phase === "closed" ? "summary" : phase;
 }
@@ -147,6 +174,10 @@ export default function SessionView({
     }
   }, [activeSection]);
 
+  const registerItemWsHandler = useCallback((handler: (event: WsEvent) => void) => {
+    setItemEventHandlers({ onWsEvent: handler });
+  }, []);
+
   // Close participant panel on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -259,11 +290,15 @@ export default function SessionView({
                 const unlocked = isSectionUnlocked(section, session.phase);
                 const isActive = visibleSection === section;
                 const isLivePhase = liveSection === section;
+                const sectionStyle = sectionStyles[section];
                 return (
                   <div key={section} className="relative pt-4">
                     {isLivePhase && (
                       <span
-                        className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 text-secondary"
+                        className={cn(
+                          "pointer-events-none absolute left-1/2 top-0 -translate-x-1/2",
+                          sectionStyle.indicatorClass,
+                        )}
                         aria-hidden="true"
                       >
                         <svg viewBox="0 0 16 16" className="section-bounce h-4 w-4 fill-current">
@@ -281,13 +316,13 @@ export default function SessionView({
                       title={isLivePhase ? `${sectionLabels[section]} is the live team phase` : undefined}
                       className={cn(
                         scrapbookButton({
-                          tone: isActive ? "primary" : "neutral",
+                          tone: isActive ? sectionStyle.tone : "neutral",
                           size: "compact",
                           tilt: "flat",
                           depth: "sm",
                         }),
                         "border-2 border-secondary px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-35",
-                        isActive ? "bg-primary text-white" : "bg-white text-secondary",
+                        isActive ? sectionStyle.activeClass : sectionStyle.inactiveClass,
                       )}
                     >
                       {sectionLabels[section]}
@@ -304,7 +339,7 @@ export default function SessionView({
                 <button
                   onClick={toggleParticipants}
                   className={cn(
-                    scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
+                    scrapbookButton({ tone: "sun", size: "compact", tilt: "flat", depth: "sm" }),
                     "flex -space-x-1 border-3 border-secondary bg-white p-1",
                   )}
                   title="Show participants"
@@ -325,7 +360,11 @@ export default function SessionView({
                 </button>
 
                 {showParticipants && (
-                  <div className="absolute left-0 top-14 z-50 w-[min(20rem,calc(100vw-3rem))] border-3 border-secondary bg-white p-4 shadow-brutal-lg lg:left-auto lg:right-0 lg:w-72">
+                  <div
+                    className="note-shell absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(20rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] p-4 lg:w-72"
+                    data-note-theme="sun"
+                    data-tape-position="top-right"
+                  >
                     <h3 className="mb-3 text-sm font-bold uppercase">Participants</h3>
                     {participants.length === 0 && (
                       <p className="scribble-help text-sm text-secondary/50">No participants recorded yet</p>
@@ -361,8 +400,8 @@ export default function SessionView({
                 <button
                   onClick={handleShare}
                   className={cn(
-                    scrapbookButton({ tone: "primary", size: "compact", tilt: "left", depth: "sm" }),
-                    "border-3 border-secondary bg-primary px-4 py-2 text-sm font-bold uppercase text-white",
+                    scrapbookButton({ tone: "cobalt", size: "compact", tilt: "left", depth: "sm" }),
+                    "border-3 border-secondary bg-[#5d83f9] px-4 py-2 text-sm font-bold uppercase text-white",
                   )}
                 >
                   {shareState === "copied" ? "Copied!" : "Share"}
@@ -371,77 +410,121 @@ export default function SessionView({
             </div>
 
             {viewerCapabilities?.canAdvancePhase && session.phase === "ideation" && (
-              <button
-                onClick={() =>
-                  setPendingAdvance({
-                    nextSection: "action",
-                    title: "Move to Actions?",
-                    message: "This ends ideation editing and moves everyone into the action planning stage. This action can't be undone.",
-                    busyLabel: "Moving...",
-                    confirmLabel: "Yes, Move to Actions",
-                  })}
-                disabled={advancingPhase}
-                className={cn(
-                  scrapbookButton({ tone: "secondary", size: "regular", tilt: "right", depth: "md" }),
-                  "w-full border-3 border-secondary bg-purple-400 px-5 py-3 font-bold uppercase text-white disabled:opacity-50 lg:w-auto",
+              <div className="relative w-full lg:w-auto lg:self-end">
+                <button
+                  onClick={() =>
+                    setPendingAdvance({
+                      nextSection: "action",
+                      title: "Move to Actions?",
+                      message: "This ends ideation editing and moves everyone into the action planning stage. This action can't be undone.",
+                      busyLabel: "Moving...",
+                      confirmLabel: "Yes, Move to Actions",
+                    })}
+                  disabled={advancingPhase}
+                  className={cn(
+                    scrapbookButton({ tone: "plum", size: "regular", tilt: "right", depth: "md" }),
+                    "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50 lg:w-auto",
+                  )}
+                >
+                  Advance to Actions
+                </button>
+
+                {pendingAdvance?.nextSection === "action" && (
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="pending-advance-title"
+                    className="note-shell absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(24rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] p-4 lg:w-[min(24rem,calc(100vw-4rem))]"
+                    data-note-theme="plum"
+                    data-tape-position="top-right"
+                  >
+                    <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
+                    <p className="scribble-help note-muted mt-2 text-sm">{pendingAdvance.message}</p>
+                    <div className="mt-4 flex flex-wrap justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPendingAdvance(null)}
+                        disabled={advancingPhase}
+                        className={cn(
+                          scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                          "border-2 border-secondary note-panel px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                        )}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => advancePhase(pendingAdvance.nextSection)}
+                        disabled={advancingPhase}
+                        className={cn(
+                          scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
+                          "border-2 border-secondary bg-[#8f63ef] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                        )}
+                      >
+                        {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
+                      </button>
+                    </div>
+                  </div>
                 )}
-              >
-                Advance to Actions
-              </button>
+              </div>
             )}
 
             {viewerCapabilities?.canAdvancePhase && session.phase === "action" && (
-              <button
-                onClick={() =>
-                  setPendingAdvance({
-                    nextSection: "summary",
-                    title: "Close this retrospective?",
-                    message: "This ends live editing and opens the final summary view for the team. This action can't be undone.",
-                    busyLabel: "Closing...",
-                    confirmLabel: "Yes, Close Session",
-                  })}
-                className={cn(
-                  scrapbookButton({ tone: "secondary", size: "regular", tilt: "left", depth: "md" }),
-                  "w-full border-3 border-secondary bg-secondary px-5 py-3 font-bold uppercase text-white lg:w-auto",
-                )}
-              >
-                Close Session
-              </button>
-            )}
+              <div className="relative w-full lg:w-auto lg:self-end">
+                <button
+                  onClick={() =>
+                    setPendingAdvance({
+                      nextSection: "summary",
+                      title: "Close this retrospective?",
+                      message: "This ends live editing and opens the final summary view for the team. This action can't be undone.",
+                      busyLabel: "Closing...",
+                      confirmLabel: "Yes, Close Session",
+                    })}
+                  className={cn(
+                    scrapbookButton({ tone: "sun", size: "regular", tilt: "left", depth: "md" }),
+                    "w-full border-3 border-secondary bg-[#f9d258] px-5 py-3 font-bold uppercase text-secondary lg:w-auto",
+                  )}
+                >
+                  Close Session
+                </button>
 
-            {pendingAdvance && (
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="pending-advance-title"
-                className="z-40 w-full border-3 border-secondary bg-[#fff1ea] p-4 shadow-brutal lg:absolute lg:right-0 lg:top-full lg:mt-3 lg:w-[min(24rem,calc(100vw-4rem))]"
-              >
-                <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
-                <p className="scribble-help mt-2 text-sm text-secondary/70">{pendingAdvance.message}</p>
-                <div className="mt-4 flex flex-wrap justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setPendingAdvance(null)}
-                    disabled={advancingPhase}
-                    className={cn(
-                      scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
-                      "border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
-                    )}
+                {pendingAdvance?.nextSection === "summary" && (
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="pending-advance-title"
+                    className="note-shell absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(24rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] p-4 lg:w-[min(24rem,calc(100vw-4rem))]"
+                    data-note-theme="sun"
+                    data-tape-position="top-right"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => advancePhase(pendingAdvance.nextSection)}
-                    disabled={advancingPhase}
-                    className={cn(
-                      scrapbookButton({ tone: "danger", size: "compact", tilt: "left", depth: "sm" }),
-                      "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
-                    )}
-                  >
-                    {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
-                  </button>
-                </div>
+                    <p id="pending-advance-title" className="text-sm font-bold uppercase">{pendingAdvance.title}</p>
+                    <p className="scribble-help note-muted mt-2 text-sm">{pendingAdvance.message}</p>
+                    <div className="mt-4 flex flex-wrap justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPendingAdvance(null)}
+                        disabled={advancingPhase}
+                        className={cn(
+                          scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+                          "border-2 border-secondary note-panel px-4 py-2 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50",
+                        )}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => advancePhase(pendingAdvance.nextSection)}
+                        disabled={advancingPhase}
+                        className={cn(
+                          scrapbookButton({ tone: "sun", size: "compact", tilt: "left", depth: "sm" }),
+                          "border-2 border-secondary bg-[#f9d258] px-4 py-2 text-xs font-bold uppercase text-secondary disabled:cursor-not-allowed disabled:opacity-50",
+                        )}
+                      >
+                        {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -460,7 +543,7 @@ export default function SessionView({
         <IdeationBoard
           sessionId={sessionId}
           readOnly={session.phase !== "ideation"}
-          onRegisterWsHandler={(handler) => setItemEventHandlers({ onWsEvent: handler })}
+          onRegisterWsHandler={registerItemWsHandler}
         />
       )}
 
@@ -469,7 +552,7 @@ export default function SessionView({
           sessionId={sessionId}
           projectId={projectId}
           readOnly={session.phase === "closed"}
-          onRegisterWsHandler={(handler) => setItemEventHandlers({ onWsEvent: handler })}
+          onRegisterWsHandler={registerItemWsHandler}
         />
       )}
 

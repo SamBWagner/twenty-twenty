@@ -4,7 +4,13 @@ export type ScrapbookButtonTone =
   | "secondary"
   | "warm"
   | "danger"
-  | "success";
+  | "success"
+  | "sun"
+  | "lavender"
+  | "plum"
+  | "mint"
+  | "blush"
+  | "cobalt";
 
 export type ScrapbookButtonSize = "regular" | "compact" | "icon";
 export type ScrapbookButtonTilt = "left" | "right" | "flat";

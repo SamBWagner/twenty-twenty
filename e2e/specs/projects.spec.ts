@@ -69,6 +69,9 @@ test.describe("Projects", () => {
     await page.goto(`/projects/${project.id}`);
     await expect(page.getByText("Detail Test")).toBeVisible();
     await expect(page.getByText("A test project")).toBeVisible();
+    await expect(page.locator('[data-note-theme="sun"][data-tape-position="top-center"]').first()).toContainText("Project Space");
+    await expect(page.locator('[data-note-theme="sun"][data-tape-position="side-left"]').filter({ hasText: "Members" })).toBeVisible();
+    await expect(page.locator('[data-note-theme="cobalt"][data-tape-position="top-right"]')).toContainText("Start a New Session");
 
     await context.close();
   });

@@ -8,7 +8,6 @@ import type {
   RetroSession as Session,
   SessionParticipant as Participant,
   SessionPhase,
-  SummaryShareTokenResponse,
   SessionView as SessionWorkspaceView,
   ViewerCapabilities,
   WsEvent,
@@ -304,18 +303,13 @@ export default function SessionView({
     }
 
     try {
-      const isClosed = session.phase === "closed";
-      const url = isClosed
-        ? `${getPublicWebBaseUrl()}/summary/${(
-          await api.post<SummaryShareTokenResponse>(`/api/sessions/${sessionId}/summary-share`, {})
-        ).summaryShareToken}`
-        : `${getPublicWebBaseUrl()}/join/${(
-          await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`, {})
-        ).shareToken}`;
+      const url = `${getPublicWebBaseUrl()}/join/${(
+        await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`, {})
+      ).shareToken}`;
       const result = await shareOrCopyLink(
         url,
-        isClosed ? "Retrospective summary" : "Retrospective session",
-        `Copy this ${isClosed ? "summary" : "share"} link:`,
+        "Retrospective session",
+        "Copy this share link:",
       );
 
       if (result === "cancelled") {
@@ -323,7 +317,7 @@ export default function SessionView({
       }
 
       if (result === "failed") {
-        throw new Error(`Could not copy the ${isClosed ? "summary" : "share"} link.`);
+        throw new Error("Could not copy the share link.");
       }
 
       setShareState(result === "shared" ? "shared" : "copied");
@@ -504,7 +498,7 @@ export default function SessionView({
                 )}
               </div>
 
-              {viewerCapabilities?.canShareSession && (
+              {viewerCapabilities?.canShareSession && session.phase !== "closed" && (
                 <button
                   onClick={handleShare}
                   className={cn(
@@ -516,8 +510,6 @@ export default function SessionView({
                     ? "Copied!"
                     : shareState === "shared"
                     ? "Shared!"
-                    : session.phase === "closed"
-                    ? "Share Summary"
                     : "Share"}
                 </button>
               )}

@@ -81,7 +81,7 @@ const pullsUrl = `${repoUrl}/pulls`;
         id="tear-strip-hint"
         class="sr-only"
       >
-        Drag all the way across or press Enter
+        Drag all the way across to reveal or reset the footer, or press Enter
       </p>
     </div>
   </div>
@@ -114,17 +114,6 @@ const pullsUrl = `${repoUrl}/pulls`;
             <p class="font-mono text-xs font-bold uppercase tracking-[0.18em] text-secondary/55">
               Thanks for caring enough to tug on the footer.
             </p>
-            <button
-              type="button"
-              data-tear-reset
-              data-no-click-overlay="true"
-              class={cn(
-                scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
-                "w-full border-3 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase md:w-auto",
-              )}
-            >
-              Tape It Back Up
-            </button>
           </div>
 
           <div class="mt-8 grid gap-4 md:grid-cols-3">
@@ -279,7 +268,6 @@ const pullsUrl = `${repoUrl}/pulls`;
     const handleWrap = root.querySelector("[data-tear-handle-wrap]");
     const panel = root.querySelector("[data-tear-panel]");
     const panelFocusables = panel?.querySelectorAll("a, button") ?? [];
-    const resetButtons = root.querySelectorAll("[data-tear-reset]");
 
     if (
       track instanceof HTMLElement &&
@@ -293,8 +281,21 @@ const pullsUrl = `${repoUrl}/pulls`;
       let pointerId = null;
       let startX = 0;
       let startProgress = 0;
+      let dragOriginTorn = false;
+      let movedDuringDrag = false;
 
       const tearThreshold = 0.92;
+      const repairThreshold = 0.08;
+
+      function syncHandleState(torn) {
+        handle.textContent = torn ? "Tape It Back Up" : "Tear Here";
+        handle.setAttribute(
+          "aria-label",
+          torn
+            ? "Drag back across to tape the footer back up"
+            : "Drag to tear open the footer and reveal GitHub links",
+        );
+      }
 
       function syncPanelState(torn) {
         panel.setAttribute("aria-hidden", torn ? "false" : "true");
@@ -341,10 +342,10 @@ const pullsUrl = `${repoUrl}/pulls`;
         root.dataset.torn = torn ? "true" : "false";
         root.dataset.dragging = "false";
         dragging = false;
-        progressPx = torn ? maxTravel : 0;
         handle.setAttribute("aria-expanded", torn ? "true" : "false");
+        syncHandleState(torn);
         syncPanelState(torn);
-        render();
+        measure();
       }
 
       function finishDrag() {
@@ -353,7 +354,14 @@ const pullsUrl = `${repoUrl}/pulls`;
         root.dataset.dragging = "false";
         dragging = false;
 
-        if (maxTravel > 0 && progressPx / maxTravel >= tearThreshold) {
+        if (dragOriginTorn) {
+          if (maxTravel > 0 && progressPx / maxTravel <= repairThreshold) {
+            setTorn(false);
+          } else {
+            progressPx = maxTravel;
+            render();
+          }
+        } else if (maxTravel > 0 && progressPx / maxTravel >= tearThreshold) {
           setTorn(true);
         } else {
           progressPx = 0;
@@ -368,7 +376,7 @@ const pullsUrl = `${repoUrl}/pulls`;
 
         root.dataset.dragging = "false";
         dragging = false;
-        progressPx = 0;
+        progressPx = dragOriginTorn ? maxTravel : 0;
         render();
         releasePointer();
       }
@@ -376,16 +384,17 @@ const pullsUrl = `${repoUrl}/pulls`;
       function updateProgress(clientX) {
         const nextValue = startProgress + (clientX - startX);
         progressPx = Math.min(Math.max(nextValue, 0), maxTravel);
+        movedDuringDrag = movedDuringDrag || Math.abs(clientX - startX) > 4;
         render();
       }
 
       handle.addEventListener("pointerdown", (event) => {
-        if (root.dataset.torn === "true") return;
-
         dragging = true;
         pointerId = event.pointerId;
         startX = event.clientX;
         startProgress = progressPx;
+        dragOriginTorn = root.dataset.torn === "true";
+        movedDuringDrag = false;
         root.dataset.dragging = "true";
         handle.setPointerCapture(pointerId);
         event.preventDefault();
@@ -401,24 +410,13 @@ const pullsUrl = `${repoUrl}/pulls`;
       window.addEventListener("pointerup", finishDrag);
 
       handle.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
+        if ((event.key === "Enter" || event.key === " ") && root.dataset.torn !== "true") {
           event.preventDefault();
           setTorn(true);
         }
-
-        if (event.key === "Escape" && root.dataset.torn === "true") {
-          event.preventDefault();
-          setTorn(false);
-        }
       });
 
-      resetButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          setTorn(false);
-          handle.focus();
-        });
-      });
-
+      syncHandleState(false);
       syncPanelState(false);
       measure();
 

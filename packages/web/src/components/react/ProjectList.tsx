@@ -47,10 +47,16 @@ export default function ProjectList() {
         <a
           key={p.id}
           href={`/projects/${p.id}`}
-          className={`block border-3 border-secondary bg-white p-6 shadow-brutal transition-all hover:shadow-brutal-lg hover:scale-[1.02] ${rotations[i % rotations.length]}`}
+          className={`block min-w-0 border-3 border-secondary bg-white p-6 shadow-brutal transition-all hover:scale-[1.02] hover:shadow-brutal-lg ${rotations[i % rotations.length]}`}
         >
-          <h2 className="font-bold text-xl uppercase">{p.name}</h2>
-          {p.description && <p className="text-sm mt-2 text-secondary/60">{p.description}</p>}
+          <h2 className="overflow-hidden break-words text-xl font-bold uppercase [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            {p.name}
+          </h2>
+          {p.description && (
+            <p className="mt-2 overflow-hidden break-words text-sm text-secondary/60 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+              {p.description}
+            </p>
+          )}
           <div className="mt-4 flex gap-2">
             <span className="border-2 border-secondary bg-tertiary px-2 py-0.5 text-xs font-bold uppercase">
               {p.role}

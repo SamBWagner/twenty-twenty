@@ -367,10 +367,10 @@ export default function ProjectDetail({
           </>
         )}
 
-        <div className="flex flex-col gap-6 pr-14 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-bold uppercase">{project.name}</h1>
-            {project.description && <p className="mt-2 text-lg text-secondary/60">{project.description}</p>}
+        <div className="flex min-w-0 flex-col gap-6 pr-14 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="break-words text-4xl font-bold uppercase">{project.name}</h1>
+            {project.description && <p className="mt-2 break-words text-lg text-secondary/60">{project.description}</p>}
           </div>
 
           <div className="flex flex-col gap-3 lg:min-w-[18rem]">
@@ -426,9 +426,9 @@ export default function ProjectDetail({
               return (
                 <div
                   key={member.userId}
-                  className="flex items-center justify-between gap-3 border-3 border-secondary bg-surface px-4 py-3"
+                  className="flex min-w-0 items-center justify-between gap-3 border-3 border-secondary bg-surface px-4 py-3"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     {member.avatarUrl && (
                       <img
                         src={member.avatarUrl}
@@ -506,15 +506,15 @@ export default function ProjectDetail({
                 key={session.id}
                 href={`/projects/${projectId}/sessions/${session.id}`}
                 data-no-click-overlay="true"
-                className={`flex items-center justify-between border-3 border-secondary bg-white p-5 shadow-brutal-sm transition-all hover:scale-[1.01] hover:shadow-brutal ${rotation}`}
+                className={`flex min-w-0 flex-col gap-3 border-3 border-secondary bg-white p-5 shadow-brutal-sm transition-all hover:scale-[1.01] hover:shadow-brutal sm:flex-row sm:items-center sm:justify-between ${rotation}`}
               >
-                <div className="flex items-center gap-4">
-                  <span className="border-3 border-secondary bg-surface px-3 py-1 font-mono text-sm font-bold">
+                <div className="flex min-w-0 items-center gap-4">
+                  <span className="shrink-0 border-3 border-secondary bg-surface px-3 py-1 font-mono text-sm font-bold">
                     #{session.sequence}
                   </span>
-                  <span className="font-bold text-lg">{session.name}</span>
+                  <span className="truncate text-lg font-bold">{session.name}</span>
                 </div>
-                <span className={`border-3 border-secondary px-3 py-1 text-xs font-bold uppercase ${phaseStyles[session.phase] || ""}`}>
+                <span className={`self-start border-3 border-secondary px-3 py-1 text-xs font-bold uppercase sm:self-auto ${phaseStyles[session.phase] || ""}`}>
                   {session.phase}
                 </span>
               </a>

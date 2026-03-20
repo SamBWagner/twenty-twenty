@@ -12,9 +12,11 @@ export default function UserNav() {
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
-      {viewer.image && <img src={viewer.image} alt="" className="h-9 w-9 border-3 border-secondary shadow-brutal-sm" />}
-      <span className="border-3 border-secondary bg-white px-3 py-1 text-sm font-bold shadow-brutal-sm">{viewer.name}</span>
+    <div className="flex max-w-full min-w-0 items-center justify-end gap-2">
+      {viewer.image && <img src={viewer.image} alt="" className="h-9 w-9 shrink-0 border-3 border-secondary shadow-brutal-sm" />}
+      <span className="max-w-[min(42vw,16rem)] truncate border-3 border-secondary bg-white px-3 py-1 text-sm font-bold shadow-brutal-sm sm:max-w-[18rem]">
+        {viewer.name}
+      </span>
     </div>
   );
 }

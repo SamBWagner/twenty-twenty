@@ -1,0 +1,433 @@
+---
+import { cn, scrapbookButton } from "../lib/button-styles";
+
+const repoUrl = "https://github.com/SamBWagner/twenty-twenty";
+const issuesUrl = `${repoUrl}/issues`;
+const pullsUrl = `${repoUrl}/pulls`;
+---
+
+<div class="tear-strip-root" data-torn="false" data-dragging="false" style="--tear-progress: 0%;">
+  <div class="mx-auto w-full max-w-6xl px-6">
+    <div class="tear-track-shell relative mt-24 md:mt-32">
+      <div class="tear-track" data-tear-track aria-hidden="true">
+        <svg
+          viewBox="0 0 1200 54"
+          class="h-8 w-full overflow-visible"
+          preserveAspectRatio="none"
+          fill="none"
+        >
+          <path
+            d="M8 30 C 90 14, 170 42, 250 28 S 410 14, 500 29 S 690 44, 780 27 S 960 15, 1040 28 S 1130 39, 1192 25"
+            stroke="#080708"
+            stroke-width="6"
+            stroke-linecap="square"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          ></path>
+          <path
+            d="M8 34 C 90 18, 170 46, 250 32 S 410 18, 500 33 S 690 48, 780 31 S 960 19, 1040 32 S 1130 43, 1192 29"
+            stroke="#080708"
+            stroke-width="2.5"
+            stroke-dasharray="14 12"
+            stroke-linecap="square"
+            vector-effect="non-scaling-stroke"
+            opacity="0.85"
+          ></path>
+        </svg>
+        <svg
+          viewBox="0 0 1200 54"
+          class="tear-progress-line absolute inset-0 h-8 w-full overflow-visible"
+          preserveAspectRatio="none"
+          fill="none"
+        >
+          <path
+            d="M8 30 C 90 14, 170 42, 250 28 S 410 14, 500 29 S 690 44, 780 27 S 960 15, 1040 28 S 1130 39, 1192 25"
+            stroke="#3772FF"
+            stroke-width="7"
+            stroke-linecap="square"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          ></path>
+          <path
+            d="M8 34 C 90 18, 170 46, 250 32 S 410 18, 500 33 S 690 48, 780 31 S 960 19, 1040 32 S 1130 43, 1192 29"
+            stroke="#FDCA40"
+            stroke-width="2.5"
+            stroke-dasharray="14 12"
+            stroke-linecap="square"
+            vector-effect="non-scaling-stroke"
+          ></path>
+        </svg>
+      </div>
+
+      <div class="tear-handle-wrap absolute left-6 top-1/2" data-tear-handle-wrap>
+        <button
+          type="button"
+          data-tear-handle
+          data-no-click-overlay="true"
+          aria-controls="site-tear-support"
+          aria-describedby="tear-strip-hint"
+          aria-label="Drag to tear open the footer and reveal GitHub links"
+          aria-expanded="false"
+          class={cn(
+            scrapbookButton({ tone: "neutral", size: "compact", tilt: "left", depth: "sm" }),
+            "tear-handle-tag border-3 border-secondary bg-white px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]",
+          )}
+        >
+          Tear Here
+        </button>
+      </div>
+
+      <p
+        id="tear-strip-hint"
+        class="sr-only"
+      >
+        Drag all the way across or press Enter
+      </p>
+    </div>
+  </div>
+
+  <div class="tear-stage relative grid overflow-hidden [grid-template-areas:'stack']">
+    <div
+      id="site-tear-support"
+      data-tear-panel
+      aria-hidden="true"
+      class="tear-support-panel pointer-events-none [grid-area:stack]"
+    >
+      <div class="mx-auto mt-24 mb-10 w-full max-w-6xl px-6 pb-24 md:pb-32">
+        <section class="relative overflow-hidden border-4 border-secondary bg-[#e8f0ff] px-6 py-8 md:px-10 md:py-10">
+          <div class="absolute left-10 top-1 h-6 w-24 -rotate-6 border-3 border-secondary bg-tertiary/75"></div>
+          <div class="absolute right-14 top-4 h-5 w-20 rotate-[8deg] border-3 border-secondary bg-primary/20"></div>
+
+          <div class="max-w-3xl">
+            <p class="inline-block border-4 border-secondary bg-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-[0.22em]">
+              Ripped It Open
+            </p>
+            <h2 class="mt-5 max-w-xl text-2xl font-black uppercase leading-[0.95] sm:max-w-2xl sm:text-3xl md:text-5xl">
+              Found a bug, have an idea, or want to ship a fix?
+            </h2>
+            <p class="mt-4 max-w-2xl border-l-4 border-secondary pl-4 text-sm font-medium leading-relaxed md:text-base">
+              Twenty Twenty lives on GitHub. Log paper cuts, browse the code, or jump straight into the pull request queue.
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <p class="font-mono text-xs font-bold uppercase tracking-[0.18em] text-secondary/55">
+              Thanks for caring enough to tug on the footer.
+            </p>
+            <button
+              type="button"
+              data-tear-reset
+              data-no-click-overlay="true"
+              class={cn(
+                scrapbookButton({ tone: "warm", size: "compact", tilt: "flat", depth: "sm" }),
+                "w-full border-3 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase md:w-auto",
+              )}
+            >
+              Tape It Back Up
+            </button>
+          </div>
+
+          <div class="mt-8 grid gap-4 md:grid-cols-3">
+            <a
+              href={issuesUrl}
+              target="_blank"
+              rel="noreferrer"
+              class={cn(
+                scrapbookButton({ tone: "danger", size: "regular", tilt: "left", depth: "md" }),
+                "block border-4 border-secondary bg-[#ff9a9a] px-5 py-5 text-secondary",
+              )}
+            >
+              <p class="font-mono text-xs font-bold uppercase tracking-[0.18em]">Log A Bug</p>
+              <p class="mt-3 text-2xl font-black uppercase leading-tight">Issues</p>
+              <p class="mt-4 text-sm font-bold leading-snug">
+                Open the issue tracker and flag bugs, regressions, or awkward mobile moments.
+              </p>
+            </a>
+
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              class={cn(
+                scrapbookButton({ tone: "primary", size: "regular", tilt: "flat", depth: "md" }),
+                "block border-4 border-secondary bg-primary px-5 py-5 text-white",
+              )}
+            >
+              <p class="font-mono text-xs font-bold uppercase tracking-[0.18em]">Browse The Code</p>
+              <p class="mt-3 text-2xl font-black uppercase leading-tight">Repository</p>
+              <p class="mt-4 text-sm font-bold leading-snug">
+                Inspect the monorepo, trace the UI, and see how the scrapbook pieces fit together.
+              </p>
+            </a>
+
+            <a
+              href={pullsUrl}
+              target="_blank"
+              rel="noreferrer"
+              class={cn(
+                scrapbookButton({ tone: "success", size: "regular", tilt: "right", depth: "md" }),
+                "block border-4 border-secondary bg-[#95f9a9] px-5 py-5 text-secondary",
+              )}
+            >
+              <p class="font-mono text-xs font-bold uppercase tracking-[0.18em]">Ship A Fix</p>
+              <p class="mt-3 text-2xl font-black uppercase leading-tight">Pull Requests</p>
+              <p class="mt-4 text-sm font-bold leading-snug">
+                Jump into open PRs or start a new contribution path from the repo.
+              </p>
+            </a>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div data-tear-footer class="tear-footer-shell [grid-area:stack]">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  .tear-track-shell {
+    --tear-handle-rest: rotate(-4deg);
+    --tear-handle-active: rotate(2deg);
+  }
+
+  .tear-track {
+    position: relative;
+  }
+
+  .tear-progress-line {
+    clip-path: inset(0 calc(100% - var(--tear-progress)) 0 0);
+    transition: clip-path 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .tear-handle-wrap {
+    transform: translate(0, -50%);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+  }
+
+  .tear-handle-tag {
+    cursor: grab;
+    transform: var(--tear-handle-rest);
+    user-select: none;
+    touch-action: none;
+  }
+
+  .tear-handle-tag:active {
+    cursor: grabbing;
+  }
+
+  .tear-footer-shell {
+    transition:
+      transform 760ms cubic-bezier(0.2, 0.9, 0.2, 1),
+      opacity 260ms ease;
+    transform-origin: top center;
+  }
+
+  .tear-support-panel {
+    opacity: 0;
+    transform: translateY(2rem);
+    transition:
+      transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 260ms ease;
+  }
+
+  .tear-strip-root[data-dragging="true"] .tear-progress-line,
+  .tear-strip-root[data-dragging="true"] .tear-handle-wrap {
+    transition: none;
+  }
+
+  .tear-strip-root[data-dragging="true"] .tear-handle-tag {
+    cursor: grabbing;
+    transform: var(--tear-handle-active);
+  }
+
+  .tear-strip-root[data-torn="true"] .tear-support-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .tear-strip-root[data-torn="true"] .tear-footer-shell {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(calc(100% + 4rem)) rotate(4deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tear-progress-line,
+    .tear-handle-wrap,
+    .tear-footer-shell,
+    .tear-support-panel {
+      transition-duration: 1ms;
+    }
+
+    .tear-strip-root[data-torn="true"] .tear-footer-shell {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  const root = document.querySelector(".tear-strip-root");
+
+  if (root instanceof HTMLElement && root.dataset.tearReady !== "true") {
+    root.dataset.tearReady = "true";
+    const track = root.querySelector("[data-tear-track]");
+    const handle = root.querySelector("[data-tear-handle]");
+    const handleWrap = root.querySelector("[data-tear-handle-wrap]");
+    const panel = root.querySelector("[data-tear-panel]");
+    const panelFocusables = panel?.querySelectorAll("a, button") ?? [];
+    const resetButtons = root.querySelectorAll("[data-tear-reset]");
+
+    if (
+      track instanceof HTMLElement &&
+      handle instanceof HTMLButtonElement &&
+      handleWrap instanceof HTMLElement &&
+      panel instanceof HTMLElement
+    ) {
+      let maxTravel = 0;
+      let progressPx = 0;
+      let dragging = false;
+      let pointerId = null;
+      let startX = 0;
+      let startProgress = 0;
+
+      const tearThreshold = 0.92;
+
+      function syncPanelState(torn) {
+        panel.setAttribute("aria-hidden", torn ? "false" : "true");
+        panelFocusables.forEach((element) => {
+          if (element instanceof HTMLElement) {
+            element.tabIndex = torn ? 0 : -1;
+          }
+        });
+      }
+
+      function render() {
+        const percent = maxTravel > 0 ? Math.min(progressPx / maxTravel, 1) * 100 : 0;
+        root.style.setProperty("--tear-progress", `${percent}%`);
+        handleWrap.style.transform = `translate(${progressPx}px, -50%)`;
+      }
+
+      function measure() {
+        const trackRect = track.getBoundingClientRect();
+        const handleRect = handleWrap.getBoundingClientRect();
+        maxTravel = Math.max(trackRect.width - handleRect.width - 24, 0);
+
+        if (root.dataset.torn === "true") {
+          progressPx = maxTravel;
+        } else {
+          progressPx = Math.min(progressPx, maxTravel);
+        }
+
+        render();
+      }
+
+      function releasePointer() {
+        if (pointerId === null) return;
+
+        try {
+          handle.releasePointerCapture(pointerId);
+        } catch {
+          // Ignore browsers that already released the pointer capture.
+        }
+
+        pointerId = null;
+      }
+
+      function setTorn(torn) {
+        root.dataset.torn = torn ? "true" : "false";
+        root.dataset.dragging = "false";
+        dragging = false;
+        progressPx = torn ? maxTravel : 0;
+        handle.setAttribute("aria-expanded", torn ? "true" : "false");
+        syncPanelState(torn);
+        render();
+      }
+
+      function finishDrag() {
+        if (!dragging) return;
+
+        root.dataset.dragging = "false";
+        dragging = false;
+
+        if (maxTravel > 0 && progressPx / maxTravel >= tearThreshold) {
+          setTorn(true);
+        } else {
+          progressPx = 0;
+          render();
+        }
+
+        releasePointer();
+      }
+
+      function cancelDrag() {
+        if (!dragging) return;
+
+        root.dataset.dragging = "false";
+        dragging = false;
+        progressPx = 0;
+        render();
+        releasePointer();
+      }
+
+      function updateProgress(clientX) {
+        const nextValue = startProgress + (clientX - startX);
+        progressPx = Math.min(Math.max(nextValue, 0), maxTravel);
+        render();
+      }
+
+      handle.addEventListener("pointerdown", (event) => {
+        if (root.dataset.torn === "true") return;
+
+        dragging = true;
+        pointerId = event.pointerId;
+        startX = event.clientX;
+        startProgress = progressPx;
+        root.dataset.dragging = "true";
+        handle.setPointerCapture(pointerId);
+        event.preventDefault();
+      });
+
+      handle.addEventListener("pointermove", (event) => {
+        if (!dragging || event.pointerId !== pointerId) return;
+        updateProgress(event.clientX);
+      });
+
+      handle.addEventListener("pointerup", finishDrag);
+      handle.addEventListener("pointercancel", cancelDrag);
+      window.addEventListener("pointerup", finishDrag);
+
+      handle.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setTorn(true);
+        }
+
+        if (event.key === "Escape" && root.dataset.torn === "true") {
+          event.preventDefault();
+          setTorn(false);
+        }
+      });
+
+      resetButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setTorn(false);
+          handle.focus();
+        });
+      });
+
+      syncPanelState(false);
+      measure();
+
+      if (typeof ResizeObserver !== "undefined") {
+        const observer = new ResizeObserver(() => measure());
+        observer.observe(track);
+      } else {
+        window.addEventListener("resize", measure);
+      }
+    }
+  }
+</script>

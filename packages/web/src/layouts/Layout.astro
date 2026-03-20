@@ -5,6 +5,7 @@ interface Props {
 
 import { cn, scrapbookButton } from "../lib/button-styles";
 import Footer from "../components/Footer.astro";
+import TearStrip from "../components/TearStrip.astro";
 import BrandLink from "../components/react/BrandLink";
 
 const { title } = Astro.props;
@@ -287,39 +288,9 @@ const { title } = Astro.props;
       <slot />
     </main>
 
-    <div class="mx-auto w-full max-w-6xl px-6" aria-hidden="true">
-      <div class="relative mt-24 md:mt-32">
-        <svg
-          viewBox="0 0 1200 54"
-          class="h-8 w-full overflow-visible"
-          preserveAspectRatio="none"
-          fill="none"
-        >
-          <path
-            d="M8 30 C 90 14, 170 42, 250 28 S 410 14, 500 29 S 690 44, 780 27 S 960 15, 1040 28 S 1130 39, 1192 25"
-            stroke="#080708"
-            stroke-width="6"
-            stroke-linecap="square"
-            stroke-linejoin="round"
-            vector-effect="non-scaling-stroke"
-          ></path>
-          <path
-            d="M8 34 C 90 18, 170 46, 250 32 S 410 18, 500 33 S 690 48, 780 31 S 960 19, 1040 32 S 1130 43, 1192 29"
-            stroke="#080708"
-            stroke-width="2.5"
-            stroke-dasharray="14 12"
-            stroke-linecap="square"
-            vector-effect="non-scaling-stroke"
-            opacity="0.85"
-          ></path>
-        </svg>
-        <div class="absolute left-6 top-1/2 -translate-y-1/2 rotate-[-4deg] border-3 border-secondary bg-white px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.22em]">
-          Tear Here
-        </div>
-      </div>
-    </div>
-
-    <Footer />
+    <TearStrip>
+      <Footer />
+    </TearStrip>
 
     <script>
       const COLORS = [

@@ -81,7 +81,7 @@ export default function IdeationBoard({
   return (
     <div>
       {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
       <div>
         <div className="mb-4 inline-block rotate-[-1deg] border-3 border-secondary bg-green-300 px-5 py-2">
           <h2 className="text-lg font-bold uppercase">✓ Went Well</h2>
@@ -106,7 +106,7 @@ export default function IdeationBoard({
         ) : (
           <form
             onSubmit={(e) => { e.preventDefault(); addItem("good"); }}
-            className="flex gap-2"
+            className="flex flex-col gap-2 sm:flex-row"
           >
             <input
               type="text"
@@ -119,7 +119,7 @@ export default function IdeationBoard({
               type="submit"
               className={cn(
                 scrapbookButton({ tone: "success", size: "compact", tilt: "left", depth: "sm" }),
-                "border-3 border-secondary bg-green-300 px-5 py-3 font-bold uppercase",
+                "w-full border-3 border-secondary bg-green-300 px-5 py-3 font-bold uppercase sm:w-auto",
               )}
             >
               +
@@ -152,7 +152,7 @@ export default function IdeationBoard({
         ) : (
           <form
             onSubmit={(e) => { e.preventDefault(); addItem("bad"); }}
-            className="flex gap-2"
+            className="flex flex-col gap-2 sm:flex-row"
           >
             <input
               type="text"
@@ -165,7 +165,7 @@ export default function IdeationBoard({
               type="submit"
               className={cn(
                 scrapbookButton({ tone: "danger", size: "compact", tilt: "right", depth: "sm" }),
-                "border-3 border-secondary bg-red-300 px-5 py-3 font-bold uppercase",
+                "w-full border-3 border-secondary bg-red-300 px-5 py-3 font-bold uppercase sm:w-auto",
               )}
             >
               +

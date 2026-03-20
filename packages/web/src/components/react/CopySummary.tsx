@@ -1,24 +1,6 @@
 import { useState } from "react";
 import { cn, scrapbookButton, type ScrapbookButtonTone } from "../../lib/button-styles";
-
-function copyToClipboard(text: string): boolean {
-  // Fallback: use a temporary textarea (works without clipboard API permissions)
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  textarea.style.top = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  let success = false;
-  try {
-    success = document.execCommand("copy");
-  } catch {
-    success = false;
-  }
-  document.body.removeChild(textarea);
-  return success;
-}
+import { copyTextToClipboard } from "../../lib/clipboard";
 
 export default function CopySummary({
   text,
@@ -33,27 +15,13 @@ export default function CopySummary({
 }) {
   const [copied, setCopied] = useState(false);
 
-  function handleClick() {
+  async function handleClick() {
     if (!text) return;
 
-    // Try clipboard API first, fall back to execCommand
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(
-        () => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        },
-        () => {
-          // Clipboard API failed, use fallback
-          const success = copyToClipboard(text);
-          setCopied(success);
-          if (success) setTimeout(() => setCopied(false), 2000);
-        },
-      );
-    } else {
-      const success = copyToClipboard(text);
-      setCopied(success);
-      if (success) setTimeout(() => setCopied(false), 2000);
+    const success = await copyTextToClipboard(text);
+    setCopied(success);
+    if (success) {
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 

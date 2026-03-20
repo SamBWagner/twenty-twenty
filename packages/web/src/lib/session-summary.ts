@@ -1,4 +1,7 @@
-import type { SessionSummary as SessionSummaryData } from "@twenty-twenty/shared";
+import type {
+  SessionSummary as SessionSummaryData,
+  SharedSessionSummary as SessionSummaryDisplayData,
+} from "@twenty-twenty/shared";
 
 export const reviewStatusLabels = {
   actioned: "Actioned",
@@ -10,14 +13,63 @@ export function formatVoteCount(voteCount: number): string {
   return `${voteCount} vote${voteCount === 1 ? "" : "s"}`;
 }
 
-export function buildSessionSummaryMarkdown(summary: SessionSummaryData): string {
+export function toSessionSummaryDisplayData(summary: SessionSummaryData): SessionSummaryDisplayData {
   const goodItems = summary.items
     .filter((item) => item.type === "good")
-    .sort((a, b) => b.voteCount - a.voteCount);
+    .sort((a, b) => b.voteCount - a.voteCount)
+    .map((item) => ({
+      content: item.content,
+      voteCount: item.voteCount,
+    }));
   const badItems = summary.items
     .filter((item) => item.type === "bad")
-    .sort((a, b) => b.voteCount - a.voteCount);
-  const carriedOverActions = summary.actions.filter((action) => action.bundleId === null);
+    .sort((a, b) => b.voteCount - a.voteCount)
+    .map((item) => ({
+      content: item.content,
+      voteCount: item.voteCount,
+    }));
+  const actionGroups = summary.bundles
+    .map((bundle) => ({
+      label: bundle.label,
+      contextItems: summary.items
+        .filter((item) => bundle.itemIds.includes(item.id))
+        .map((item) => ({ content: item.content })),
+      actions: summary.actions
+        .filter((action) => action.bundleId === bundle.id)
+        .map((action) => ({ description: action.description })),
+    }))
+    .filter((bundle) => bundle.contextItems.length > 0 || bundle.actions.length > 0);
+
+  return {
+    session: {
+      name: summary.session.name,
+      sequence: summary.session.sequence,
+      closedAt: summary.session.closedAt,
+    },
+    participants: summary.participants.map((participant) => ({
+      username: participant.username,
+      avatarUrl: participant.avatarUrl,
+      role: participant.role,
+    })),
+    reviews: summary.reviews.map((review) => ({
+      actionDescription: review.actionDescription,
+      reviewerName: review.reviewerName,
+      status: review.status,
+      comment: review.comment,
+      createdAt: review.createdAt,
+    })),
+    goodItems,
+    badItems,
+    actionGroups,
+    carriedOverActions: summary.actions
+      .filter((action) => action.bundleId === null)
+      .map((action) => ({ description: action.description })),
+    actionCount: summary.actions.length,
+  };
+}
+
+export function buildSessionSummaryMarkdown(summary: SessionSummaryDisplayData): string {
+  const carriedOverActions = summary.carriedOverActions;
 
   const lines: string[] = [];
   lines.push(`# ${summary.session.name}`);
@@ -47,46 +99,39 @@ export function buildSessionSummaryMarkdown(summary: SessionSummaryData): string
     lines.push("");
   }
 
-  if (goodItems.length > 0) {
+  if (summary.goodItems.length > 0) {
     lines.push("## Went Well");
-    for (const item of goodItems) {
+    for (const item of summary.goodItems) {
       lines.push(`- ${item.content} (${formatVoteCount(item.voteCount)})`);
     }
     lines.push("");
   }
 
-  if (badItems.length > 0) {
+  if (summary.badItems.length > 0) {
     lines.push("## Needs Work");
-    for (const item of badItems) {
+    for (const item of summary.badItems) {
       lines.push(`- ${item.content} (${formatVoteCount(item.voteCount)})`);
     }
     lines.push("");
   }
 
-  if (summary.bundles.length > 0 || carriedOverActions.length > 0) {
+  if (summary.actionGroups.length > 0 || carriedOverActions.length > 0) {
     lines.push("## Action Plan");
     lines.push("");
 
-    for (const bundle of summary.bundles) {
-      const bundleItems = summary.items.filter((item) => bundle.itemIds.includes(item.id));
-      const bundleActions = summary.actions.filter((action) => action.bundleId === bundle.id);
+    for (const group of summary.actionGroups) {
+      lines.push(`### ${group.label || "Unnamed Action Group"}`);
 
-      if (bundleItems.length === 0 && bundleActions.length === 0) {
-        continue;
-      }
-
-      lines.push(`### ${bundle.label || "Unnamed Action Group"}`);
-
-      if (bundleItems.length > 0) {
+      if (group.contextItems.length > 0) {
         lines.push("Context:");
-        for (const item of bundleItems) {
+        for (const item of group.contextItems) {
           lines.push(`- ${item.content}`);
         }
       }
 
-      if (bundleActions.length > 0) {
+      if (group.actions.length > 0) {
         lines.push("Actions:");
-        for (const action of bundleActions) {
+        for (const action of group.actions) {
           lines.push(`- [ ] ${action.description}`);
         }
       }

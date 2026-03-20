@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback, useRef, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../../lib/api-client";
+import { shareOrCopyLink } from "../../lib/clipboard";
 import { useSessionWebSocket } from "../../lib/ws-client";
 import { getPublicWebBaseUrl } from "../../lib/runtime-urls";
 import type {
   RetroSession as Session,
   SessionParticipant as Participant,
   SessionPhase,
+  SummaryShareTokenResponse,
   SessionView as SessionWorkspaceView,
   ViewerCapabilities,
   WsEvent,
@@ -121,7 +123,7 @@ export default function SessionView({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
-  const [shareState, setShareState] = useState<"idle" | "copied">("idle");
+  const [shareState, setShareState] = useState<"idle" | "copied" | "shared">("idle");
   const [showParticipants, setShowParticipants] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [viewerCapabilities, setViewerCapabilities] = useState<ViewerCapabilities | null>(null);
@@ -296,40 +298,35 @@ export default function SessionView({
     };
   }, [pendingAdvance, getPendingAdvanceButton, updatePendingAdvancePopoverPosition]);
 
-  function copyToClipboard(text: string): boolean {
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.style.top = "-9999px";
-    document.body.appendChild(textarea);
-    textarea.select();
-    let success = false;
-    try {
-      success = document.execCommand("copy");
-    } catch {
-      success = false;
-    }
-    document.body.removeChild(textarea);
-    return success;
-  }
-
   async function handleShare() {
-    try {
-      const { shareToken } = await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`, {});
-      const url = `${getPublicWebBaseUrl()}/join/${shareToken}`;
+    if (!session) {
+      return;
+    }
 
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(url);
-        } catch {
-          copyToClipboard(url);
-        }
-      } else {
-        copyToClipboard(url);
+    try {
+      const isClosed = session.phase === "closed";
+      const url = isClosed
+        ? `${getPublicWebBaseUrl()}/summary/${(
+          await api.post<SummaryShareTokenResponse>(`/api/sessions/${sessionId}/summary-share`, {})
+        ).summaryShareToken}`
+        : `${getPublicWebBaseUrl()}/join/${(
+          await api.post<{ shareToken: string }>(`/api/sessions/${sessionId}/share`, {})
+        ).shareToken}`;
+      const result = await shareOrCopyLink(
+        url,
+        isClosed ? "Retrospective summary" : "Retrospective session",
+        `Copy this ${isClosed ? "summary" : "share"} link:`,
+      );
+
+      if (result === "cancelled") {
+        return;
       }
 
-      setShareState("copied");
+      if (result === "failed") {
+        throw new Error(`Could not copy the ${isClosed ? "summary" : "share"} link.`);
+      }
+
+      setShareState(result === "shared" ? "shared" : "copied");
       setTimeout(() => setShareState("idle"), 2000);
     } catch (err: any) {
       alert("Failed to share: " + (err.message || "Unknown error"));
@@ -515,7 +512,13 @@ export default function SessionView({
                     "border-3 border-secondary bg-[#5d83f9] px-4 py-2 text-sm font-bold uppercase text-white",
                   )}
                 >
-                  {shareState === "copied" ? "Copied!" : "Share"}
+                  {shareState === "copied"
+                    ? "Copied!"
+                    : shareState === "shared"
+                    ? "Shared!"
+                    : session.phase === "closed"
+                    ? "Share Summary"
+                    : "Share"}
                 </button>
               )}
             </div>

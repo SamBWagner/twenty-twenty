@@ -22,10 +22,12 @@ import {
   retroItemSchema,
   retroSessionSchema,
   reviewStateSchema,
+  sharedSessionSummarySchema,
   sessionParticipantSchema,
   sessionSummarySchema,
   sessionViewSchema,
   sharePreviewSchema,
+  summaryShareTokenResponseSchema,
   submitReviewBodySchema,
   updateActionBodySchema,
   updateBundleBodySchema,
@@ -35,7 +37,6 @@ import {
 
 const okResponseSchema = z.object({ ok: z.boolean() });
 const phaseResponseSchema = z.object({ phase: z.string() });
-const shareTokenResponseSchema = z.object({ shareToken: z.string() });
 const joinResultSchema = z.object({ sessionId: z.string(), projectId: z.string() });
 const projectDetailSchema = projectSchema.extend({
   members: z.array(projectMemberSchema as any),
@@ -58,6 +59,7 @@ const componentSchemas = {
   SessionParticipant: sessionParticipantSchema,
   SessionView: sessionViewSchema,
   SessionSummary: sessionSummarySchema,
+  SharedSessionSummary: sharedSessionSummarySchema,
   SharePreview: sharePreviewSchema,
   Item: retroItemSchema,
   Bundle: bundleSchema,
@@ -76,7 +78,8 @@ const componentSchemas = {
   CreatePersonalAccessTokenBody: createPersonalAccessTokenBodySchema,
   OkResponse: okResponseSchema,
   PhaseResponse: phaseResponseSchema,
-  ShareTokenResponse: shareTokenResponseSchema,
+  ShareTokenResponse: z.object({ shareToken: z.string() }),
+  SummaryShareTokenResponse: summaryShareTokenResponseSchema,
   JoinResult: joinResultSchema,
   ProjectInviteJoinResult: projectInviteJoinResultSchema,
 };
@@ -462,6 +465,17 @@ export function buildOpenApiDocument() {
           },
         },
       },
+      "/sessions/{sid}/summary-share": {
+        post: {
+          summary: "Create or return a public summary share token",
+          tags: ["Sessions"],
+          security: protectedRouteSecurity,
+          parameters: [{ name: "sid", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            200: jsonResponse("SummaryShareTokenResponse", "Summary share token."),
+          },
+        },
+      },
       "/sessions/{sid}/participants": {
         get: {
           summary: "List session participants",
@@ -501,6 +515,16 @@ export function buildOpenApiDocument() {
           parameters: [{ name: "token", in: "path", required: true, schema: { type: "string" } }],
           responses: {
             200: jsonResponse("JoinResult", "Joined project."),
+          },
+        },
+      },
+      "/sessions/summary-share/{token}": {
+        get: {
+          summary: "Get a public readonly session summary by share token",
+          tags: ["Sessions"],
+          parameters: [{ name: "token", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            200: jsonResponse("SharedSessionSummary", "Public readonly session summary."),
           },
         },
       },

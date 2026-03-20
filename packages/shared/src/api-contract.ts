@@ -124,6 +124,10 @@ export const sharePreviewSchema = z.object({
   isMember: z.boolean(),
 });
 
+export const summaryShareTokenResponseSchema = z.object({
+  summaryShareToken: z.string(),
+});
+
 export const sessionParticipantSchema = z.object({
   userId: z.string(),
   username: z.string(),
@@ -228,6 +232,47 @@ export const sessionSummarySchema = z.object({
   reviews: z.array(sessionSummaryReviewSchema),
 });
 
+export const sharedSessionSummarySchema = z.object({
+  session: z.object({
+    name: z.string(),
+    sequence: z.number().int().positive(),
+    closedAt: isoDateTimeSchema.nullable(),
+  }),
+  participants: z.array(z.object({
+    username: z.string(),
+    avatarUrl: z.string().nullable(),
+    role: participantRoleSchema,
+  })),
+  reviews: z.array(z.object({
+    actionDescription: z.string(),
+    reviewerName: z.string(),
+    status: reviewStatusSchema,
+    comment: z.string().nullable(),
+    createdAt: isoDateTimeSchema,
+  })),
+  goodItems: z.array(z.object({
+    content: z.string(),
+    voteCount: z.number().int(),
+  })),
+  badItems: z.array(z.object({
+    content: z.string(),
+    voteCount: z.number().int(),
+  })),
+  actionGroups: z.array(z.object({
+    label: z.string().nullable(),
+    contextItems: z.array(z.object({
+      content: z.string(),
+    })),
+    actions: z.array(z.object({
+      description: z.string(),
+    })),
+  })),
+  carriedOverActions: z.array(z.object({
+    description: z.string(),
+  })),
+  actionCount: z.number().int().nonnegative(),
+});
+
 export const personalAccessTokenSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -305,6 +350,7 @@ export type ProjectInvitation = z.infer<typeof projectInvitationSchema>;
 export type InvitationPreview = z.infer<typeof invitationPreviewSchema>;
 export type RetroSession = z.infer<typeof retroSessionSchema>;
 export type SharePreview = z.infer<typeof sharePreviewSchema>;
+export type SummaryShareTokenResponse = z.infer<typeof summaryShareTokenResponseSchema>;
 export type SessionParticipant = z.infer<typeof sessionParticipantSchema>;
 export type RetroItem = z.infer<typeof retroItemSchema>;
 export type Bundle = z.infer<typeof bundleSchema>;
@@ -314,5 +360,6 @@ export type ReviewState = z.infer<typeof reviewStateSchema>;
 export type ProjectView = z.infer<typeof projectViewSchema>;
 export type SessionView = z.infer<typeof sessionViewSchema>;
 export type SessionSummary = z.infer<typeof sessionSummarySchema>;
+export type SharedSessionSummary = z.infer<typeof sharedSessionSummarySchema>;
 export type PersonalAccessToken = z.infer<typeof personalAccessTokenSchema>;
 export type CreatedPersonalAccessToken = z.infer<typeof createdPersonalAccessTokenSchema>;

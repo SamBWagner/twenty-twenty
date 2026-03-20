@@ -1,0 +1,12 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import SharedSessionSummaryPage from "../../components/react/SharedSessionSummaryPage";
+
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+
+const { token } = Astro.params;
+---
+
+<Layout title="Shared Summary">
+  <SharedSessionSummaryPage token={token!} client:load />
+</Layout>

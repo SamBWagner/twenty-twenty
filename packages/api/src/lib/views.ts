@@ -10,8 +10,12 @@ import {
   retroItemSchema,
   retroSessionSchema,
   reviewStateSchema,
+  sharedSessionSummarySchema,
   sessionParticipantSchema,
+  sessionSummarySchema,
   sessionViewSchema,
+  type SessionSummary,
+  type SharedSessionSummary,
   type ViewerCapabilities,
 } from "@twenty-twenty/shared";
 import { db, schema } from "../db/index.js";
@@ -199,6 +203,245 @@ export async function getProjectView(projectId: string, userId: string) {
       canAccessCurrentSession: false,
     }),
   });
+}
+
+function buildVoteCountByItemId(voteRows: Array<{ itemId: string; value: number }>) {
+  const voteCountByItemId = new Map<string, number>();
+  for (const vote of voteRows) {
+    voteCountByItemId.set(vote.itemId, (voteCountByItemId.get(vote.itemId) || 0) + vote.value);
+  }
+  return voteCountByItemId;
+}
+
+function buildItemIdsByBundleId(bundleLinks: Array<{ bundleId: string; itemId: string }>) {
+  const itemIdsByBundleId = new Map<string, string[]>();
+  for (const link of bundleLinks) {
+    const itemIds = itemIdsByBundleId.get(link.bundleId) || [];
+    itemIds.push(link.itemId);
+    itemIdsByBundleId.set(link.bundleId, itemIds);
+  }
+  return itemIdsByBundleId;
+}
+
+async function buildSessionSummary(session: typeof schema.retroSessions.$inferSelect): Promise<SessionSummary> {
+  const sid = session.id;
+
+  const [participants, items, bundles, actions] = await Promise.all([
+    db
+      .select({
+        userId: schema.sessionParticipants.userId,
+        username: schema.user.name,
+        avatarUrl: schema.user.image,
+        role: schema.sessionParticipants.role,
+        joinedAt: schema.sessionParticipants.joinedAt,
+      })
+      .from(schema.sessionParticipants)
+      .innerJoin(schema.user, eq(schema.user.id, schema.sessionParticipants.userId))
+      .where(eq(schema.sessionParticipants.sessionId, sid))
+      .orderBy(asc(schema.sessionParticipants.joinedAt)),
+    db
+      .select()
+      .from(schema.items)
+      .where(eq(schema.items.sessionId, sid))
+      .orderBy(asc(schema.items.createdAt)),
+    db
+      .select()
+      .from(schema.bundles)
+      .where(eq(schema.bundles.sessionId, sid))
+      .orderBy(asc(schema.bundles.createdAt)),
+    db
+      .select()
+      .from(schema.actions)
+      .where(eq(schema.actions.sessionId, sid))
+      .orderBy(asc(schema.actions.createdAt)),
+  ]);
+
+  const [voteRows, bundleLinks] = await Promise.all([
+    db
+      .select({
+        itemId: schema.votes.itemId,
+        value: schema.votes.value,
+      })
+      .from(schema.votes)
+      .innerJoin(schema.items, eq(schema.votes.itemId, schema.items.id))
+      .where(eq(schema.items.sessionId, sid)),
+    db
+      .select({
+        bundleId: schema.bundleItems.bundleId,
+        itemId: schema.bundleItems.itemId,
+      })
+      .from(schema.bundleItems)
+      .innerJoin(schema.bundles, eq(schema.bundleItems.bundleId, schema.bundles.id))
+      .where(eq(schema.bundles.sessionId, sid)),
+  ]);
+
+  const voteCountByItemId = buildVoteCountByItemId(voteRows);
+  const itemIdsByBundleId = buildItemIdsByBundleId(bundleLinks);
+
+  const previousSession = await db
+    .select()
+    .from(schema.retroSessions)
+    .where(
+      and(
+        eq(schema.retroSessions.projectId, session.projectId),
+        eq(schema.retroSessions.sequence, session.sequence - 1),
+      ),
+    )
+    .get();
+
+  let reviews: Array<{
+    actionId: string;
+    actionDescription: string;
+    reviewerId: string;
+    reviewerName: string;
+    status: "did_nothing" | "actioned" | "disagree";
+    comment: string | null;
+    createdAt: string;
+  }> = [];
+
+  if (previousSession) {
+    const [previousActions, reviewRows] = await Promise.all([
+      db
+        .select({
+          id: schema.actions.id,
+          description: schema.actions.description,
+        })
+        .from(schema.actions)
+        .where(eq(schema.actions.sessionId, previousSession.id)),
+      db
+        .select({
+          actionId: schema.actionReviews.actionId,
+          reviewerId: schema.actionReviews.reviewerId,
+          reviewerName: schema.user.name,
+          status: schema.actionReviews.status,
+          comment: schema.actionReviews.comment,
+          createdAt: schema.actionReviews.createdAt,
+        })
+        .from(schema.actionReviews)
+        .innerJoin(schema.user, eq(schema.user.id, schema.actionReviews.reviewerId))
+        .where(eq(schema.actionReviews.sessionId, sid))
+        .orderBy(asc(schema.actionReviews.createdAt)),
+    ]);
+
+    const previousActionDescriptionById = new Map(
+      previousActions.map((action) => [action.id, action.description]),
+    );
+
+    reviews = reviewRows.map((review) => ({
+      ...review,
+      actionDescription: previousActionDescriptionById.get(review.actionId) || "Previous action",
+      createdAt: toIsoString(review.createdAt),
+    }));
+  }
+
+  return sessionSummarySchema.parse({
+    session: serializeSession(session),
+    participants: participants.map(serializeParticipant),
+    items: items.map((item) => ({
+      id: item.id,
+      sessionId: item.sessionId,
+      authorId: item.authorId,
+      type: item.type,
+      content: item.content,
+      createdAt: toIsoString(item.createdAt),
+      voteCount: voteCountByItemId.get(item.id) || 0,
+    })),
+    bundles: bundles.map((bundle) => bundleSchema.parse({
+      id: bundle.id,
+      sessionId: bundle.sessionId,
+      label: bundle.label,
+      createdAt: toIsoString(bundle.createdAt),
+      itemIds: itemIdsByBundleId.get(bundle.id) || [],
+    })),
+    actions: actions.map((action) => actionSchema.parse({
+      id: action.id,
+      sessionId: action.sessionId,
+      bundleId: action.bundleId,
+      description: action.description,
+      assigneeId: action.assigneeId,
+      createdAt: toIsoString(action.createdAt),
+    })),
+    reviews,
+  });
+}
+
+function toSharedSessionSummary(summary: SessionSummary): SharedSessionSummary {
+  const goodItems = summary.items
+    .filter((item) => item.type === "good")
+    .sort((a, b) => b.voteCount - a.voteCount)
+    .map((item) => ({
+      content: item.content,
+      voteCount: item.voteCount,
+    }));
+  const badItems = summary.items
+    .filter((item) => item.type === "bad")
+    .sort((a, b) => b.voteCount - a.voteCount)
+    .map((item) => ({
+      content: item.content,
+      voteCount: item.voteCount,
+    }));
+  const actionGroups = summary.bundles
+    .map((bundle) => ({
+      label: bundle.label,
+      contextItems: summary.items
+        .filter((item) => bundle.itemIds.includes(item.id))
+        .map((item) => ({ content: item.content })),
+      actions: summary.actions
+        .filter((action) => action.bundleId === bundle.id)
+        .map((action) => ({ description: action.description })),
+    }))
+    .filter((bundle) => bundle.contextItems.length > 0 || bundle.actions.length > 0);
+
+  return sharedSessionSummarySchema.parse({
+    session: {
+      name: summary.session.name,
+      sequence: summary.session.sequence,
+      closedAt: summary.session.closedAt,
+    },
+    participants: summary.participants.map((participant) => ({
+      username: participant.username,
+      avatarUrl: participant.avatarUrl,
+      role: participant.role,
+    })),
+    reviews: summary.reviews.map((review) => ({
+      actionDescription: review.actionDescription,
+      reviewerName: review.reviewerName,
+      status: review.status,
+      comment: review.comment,
+      createdAt: review.createdAt,
+    })),
+    goodItems,
+    badItems,
+    actionGroups,
+    carriedOverActions: summary.actions
+      .filter((action) => action.bundleId === null)
+      .map((action) => ({ description: action.description })),
+    actionCount: summary.actions.length,
+  });
+}
+
+export async function getSessionSummary(sessionId: string) {
+  const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sessionId)).get();
+  if (!session) {
+    return null;
+  }
+
+  return buildSessionSummary(session);
+}
+
+export async function getSharedSessionSummaryByToken(token: string) {
+  const session = await db
+    .select()
+    .from(schema.retroSessions)
+    .where(eq(schema.retroSessions.summaryShareToken, token))
+    .get();
+
+  if (!session || session.phase !== "closed") {
+    return null;
+  }
+
+  const summary = await buildSessionSummary(session);
+  return toSharedSessionSummary(summary);
 }
 
 export async function getReviewStateForSession(session: typeof schema.retroSessions.$inferSelect) {

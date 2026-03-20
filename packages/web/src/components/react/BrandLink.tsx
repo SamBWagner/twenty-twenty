@@ -5,6 +5,7 @@ function isPublicEntryPath(pathname: string): boolean {
     || pathname === "/login"
     || pathname.startsWith("/auth/")
     || pathname.startsWith("/join/")
+    || pathname.startsWith("/summary/")
     || pathname.startsWith("/projects/invite/");
 }
 

@@ -113,6 +113,7 @@ export const retroSessions = sqliteTable("retro_sessions", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   closedAt: integer("closed_at", { mode: "timestamp_ms" }),
   shareToken: text("share_token").unique(),
+  summaryShareToken: text("summary_share_token").unique(),
 });
 
 export const items = sqliteTable("items", {

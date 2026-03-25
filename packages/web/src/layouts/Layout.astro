@@ -226,6 +226,10 @@ const { title } = Astro.props;
         --sb-hover-shadow-color: #c1a5ff;
       }
 
+      .scrapbook-btn--peach {
+        --sb-hover-shadow-color: #ffae5c;
+      }
+
       .scrapbook-btn--plum {
         --sb-hover-shadow-color: #9760f3;
       }
@@ -396,6 +400,17 @@ const { title } = Astro.props;
         --note-inset: #ffefe2;
         --note-row: #ffdfc8;
         --note-tape: rgba(255, 154, 184, 0.78);
+      }
+
+      .note-shell[data-note-theme="light-peach"] {
+        --note-bg: #fff0df;
+        --note-surface: #fff6e6;
+        --note-panel: #fffaf0;
+        --note-accent: #ffbf80;
+        --note-chip: #fff3e6;
+        --note-inset: #fffdf8;
+        --note-row: #fff3e0;
+        --note-tape: rgba(255, 184, 140, 0.78);
       }
 
       .scrapbook-btn--left {

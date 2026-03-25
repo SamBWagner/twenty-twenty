@@ -32,10 +32,10 @@ const sectionLabels: Record<SessionSection, string> = {
 
 const sectionStyles = {
   review: {
-    tone: "lavender",
-    activeClass: "bg-[#cab2ff] text-secondary",
-    inactiveClass: "bg-white text-secondary hover:bg-[#f5efff]",
-    indicatorClass: "text-[#8f63ef]",
+    tone: "peach",
+    activeClass: "bg-[#ffae5c] text-secondary",
+    inactiveClass: "bg-white text-secondary hover:bg-[#ffe0c4]",
+    indicatorClass: "text-[#ff9f43]",
   },
   ideation: {
     tone: "sun",

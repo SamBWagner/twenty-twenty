@@ -39,7 +39,7 @@ export default function ActionReviewFlow({
       <div className="mx-auto max-w-2xl">
         <div
           className="note-shell rotate-[0.4deg] p-8 text-center"
-          data-note-theme="lavender"
+          data-note-theme="light-peach"
           data-tape-position="top-center"
         >
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">
@@ -94,7 +94,7 @@ export default function ActionReviewFlow({
     <div className="mx-auto max-w-xl">
       <div
         className="note-shell relative mb-10 rotate-[-0.5deg] p-6"
-        data-note-theme="lavender"
+        data-note-theme="light-peach"
         data-tape-position="top-center"
       >
         <div className="mb-4 flex items-start justify-between gap-4">

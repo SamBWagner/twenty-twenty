@@ -10,6 +10,7 @@ export type ScrapbookButtonTone =
   | "plum"
   | "mint"
   | "blush"
+  | "peach"
   | "cobalt";
 
 export type ScrapbookButtonSize = "regular" | "compact" | "icon";

@@ -113,7 +113,7 @@ export default function SessionSummaryContent({
       {summary.reviews.length > 0 && (
         <section
           className="note-shell rotate-[-0.25deg] p-5"
-          data-note-theme="lavender"
+          data-note-theme="light-peach"
           data-tape-position="top-right"
         >
           <div className="mb-4 flex items-center justify-between gap-3">

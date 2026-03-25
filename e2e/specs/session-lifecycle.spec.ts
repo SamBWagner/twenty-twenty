@@ -161,7 +161,7 @@ test.describe("Session Lifecycle", () => {
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
     await expect(page.getByText("Reviewing Previous Actions")).toBeVisible();
-    await expect(page.locator('[data-note-theme="lavender"][data-tape-position="top-center"]')).toContainText("Reviewing Previous Actions");
+    await expect(page.locator('[data-note-theme="light-peach"][data-tape-position="top-center"]')).toContainText("Reviewing Previous Actions");
 
     await ctx.close();
   });

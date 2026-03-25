@@ -5,7 +5,6 @@ import {
   actionSchema,
   apiErrorResponseSchema,
   authSessionSchema,
-  bundleSchema,
   createActionBodySchema,
   createItemBodySchema,
   createPersonalAccessTokenBodySchema,
@@ -30,7 +29,6 @@ import {
   summaryShareTokenResponseSchema,
   submitReviewBodySchema,
   updateActionBodySchema,
-  updateBundleBodySchema,
   updateProjectBodySchema,
   voteItemBodySchema,
 } from "@twenty-twenty/shared";
@@ -62,7 +60,6 @@ const componentSchemas = {
   SharedSessionSummary: sharedSessionSummarySchema,
   SharePreview: sharePreviewSchema,
   Item: retroItemSchema,
-  Bundle: bundleSchema,
   Action: actionSchema,
   ActionReview: actionReviewSchema,
   ReviewState: reviewStateSchema,
@@ -71,7 +68,6 @@ const componentSchemas = {
   CreateSessionBody: createSessionBodySchema,
   CreateItemBody: createItemBodySchema,
   VoteItemBody: voteItemBodySchema,
-  UpdateBundleBody: updateBundleBodySchema,
   CreateActionBody: createActionBodySchema,
   UpdateActionBody: updateActionBodySchema,
   SubmitReviewBody: submitReviewBodySchema,
@@ -590,54 +586,6 @@ export function buildOpenApiDocument() {
           ],
           responses: {
             200: jsonResponse("OkResponse", "Item deleted."),
-          },
-        },
-      },
-      "/sessions/{sid}/bundles": {
-        get: {
-          summary: "List action bundles",
-          tags: ["Bundles"],
-          security: protectedRouteSecurity,
-          parameters: [{ name: "sid", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            200: arrayResponse("Bundle", "Bundles."),
-          },
-        },
-        post: {
-          summary: "Create an action bundle",
-          tags: ["Bundles"],
-          security: protectedRouteSecurity,
-          parameters: [{ name: "sid", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: body("UpdateBundleBody"),
-          responses: {
-            201: jsonResponse("Bundle", "Bundle created."),
-          },
-        },
-      },
-      "/sessions/{sid}/bundles/{bid}": {
-        patch: {
-          summary: "Update an action bundle",
-          tags: ["Bundles"],
-          security: protectedRouteSecurity,
-          parameters: [
-            { name: "sid", in: "path", required: true, schema: { type: "string" } },
-            { name: "bid", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: body("UpdateBundleBody"),
-          responses: {
-            200: jsonResponse("Bundle", "Bundle updated."),
-          },
-        },
-        delete: {
-          summary: "Delete an action bundle",
-          tags: ["Bundles"],
-          security: protectedRouteSecurity,
-          parameters: [
-            { name: "sid", in: "path", required: true, schema: { type: "string" } },
-            { name: "bid", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            200: jsonResponse("OkResponse", "Bundle deleted."),
           },
         },
       },

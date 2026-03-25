@@ -219,73 +219,19 @@ export default function SessionSummaryContent({
           </span>
         </div>
 
-        <div className="space-y-6">
-          {summary.actionGroups.map((group, index) => (
-            <div key={`${group.label || "group"}-${index}`} className="note-inset border-3 border-secondary">
-              <div className="note-chip border-b-3 border-secondary px-4 py-3">
-                <h4 className="text-lg font-bold uppercase">{group.label || "Unnamed Action Group"}</h4>
+        <div className="space-y-3">
+          {summary.actions.length > 0 ? (
+            summary.actions.map((action, index) => (
+              <div
+                key={`${action.description}-${index}`}
+                className="note-row border-2 border-secondary px-3 py-2"
+              >
+                <p className="font-bold">{action.description}</p>
               </div>
-              <div className="grid gap-4 p-4 lg:grid-cols-2">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Context</p>
-                  {group.contextItems.length === 0 ? (
-                    <p className="scribble-help note-muted mt-3 text-base">No source items linked.</p>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {group.contextItems.map((item, itemIndex) => (
-                        <div
-                          key={`${item.content}-${itemIndex}`}
-                          className="note-panel border-2 border-secondary px-3 py-2 text-sm font-medium"
-                        >
-                          {item.content}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Actions</p>
-                  {group.actions.length === 0 ? (
-                    <p className="scribble-help note-muted mt-3 text-base">No actions were created for this group.</p>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {group.actions.map((action, actionIndex) => (
-                        <div
-                          key={`${action.description}-${actionIndex}`}
-                          className="note-row border-2 border-secondary px-3 py-2"
-                        >
-                          <p className="font-bold">{action.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {summary.carriedOverActions.length > 0 && (
-            <div className="note-row border-3 border-secondary">
-              <div className="note-chip border-b-3 border-secondary px-4 py-3">
-                <h4 className="text-lg font-bold uppercase">Carried Over</h4>
-              </div>
-              <div className="space-y-2 p-4">
-                {summary.carriedOverActions.map((action, index) => (
-                  <div
-                    key={`${action.description}-${index}`}
-                    className="note-panel border-2 border-secondary px-3 py-2"
-                  >
-                    <p className="font-bold">{action.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {summary.actionGroups.length === 0 && summary.carriedOverActions.length === 0 && (
+            ))
+          ) : (
             <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
-              No action groups or actions were captured in this session.
+              No actions were captured in this session.
             </p>
           )}
         </div>

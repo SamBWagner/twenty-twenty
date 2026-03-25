@@ -148,20 +148,10 @@ export const retroItemSchema = z.object({
   isOwn: z.boolean(),
 });
 
-export const bundleSchema = z.object({
-  id: z.string(),
-  sessionId: z.string(),
-  label: z.string().nullable(),
-  createdAt: isoDateTimeSchema,
-  itemIds: z.array(z.string()),
-});
-
 export const actionSchema = z.object({
   id: z.string(),
   sessionId: z.string(),
-  bundleId: z.string().nullable(),
   description: z.string(),
-  assigneeId: z.string().nullable(),
   createdAt: isoDateTimeSchema,
 });
 
@@ -197,7 +187,6 @@ export const sessionViewSchema = z.object({
   participants: z.array(sessionParticipantSchema),
   projectMembers: z.array(projectMemberSchema),
   items: z.array(retroItemSchema),
-  bundles: z.array(bundleSchema),
   actions: z.array(actionSchema),
   reviewState: reviewStateSchema,
   viewerCapabilities: viewerCapabilitiesSchema,
@@ -227,7 +216,6 @@ export const sessionSummarySchema = z.object({
       voteCount: z.number().int(),
     }),
   ),
-  bundles: z.array(bundleSchema),
   actions: z.array(actionSchema),
   reviews: z.array(sessionSummaryReviewSchema),
 });
@@ -258,16 +246,7 @@ export const sharedSessionSummarySchema = z.object({
     content: z.string(),
     voteCount: z.number().int(),
   })),
-  actionGroups: z.array(z.object({
-    label: z.string().nullable(),
-    contextItems: z.array(z.object({
-      content: z.string(),
-    })),
-    actions: z.array(z.object({
-      description: z.string(),
-    })),
-  })),
-  carriedOverActions: z.array(z.object({
+  actions: z.array(z.object({
     description: z.string(),
   })),
   actionCount: z.number().int().nonnegative(),
@@ -309,21 +288,12 @@ export const voteItemBodySchema = z.object({
   value: voteValueSchema,
 });
 
-export const updateBundleBodySchema = z.object({
-  label: z.string().trim().max(200).optional().nullable().or(z.literal("")),
-  itemIds: z.array(z.string()).optional(),
-});
-
 export const createActionBodySchema = z.object({
   description: z.string().trim().min(1).max(2000),
-  bundleId: z.string().optional().nullable(),
-  assigneeId: z.string().optional().nullable(),
 });
 
 export const updateActionBodySchema = z.object({
   description: z.string().trim().min(1).max(2000).optional(),
-  bundleId: z.string().optional().nullable(),
-  assigneeId: z.string().optional().nullable(),
 });
 
 export const submitReviewBodySchema = z.object({
@@ -353,7 +323,6 @@ export type SharePreview = z.infer<typeof sharePreviewSchema>;
 export type SummaryShareTokenResponse = z.infer<typeof summaryShareTokenResponseSchema>;
 export type SessionParticipant = z.infer<typeof sessionParticipantSchema>;
 export type RetroItem = z.infer<typeof retroItemSchema>;
-export type Bundle = z.infer<typeof bundleSchema>;
 export type Action = z.infer<typeof actionSchema>;
 export type ActionReview = z.infer<typeof actionReviewSchema>;
 export type ReviewState = z.infer<typeof reviewStateSchema>;

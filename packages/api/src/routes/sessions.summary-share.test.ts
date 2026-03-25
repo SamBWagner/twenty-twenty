@@ -340,8 +340,8 @@ test("public summary links return a readonly payload without internal ids", asyn
   assert.deepEqual(payload.participants.map((participant: { username: string }) => participant.username), ["Owner", "Guest"]);
   assert.equal(payload.goodItems[0].content, "Pairing kept momentum high");
   assert.equal(payload.goodItems[0].voteCount, 2);
-  assert.equal(payload.actionGroups[0].label, "Build Stability");
-  assert.equal(payload.carriedOverActions[0].description, "Track the remaining flaky suites");
+  assert.equal(payload.actions[0].description, "Add a CI smoke test");
+  assert.equal(payload.actions[1].description, "Track the remaining flaky suites");
   assert.equal(payload.reviews[0].reviewerName, "Owner");
   assert.equal(payload.actionCount, 2);
 

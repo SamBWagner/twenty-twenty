@@ -2,7 +2,6 @@ import { and, asc, desc, eq, gt, lte } from "drizzle-orm";
 import {
   actionReviewSchema,
   actionSchema,
-  bundleSchema,
   projectInvitationSchema,
   projectMemberSchema,
   projectSchema,
@@ -213,16 +212,6 @@ function buildVoteCountByItemId(voteRows: Array<{ itemId: string; value: number 
   return voteCountByItemId;
 }
 
-function buildItemIdsByBundleId(bundleLinks: Array<{ bundleId: string; itemId: string }>) {
-  const itemIdsByBundleId = new Map<string, string[]>();
-  for (const link of bundleLinks) {
-    const itemIds = itemIdsByBundleId.get(link.bundleId) || [];
-    itemIds.push(link.itemId);
-    itemIdsByBundleId.set(link.bundleId, itemIds);
-  }
-  return itemIdsByBundleId;
-}
-
 async function buildSessionSummary(session: typeof schema.retroSessions.$inferSelect): Promise<SessionSummary> {
   const sid = session.id;
   const participantFilter = session.closedAt
@@ -232,7 +221,7 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
     )
     : eq(schema.sessionParticipants.sessionId, sid);
 
-  const [participants, items, bundles, actions] = await Promise.all([
+  const [participants, items, actions] = await Promise.all([
     db
       .select({
         userId: schema.sessionParticipants.userId,
@@ -252,37 +241,21 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
       .orderBy(asc(schema.items.createdAt)),
     db
       .select()
-      .from(schema.bundles)
-      .where(eq(schema.bundles.sessionId, sid))
-      .orderBy(asc(schema.bundles.createdAt)),
-    db
-      .select()
       .from(schema.actions)
       .where(eq(schema.actions.sessionId, sid))
       .orderBy(asc(schema.actions.createdAt)),
   ]);
 
-  const [voteRows, bundleLinks] = await Promise.all([
-    db
-      .select({
-        itemId: schema.votes.itemId,
-        value: schema.votes.value,
-      })
-      .from(schema.votes)
-      .innerJoin(schema.items, eq(schema.votes.itemId, schema.items.id))
-      .where(eq(schema.items.sessionId, sid)),
-    db
-      .select({
-        bundleId: schema.bundleItems.bundleId,
-        itemId: schema.bundleItems.itemId,
-      })
-      .from(schema.bundleItems)
-      .innerJoin(schema.bundles, eq(schema.bundleItems.bundleId, schema.bundles.id))
-      .where(eq(schema.bundles.sessionId, sid)),
-  ]);
+  const voteRows = await db
+    .select({
+      itemId: schema.votes.itemId,
+      value: schema.votes.value,
+    })
+    .from(schema.votes)
+    .innerJoin(schema.items, eq(schema.votes.itemId, schema.items.id))
+    .where(eq(schema.items.sessionId, sid));
 
   const voteCountByItemId = buildVoteCountByItemId(voteRows);
-  const itemIdsByBundleId = buildItemIdsByBundleId(bundleLinks);
 
   const previousSession = await db
     .select()
@@ -352,19 +325,11 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
       createdAt: toIsoString(item.createdAt),
       voteCount: voteCountByItemId.get(item.id) || 0,
     })),
-    bundles: bundles.map((bundle) => bundleSchema.parse({
-      id: bundle.id,
-      sessionId: bundle.sessionId,
-      label: bundle.label,
-      createdAt: toIsoString(bundle.createdAt),
-      itemIds: itemIdsByBundleId.get(bundle.id) || [],
-    })),
     actions: actions.map((action) => actionSchema.parse({
       id: action.id,
       sessionId: action.sessionId,
-      bundleId: action.bundleId,
       description: action.description,
-      assigneeId: action.assigneeId,
+
       createdAt: toIsoString(action.createdAt),
     })),
     reviews,
@@ -386,18 +351,6 @@ function toSharedSessionSummary(summary: SessionSummary): SharedSessionSummary {
       content: item.content,
       voteCount: item.voteCount,
     }));
-  const actionGroups = summary.bundles
-    .map((bundle) => ({
-      label: bundle.label,
-      contextItems: summary.items
-        .filter((item) => bundle.itemIds.includes(item.id))
-        .map((item) => ({ content: item.content })),
-      actions: summary.actions
-        .filter((action) => action.bundleId === bundle.id)
-        .map((action) => ({ description: action.description })),
-    }))
-    .filter((bundle) => bundle.contextItems.length > 0 || bundle.actions.length > 0);
-
   return sharedSessionSummarySchema.parse({
     session: {
       name: summary.session.name,
@@ -418,10 +371,7 @@ function toSharedSessionSummary(summary: SessionSummary): SharedSessionSummary {
     })),
     goodItems,
     badItems,
-    actionGroups,
-    carriedOverActions: summary.actions
-      .filter((action) => action.bundleId === null)
-      .map((action) => ({ description: action.description })),
+    actions: summary.actions.map((action) => ({ description: action.description })),
     actionCount: summary.actions.length,
   });
 }
@@ -491,9 +441,8 @@ export async function getReviewStateForSession(session: typeof schema.retroSessi
     actions: previousActions.map((action) => actionSchema.parse({
       id: action.id,
       sessionId: action.sessionId,
-      bundleId: action.bundleId,
       description: action.description,
-      assigneeId: action.assigneeId,
+
       createdAt: toIsoString(action.createdAt),
     })),
     reviews: reviews.map((review) => actionReviewSchema.parse({
@@ -510,9 +459,8 @@ export async function getReviewStateForSession(session: typeof schema.retroSessi
       .map((action) => actionSchema.parse({
         id: action.id,
         sessionId: action.sessionId,
-        bundleId: action.bundleId,
         description: action.description,
-        assigneeId: action.assigneeId,
+  
         createdAt: toIsoString(action.createdAt),
       })),
     total: previousActions.length,
@@ -538,7 +486,7 @@ export async function getSessionView(sessionId: string, userId: string) {
     )
     : eq(schema.sessionParticipants.sessionId, sessionId);
 
-  const [projectMembership, projectMembers, participants, items, bundles, actions, voteRows, bundleLinks, reviewState] = await Promise.all([
+  const [projectMembership, projectMembers, participants, items, actions, voteRows, reviewState] = await Promise.all([
     db
       .select()
       .from(schema.projectMembers)
@@ -564,11 +512,6 @@ export async function getSessionView(sessionId: string, userId: string) {
       .orderBy(asc(schema.items.createdAt)),
     db
       .select()
-      .from(schema.bundles)
-      .where(eq(schema.bundles.sessionId, sessionId))
-      .orderBy(asc(schema.bundles.createdAt)),
-    db
-      .select()
       .from(schema.actions)
       .where(eq(schema.actions.sessionId, sessionId))
       .orderBy(asc(schema.actions.createdAt)),
@@ -577,14 +520,6 @@ export async function getSessionView(sessionId: string, userId: string) {
       .from(schema.votes)
       .innerJoin(schema.items, eq(schema.items.id, schema.votes.itemId))
       .where(eq(schema.items.sessionId, sessionId)),
-    db
-      .select({
-        bundleId: schema.bundleItems.bundleId,
-        itemId: schema.bundleItems.itemId,
-      })
-      .from(schema.bundleItems)
-      .innerJoin(schema.bundles, eq(schema.bundles.id, schema.bundleItems.bundleId))
-      .where(eq(schema.bundles.sessionId, sessionId)),
     getReviewStateForSession(session),
   ]);
 
@@ -596,13 +531,6 @@ export async function getSessionView(sessionId: string, userId: string) {
     if (vote.votes.userId === userId) {
       userVoteByItemId.set(vote.votes.itemId, vote.votes.value);
     }
-  }
-
-  const itemIdsByBundleId = new Map<string, string[]>();
-  for (const link of bundleLinks) {
-    const itemIds = itemIdsByBundleId.get(link.bundleId) || [];
-    itemIds.push(link.itemId);
-    itemIdsByBundleId.set(link.bundleId, itemIds);
   }
 
   return sessionViewSchema.parse({
@@ -620,19 +548,11 @@ export async function getSessionView(sessionId: string, userId: string) {
       userVote: userVoteByItemId.get(item.id) || 0,
       isOwn: item.authorId === userId,
     })),
-    bundles: bundles.map((bundle) => bundleSchema.parse({
-      id: bundle.id,
-      sessionId: bundle.sessionId,
-      label: bundle.label,
-      createdAt: toIsoString(bundle.createdAt),
-      itemIds: itemIdsByBundleId.get(bundle.id) || [],
-    })),
     actions: actions.map((action) => actionSchema.parse({
       id: action.id,
       sessionId: action.sessionId,
-      bundleId: action.bundleId,
       description: action.description,
-      assigneeId: action.assigneeId,
+
       createdAt: toIsoString(action.createdAt),
     })),
     reviewState,

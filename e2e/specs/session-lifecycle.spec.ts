@@ -126,9 +126,9 @@ test.describe("Session Lifecycle", () => {
 
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
-    await page.getByRole("button", { name: "Close Session" }).click();
+    await page.getByRole("button", { name: "Finish Session" }).click();
     await expect(page.getByRole("dialog")).toContainText("Close this retrospective?");
-    await page.getByRole("button", { name: "Yes, Close Session" }).click();
+    await page.getByRole("button", { name: "Yes, Finish Session" }).click();
 
     await expect(page.getByText("Final Summary")).toBeVisible();
     await expect(page.getByText("Publish retro recap")).toBeVisible();

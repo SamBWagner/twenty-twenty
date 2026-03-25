@@ -69,7 +69,7 @@ reviewRoutes.post("/sessions/:sid/reviews", requireAuth, async (c) => {
       sessionId: sid,
       bundleId: null,
       description: action.description,
-      assigneeId: action.assigneeId,
+      assigneeId: null,
       createdAt: new Date(),
     };
     await db.insert(schema.actions).values(rolledAction);

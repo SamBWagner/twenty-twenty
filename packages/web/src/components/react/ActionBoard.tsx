@@ -1,63 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type {
   Action,
-  Bundle,
-  ProjectMember as Member,
   RetroItem as Item,
   WsEvent,
 } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
-import MarchingAnts from "./MarchingAnts";
 
-const bundleRotations = ["rotate-[-0.5deg]", "rotate-[0.5deg]", "rotate-[0deg]", "rotate-[-0.3deg]"];
+const cardRotations = [
+  "rotate-[-1.5deg]", "rotate-[0.5deg]", "rotate-[-0.5deg]", "rotate-[1.5deg]",
+  "rotate-[0deg]", "rotate-[-1deg]", "rotate-[1deg]", "rotate-[-0.5deg]",
+];
 
 export default function ActionBoard({
   sessionId,
-  projectId,
   readOnly,
   onRegisterWsHandler,
 }: {
   sessionId: string;
-  projectId: string;
   readOnly: boolean;
   onRegisterWsHandler: (handler: (event: WsEvent) => void) => void;
 }) {
   const [items, setItems] = useState<Item[]>([]);
-  const [bundles, setBundles] = useState<Bundle[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get<Item[]>(`/api/sessions/${sessionId}/items`),
-      api.get<Bundle[]>(`/api/sessions/${sessionId}/bundles`),
       api.get<Action[]>(`/api/sessions/${sessionId}/actions`),
-      api.get<Member[]>(`/api/projects/${projectId}/members`),
     ])
-      .then(([i, b, a, m]) => {
+      .then(([i, a]) => {
         setItems(i);
-        setBundles(b);
         setActions(a);
-        setMembers(m);
         setLoadError(null);
       })
-      .catch((err: Error) => setLoadError(err.message || "Failed to load the action board."));
-  }, [sessionId, projectId]);
+      .catch((err: Error) => setLoadError(err.message || "Failed to load."));
+  }, [sessionId]);
 
   useEffect(() => {
     onRegisterWsHandler((event: WsEvent) => {
       switch (event.type) {
-        case "bundle:created":
-          setBundles((prev) => [...prev, event.payload as Bundle]);
-          break;
-        case "bundle:updated":
-          setBundles((prev) => prev.map((b) => (b.id === event.payload.id ? (event.payload as Bundle) : b)));
-          break;
-        case "bundle:deleted":
-          setBundles((prev) => prev.filter((b) => b.id !== event.payload.id));
-          break;
         case "action:created":
           setActions((prev) => [...prev, event.payload as Action]);
           break;
@@ -71,49 +54,13 @@ export default function ActionBoard({
     });
   }, [onRegisterWsHandler]);
 
-  const bundledItemIds = new Set(bundles.flatMap((b) => b.itemIds));
-  const unbundledItems = items.filter((i) => !bundledItemIds.has(i.id));
-
-  async function createBundle() {
-    const bundle = await api.post<Bundle>(`/api/sessions/${sessionId}/bundles`, { label: "" });
-    setBundles((prev) => [...prev, bundle]);
-  }
-
-  async function addItemToBundle(bundleId: string, itemId: string) {
-    const bundle = bundles.find((b) => b.id === bundleId);
-    if (!bundle) return;
-    const updated = await api.patch<Bundle>(`/api/sessions/${sessionId}/bundles/${bundleId}`, {
-      itemIds: [...bundle.itemIds, itemId],
-    });
-    setBundles((prev) => prev.map((b) => (b.id === bundleId ? updated : b)));
-  }
-
-  async function removeItemFromBundle(bundleId: string, itemId: string) {
-    const bundle = bundles.find((b) => b.id === bundleId);
-    if (!bundle) return;
-    const updated = await api.patch<Bundle>(`/api/sessions/${sessionId}/bundles/${bundleId}`, {
-      itemIds: bundle.itemIds.filter((id) => id !== itemId),
-    });
-    setBundles((prev) => prev.map((b) => (b.id === bundleId ? updated : b)));
-  }
-
-  async function updateBundleLabel(bundleId: string, label: string) {
-    await api.patch(`/api/sessions/${sessionId}/bundles/${bundleId}`, { label });
-    setBundles((prev) => prev.map((b) => (b.id === bundleId ? { ...b, label } : b)));
-  }
-
-  async function deleteBundle(bundleId: string) {
-    await api.delete(`/api/sessions/${sessionId}/bundles/${bundleId}`);
-    setBundles((prev) => prev.filter((b) => b.id !== bundleId));
-  }
-
-  async function addAction(bundleId: string | null, description: string, assigneeId: string | null) {
-    const action = await api.post<Action>(`/api/sessions/${sessionId}/actions`, { description, bundleId, assigneeId });
+  async function addAction(description: string) {
+    const action = await api.post<Action>(`/api/sessions/${sessionId}/actions`, { description });
     setActions((prev) => [...prev, action]);
   }
 
-  async function updateAction(actionId: string, description: string) {
-    const updated = await api.patch<Action>(`/api/sessions/${sessionId}/actions/${actionId}`, { description });
+  async function updateAction(actionId: string, updates: { description?: string }) {
+    const updated = await api.patch<Action>(`/api/sessions/${sessionId}/actions/${actionId}`, updates);
     setActions((prev) => prev.map((a) => (a.id === actionId ? updated : a)));
   }
 
@@ -122,350 +69,169 @@ export default function ActionBoard({
     setActions((prev) => prev.filter((a) => a.id !== actionId));
   }
 
-  // Carried-over actions from the previous retro (no bundle)
-  const carriedOverActions = actions.filter((a) => a.bundleId === null);
+  // Sort all items by vote count for hot topics
+  const allItemsSorted = [...items].sort((a, b) => b.voteCount - a.voteCount);
+  const hotTopicIds = new Set(allItemsSorted.slice(0, 3).filter((i) => i.voteCount > 0).map((i) => i.id));
+
+  const goodItems = items.filter((i) => i.type === "good").sort((a, b) => b.voteCount - a.voteCount);
+  const badItems = items.filter((i) => i.type === "bad").sort((a, b) => b.voteCount - a.voteCount);
+  const hotTopics = allItemsSorted.slice(0, 3).filter((i) => i.voteCount > 0);
 
   return (
     <div>
       {loadError && <p className="mb-6 font-bold text-red-600">{loadError}</p>}
+
+      {/* Actions Section */}
       <section
         className="note-shell rotate-[0.25deg] p-6"
         data-note-theme="plum"
         data-tape-position="top-center"
       >
         <div className="mb-6">
-          <div className="note-chip mb-3 inline-block rotate-[-0.5deg] border-3 border-secondary px-5 py-2">
-            <h2 className="text-lg font-bold uppercase">Action Groups</h2>
+          <div className="mb-3 inline-block rotate-[-0.5deg] border-3 border-secondary bg-secondary px-5 py-2">
+            <h2 className="text-lg font-bold uppercase text-white">Actions</h2>
           </div>
           <p className="scribble-help note-muted max-w-3xl text-base">
-            Group related retro notes together, turn them into concrete actions, and make sure someone owns the next step.
+            Turn retro insights into concrete actions for the team.
           </p>
         </div>
 
-        {carriedOverActions.length > 0 && (
-          <div className="mb-10">
-            <div className="note-chip mb-3 inline-block rotate-[0.5deg] border-3 border-secondary px-4 py-2">
-              <h3 className="text-sm font-bold uppercase">Carried Over from Last Retro</h3>
-            </div>
-            <p className="scribble-help note-muted mb-4 text-base">
-              These actions weren't completed last time. Update them or add new actions below.
-            </p>
-            <div className="space-y-3">
-              {carriedOverActions.map((action, i) => (
-                <CarriedOverCard
-                  key={action.id}
-                  action={action}
-                  readOnly={readOnly}
-                  rotation={i % 2 === 0 ? "rotate-[-0.3deg]" : "rotate-[0.3deg]"}
-                  onUpdate={(desc) => updateAction(action.id, desc)}
-                  onDelete={() => deleteAction(action.id)}
-                />
-              ))}
-            </div>
-          </div>
+        {/* Action Cards */}
+        <div className="mb-8 space-y-4">
+          {actions.map((action, i) => (
+            <ActionCard
+              key={action.id}
+              action={action}
+              readOnly={readOnly}
+              rotation={i % 2 === 0 ? "rotate-[-0.3deg]" : "rotate-[0.3deg]"}
+              onUpdate={(updates) => updateAction(action.id, updates)}
+              onDelete={() => deleteAction(action.id)}
+            />
+          ))}
+        </div>
+
+        {!readOnly && (
+          <NewActionForm onAdd={addAction} />
         )}
 
-        {unbundledItems.length > 0 && (
-          <div className="mb-10">
-            <div className="note-chip mb-3 inline-block rotate-[-1deg] border-3 border-secondary px-4 py-2">
-              <h3 className="text-sm font-bold uppercase">Unactioned Items</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {unbundledItems.map((item, i) => (
-                <div
-                  key={item.id}
-                  className={`note-panel border-3 border-secondary p-3 ${
-                    i % 2 === 0 ? "rotate-[-0.5deg]" : "rotate-[0.5deg]"
-                  }`}
-                >
-                  <p className="text-sm font-medium">{item.content}</p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs font-bold text-secondary/40">{item.voteCount} votes</span>
-                    {!readOnly && bundles.length > 0 && (
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) addItemToBundle(e.target.value, item.id);
-                          e.target.value = "";
-                        }}
-                        className="note-surface border-2 border-secondary px-2 py-1 text-xs font-bold"
-                      >
-                        <option value="">→ Action group...</option>
-                        {bundles.map((b) => (
-                          <option key={b.id} value={b.id}>{b.label || "Unnamed Action Group"}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {bundles.length === 0 ? (
-          <ActionGroupPlaceholder onCreate={createBundle} readOnly={readOnly} />
-        ) : (
-          <>
-            <div className="space-y-8">
-              {bundles.map((bundle, i) => {
-                const bundleItems = items.filter((item) => bundle.itemIds.includes(item.id));
-                const bundleActions = actions.filter((a) => a.bundleId === bundle.id);
-                return (
-                  <BundleCard
-                    key={bundle.id}
-                    bundle={bundle}
-                    items={bundleItems}
-                    actions={bundleActions}
-                    members={members}
-                    readOnly={readOnly}
-                    rotation={bundleRotations[i % bundleRotations.length]}
-                    onUpdateLabel={(label) => updateBundleLabel(bundle.id, label)}
-                    onRemoveItem={(itemId) => removeItemFromBundle(bundle.id, itemId)}
-                    onDeleteBundle={() => deleteBundle(bundle.id)}
-                    onAddAction={(desc, assignee) => addAction(bundle.id, desc, assignee)}
-                    onDeleteAction={deleteAction}
-                  />
-                );
-              })}
-            </div>
-
-            {!readOnly && (
-              <div className="mt-8">
-                <ActionGroupPlaceholder onCreate={createBundle} readOnly={false} compact />
-              </div>
-            )}
-          </>
+        {actions.length === 0 && readOnly && (
+          <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+            No actions were captured in this session.
+          </p>
         )}
       </section>
-    </div>
-  );
-}
 
-function ActionGroupPlaceholder({
-  onCreate,
-  readOnly,
-  compact = false,
-}: {
-  onCreate: () => void;
-  readOnly: boolean;
-  compact?: boolean;
-}) {
-  const content = (
-    <MarchingAnts
-      className={cn(
-        "note-panel relative overflow-hidden border-3 border-secondary transition-colors duration-150",
-        compact ? "px-5 py-6" : "px-6 py-8",
-        !readOnly && "group-hover:bg-[#d9c0ff] group-focus-visible:bg-[#d9c0ff]",
+      {/* Retro Items Section */}
+      {items.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-4 inline-block rotate-[-0.5deg] border-3 border-secondary bg-secondary px-5 py-2">
+            <h2 className="text-lg font-bold uppercase text-white">Retro Items</h2>
+          </div>
+
+          {/* Hot Topics */}
+          {hotTopics.length > 0 && (
+            <div className="mb-8">
+              <div className="note-chip mb-3 inline-block rotate-[0.5deg] border-3 border-secondary px-4 py-2">
+                <h3 className="text-sm font-bold uppercase">Hot Topics</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {hotTopics.map((item, i) => (
+                  <ReadOnlyItemCard
+                    key={item.id}
+                    item={item}
+                    rotation={cardRotations[i % cardRotations.length]}
+                    highlight
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Went Well / Needs Work columns */}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div
+              className="note-shell rotate-[-0.35deg] p-5"
+              data-note-theme="mint"
+              data-tape-position="top-center"
+            >
+              <div className="mb-4 inline-block rotate-[-1deg] border-3 border-secondary note-accent px-5 py-2">
+                <h3 className="text-lg font-bold uppercase">Went Well</h3>
+              </div>
+              <div className="space-y-4">
+                {goodItems.filter((i) => !hotTopicIds.has(i.id)).map((item, i) => (
+                  <ReadOnlyItemCard
+                    key={item.id}
+                    item={item}
+                    rotation={cardRotations[i % cardRotations.length]}
+                  />
+                ))}
+                {goodItems.filter((i) => !hotTopicIds.has(i.id)).length === 0 && (
+                  <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+                    All items are in hot topics above.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div
+              className="note-shell rotate-[0.35deg] p-5"
+              data-note-theme="blush"
+              data-tape-position="top-right"
+            >
+              <div className="mb-4 inline-block rotate-[1deg] border-3 border-secondary note-accent px-5 py-2">
+                <h3 className="text-lg font-bold uppercase">Needs Work</h3>
+              </div>
+              <div className="space-y-4">
+                {badItems.filter((i) => !hotTopicIds.has(i.id)).map((item, i) => (
+                  <ReadOnlyItemCard
+                    key={item.id}
+                    item={item}
+                    rotation={cardRotations[(i + 3) % cardRotations.length]}
+                  />
+                ))}
+                {badItems.filter((i) => !hotTopicIds.has(i.id)).length === 0 && (
+                  <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+                    All items are in hot topics above.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       )}
-    >
-      <div className={cn("max-w-2xl", !compact && "md:pr-56")}>
-        <p className="text-lg font-bold uppercase">
-          {compact ? "Add another action group" : "No action groups yet."}
-        </p>
-        <p className="scribble-help mt-2 text-base text-secondary/60">
-          {compact
-            ? "Spin up another placeholder for related retro notes and the actions that come out of them."
-            : "Create the first action group to gather related retro notes, then turn that pile into owned follow-up work."}
-        </p>
-        {!readOnly && (
-          <span className="note-chip mt-4 inline-block border-3 border-secondary px-4 py-2 text-xs font-bold uppercase transition-colors duration-150 group-hover:bg-[#ceb0ff] group-focus-visible:bg-[#ceb0ff]">
-            + New Action Group
-          </span>
-        )}
-      </div>
-
-      <div className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 md:block">
-        <div className={cn("relative", compact ? "h-20 w-32" : "h-24 w-40")}>
-          <div className="note-row absolute bottom-1 left-6 h-14 w-24 border-3 border-secondary transition-transform duration-150 group-hover:translate-x-3 group-hover:-translate-y-1 group-hover:rotate-[3deg] group-focus-visible:translate-x-3 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[3deg]"></div>
-          <div className="note-surface absolute bottom-3 left-3 h-14 w-24 border-3 border-secondary transition-transform duration-150 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:rotate-[-2deg] group-focus-visible:translate-x-1 group-focus-visible:-translate-y-1 group-focus-visible:rotate-[-2deg]"></div>
-          <div className="note-panel absolute bottom-5 left-0 h-14 w-24 border-3 border-secondary transition-transform duration-150 group-hover:-translate-y-2 group-hover:rotate-[1deg] group-focus-visible:-translate-y-2 group-focus-visible:rotate-[1deg]"></div>
-        </div>
-      </div>
-    </MarchingAnts>
-  );
-
-  if (readOnly) {
-    return content;
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onCreate}
-      className="group block w-full bg-transparent p-0 text-left focus:outline-none"
-    >
-      {content}
-    </button>
+    </div>
   );
 }
 
-function BundleCard({
-  bundle,
-  items,
-  actions,
-  members,
-  readOnly,
+function ReadOnlyItemCard({
+  item,
   rotation,
-  onUpdateLabel,
-  onRemoveItem,
-  onDeleteBundle,
-  onAddAction,
-  onDeleteAction,
+  highlight = false,
 }: {
-  bundle: Bundle;
-  items: Item[];
-  actions: Action[];
-  members: Member[];
-  readOnly: boolean;
+  item: Item;
   rotation: string;
-  onUpdateLabel: (label: string) => void;
-  onRemoveItem: (itemId: string) => void;
-  onDeleteBundle: () => void;
-  onAddAction: (description: string, assigneeId: string | null) => void;
-  onDeleteAction: (actionId: string) => void;
+  highlight?: boolean;
 }) {
-  const [newAction, setNewAction] = useState("");
-  const hasLabel = Boolean(bundle.label?.trim());
-
   return (
-    <div
-      className={`note-shell ${rotation}`}
-      data-note-theme="plum"
-      data-tape-position="top-right"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b-3 border-secondary bg-[#8f63ef] px-5 py-3">
-        {readOnly ? (
-          <h3 className="font-bold uppercase text-white text-lg">{bundle.label || "Unnamed Action Group"}</h3>
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-white/40 bg-white/10 text-base font-black text-white/85">
-              ✎
-            </span>
-            <input
-              type="text"
-              value={bundle.label || ""}
-              onChange={(e) => onUpdateLabel(e.target.value)}
-              placeholder="New Action Group"
-              className={cn(
-                "min-w-0 bg-transparent text-white text-lg focus:outline-none",
-                hasLabel
-                  ? "flex-1 border-b-2 border-transparent font-bold uppercase focus:border-white/50"
-                  : "w-[min(26rem,calc(100%-1rem))] border-b-2 border-dashed border-white/70 text-[2rem] font-bold normal-case tracking-[0.02em] placeholder:text-white/90 focus:border-white scribble-text",
-              )}
-            />
-          </div>
-        )}
-        {!readOnly && (
-          <button
-            onClick={onDeleteBundle}
-            className={cn(
-              scrapbookButton({ tone: "danger", size: "compact", tilt: "flat", depth: "sm" }),
-              "border-2 border-secondary bg-white px-2 py-0.5 text-xs font-bold uppercase text-secondary hover:bg-[#ff7f7f] hover:text-white",
-            )}
-            aria-label="Delete action group"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
-      <div className="note-inset p-4">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/55">
-              Context
-            </p>
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="note-panel flex items-center justify-between border-2 border-secondary px-3 py-2"
-                >
-                  <span className="text-sm font-medium">{item.content}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-secondary/35">{item.voteCount}</span>
-                    {!readOnly && (
-                      <button
-                        onClick={() => onRemoveItem(item.id)}
-                        className={cn(
-                          scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                          "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
-                        )}
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {items.length === 0 && (
-                <p className="scribble-help py-2 text-base text-secondary/40">
-                  No items yet — use the &quot;→ Action group...&quot; dropdown on unactioned items above
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/55">
-              Actions
-            </p>
-            <div className="mb-3 space-y-2">
-              {actions.map((action) => (
-                <div key={action.id} className="note-row flex items-center justify-between border-2 border-secondary px-3 py-2">
-                  <span className="text-sm font-bold">{action.description}</span>
-                  {!readOnly && (
-                    <button
-                      onClick={() => onDeleteAction(action.id)}
-                      className={cn(
-                        scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                        "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
-                      )}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {!readOnly && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newAction.trim()) return;
-                  onAddAction(newAction, null);
-                  setNewAction("");
-                }}
-                className="flex gap-2"
-              >
-                <input
-                  type="text"
-                  value={newAction}
-                  onChange={(e) => setNewAction(e.target.value)}
-                  placeholder="e.g. Set up weekly check-ins..."
-                  className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-medium focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className={cn(
-                    scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
-                    "border-3 border-secondary bg-[#8f63ef] px-4 py-2 text-sm font-bold uppercase text-white",
-                  )}
-                >
-                  +
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
+    <div className={cn(
+      "relative z-0 border-3 border-secondary note-panel p-4 transition-all hover:z-10",
+      rotation,
+      highlight && "ring-2 ring-[#FDCA40] ring-offset-2",
+    )}>
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-medium">{item.content}</p>
+        <span className={cn(
+          "shrink-0 rounded-full border-2 border-secondary px-2 py-0.5 font-mono text-xs font-bold",
+          item.voteCount > 0 ? "bg-[#FDCA40] text-secondary" : "bg-white text-secondary/50",
+        )}>
+          {item.voteCount}
+        </span>
       </div>
     </div>
   );
 }
 
-function CarriedOverCard({
+function ActionCard({
   action,
   readOnly,
   rotation,
@@ -475,7 +241,7 @@ function CarriedOverCard({
   action: Action;
   readOnly: boolean;
   rotation: string;
-  onUpdate: (description: string) => void;
+  onUpdate: (updates: { description?: string }) => void;
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -483,80 +249,148 @@ function CarriedOverCard({
 
   return (
     <div
-      className={`note-shell ${rotation}`}
-      data-note-theme="plum"
-      data-tape-position="top-right"
+      className={cn("border-3 border-secondary bg-[#ede6fc] p-5", rotation)}
     >
-      <div className="note-accent flex items-center justify-between border-b-3 border-secondary px-4 py-2">
-        <span className="text-xs font-bold uppercase tracking-wider">From Previous Retro</span>
-      </div>
-      <div className="p-4">
-        {editing ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (editValue.trim()) {
-                onUpdate(editValue.trim());
-                setEditing(false);
-              }
-            }}
-            className="flex gap-2"
-          >
-            <input
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-bold focus:outline-none"
-              autoFocus
-            />
-            <button
-              type="submit"
-              className={cn(
-                scrapbookButton({ tone: "mint", size: "compact", tilt: "left", depth: "sm" }),
-                "border-3 border-secondary bg-[#7ce29a] px-3 py-2 text-sm font-bold uppercase",
-              )}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => { setEditValue(action.description); setEditing(false); }}
-              className={cn(
-                scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
-                "border-3 border-secondary note-panel px-3 py-2 text-sm font-bold uppercase",
-              )}
-            >
-              Cancel
-            </button>
-          </form>
-        ) : (
-          <div className="flex items-center justify-between">
-            <p className="font-bold">{action.description}</p>
-            {!readOnly && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditing(true)}
-                  className={cn(
-                    scrapbookButton({ tone: "plum", size: "compact", tilt: "flat", depth: "sm" }),
-                    "note-chip border-2 border-secondary px-2 py-1 text-xs font-bold uppercase",
-                  )}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={onDelete}
-                  className={cn(
-                    scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                    "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
-                  )}
-                >
-                  ✕
-                </button>
-              </div>
+      {editing ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (editValue.trim()) {
+              onUpdate({ description: editValue.trim() });
+              setEditing(false);
+            }
+          }}
+          className="flex gap-2"
+        >
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-bold focus:outline-none"
+            autoFocus
+          />
+          <button
+            type="submit"
+            className={cn(
+              scrapbookButton({ tone: "mint", size: "compact", tilt: "left", depth: "sm" }),
+              "border-3 border-secondary bg-[#7ce29a] px-3 py-2 text-sm font-bold uppercase",
             )}
-          </div>
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEditValue(action.description); setEditing(false); }}
+            className={cn(
+              scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+              "border-3 border-secondary note-panel px-3 py-2 text-sm font-bold uppercase",
+            )}
+          >
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-base font-bold">{action.description}</p>
+          {!readOnly && (
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => setEditing(true)}
+                className={cn(
+                  scrapbookButton({ tone: "plum", size: "compact", tilt: "flat", depth: "sm" }),
+                  "note-chip border-2 border-secondary px-2 py-1 text-xs font-bold uppercase",
+                )}
+              >
+                Edit
+              </button>
+              <button
+                onClick={onDelete}
+                className={cn(
+                  scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
+                  "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
+                )}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewActionForm({
+  onAdd,
+}: {
+  onAdd: (description: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [description, setDescription] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(true);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }}
+        className={cn(
+          scrapbookButton({ tone: "plum", size: "regular", tilt: "left", depth: "md" }),
+          "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-4 text-base font-bold uppercase text-white",
         )}
-      </div>
+      >
+        + New Action
+      </button>
+    );
+  }
+
+  return (
+    <div className="border-3 border-secondary bg-[#ede6fc] p-5">
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/55">New Action</p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!description.trim()) return;
+          onAdd(description.trim());
+          setDescription("");
+          setIsOpen(false);
+        }}
+        className="space-y-3"
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. Set up weekly check-ins..."
+          className="note-panel w-full border-3 border-secondary px-4 py-3 text-sm font-medium focus:outline-none"
+          autoFocus
+        />
+        <div className="flex gap-2 justify-end">
+          <button
+            type="button"
+            onClick={() => { setDescription(""); setIsOpen(false); }}
+            className={cn(
+              scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+              "border-3 border-secondary note-panel px-3 py-2 text-sm font-bold uppercase",
+            )}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={cn(
+              scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
+              "border-3 border-secondary bg-[#8f63ef] px-4 py-2 text-sm font-bold uppercase text-white",
+            )}
+          >
+            Add
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

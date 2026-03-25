@@ -28,18 +28,6 @@ export function toSessionSummaryDisplayData(summary: SessionSummaryData): Sessio
       content: item.content,
       voteCount: item.voteCount,
     }));
-  const actionGroups = summary.bundles
-    .map((bundle) => ({
-      label: bundle.label,
-      contextItems: summary.items
-        .filter((item) => bundle.itemIds.includes(item.id))
-        .map((item) => ({ content: item.content })),
-      actions: summary.actions
-        .filter((action) => action.bundleId === bundle.id)
-        .map((action) => ({ description: action.description })),
-    }))
-    .filter((bundle) => bundle.contextItems.length > 0 || bundle.actions.length > 0);
-
   return {
     session: {
       name: summary.session.name,
@@ -60,17 +48,12 @@ export function toSessionSummaryDisplayData(summary: SessionSummaryData): Sessio
     })),
     goodItems,
     badItems,
-    actionGroups,
-    carriedOverActions: summary.actions
-      .filter((action) => action.bundleId === null)
-      .map((action) => ({ description: action.description })),
+    actions: summary.actions.map((action) => ({ description: action.description })),
     actionCount: summary.actions.length,
   };
 }
 
 export function buildSessionSummaryMarkdown(summary: SessionSummaryDisplayData): string {
-  const carriedOverActions = summary.carriedOverActions;
-
   const lines: string[] = [];
   lines.push(`# ${summary.session.name}`);
   lines.push("");
@@ -115,37 +98,12 @@ export function buildSessionSummaryMarkdown(summary: SessionSummaryDisplayData):
     lines.push("");
   }
 
-  if (summary.actionGroups.length > 0 || carriedOverActions.length > 0) {
-    lines.push("## Action Plan");
+  if (summary.actions.length > 0) {
+    lines.push("## Actions");
+    for (const action of summary.actions) {
+      lines.push(`- [ ] ${action.description}`);
+    }
     lines.push("");
-
-    for (const group of summary.actionGroups) {
-      lines.push(`### ${group.label || "Unnamed Action Group"}`);
-
-      if (group.contextItems.length > 0) {
-        lines.push("Context:");
-        for (const item of group.contextItems) {
-          lines.push(`- ${item.content}`);
-        }
-      }
-
-      if (group.actions.length > 0) {
-        lines.push("Actions:");
-        for (const action of group.actions) {
-          lines.push(`- [ ] ${action.description}`);
-        }
-      }
-
-      lines.push("");
-    }
-
-    if (carriedOverActions.length > 0) {
-      lines.push("### Carried Over");
-      for (const action of carriedOverActions) {
-        lines.push(`- [ ] ${action.description}`);
-      }
-      lines.push("");
-    }
   }
 
   return lines.join("\n").trim();

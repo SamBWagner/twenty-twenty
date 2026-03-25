@@ -154,7 +154,7 @@ export async function createBundle(
 export async function createAction(
   opts: RequestOptions,
   sessionId: string,
-  data: { description: string; bundleId?: string; assigneeId?: string },
+  data: { description: string },
 ) {
   const res = await opts.request.post(
     `${API_V1_URL}/sessions/${sessionId}/actions`,

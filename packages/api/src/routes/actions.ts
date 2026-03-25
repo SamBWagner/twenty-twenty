@@ -22,9 +22,7 @@ actionRoutes.get("/sessions/:sid/actions", requireAuth, async (c) => {
   return c.json(actions.map((action) => actionSchema.parse({
     id: action.id,
     sessionId: action.sessionId,
-    bundleId: action.bundleId,
     description: action.description,
-    assigneeId: action.assigneeId,
     createdAt: toIsoString(action.createdAt),
   })));
 });
@@ -49,9 +47,9 @@ actionRoutes.post("/sessions/:sid/actions", requireAuth, async (c) => {
   const action = {
     id: newId(),
     sessionId: sid,
-    bundleId: parsed.data.bundleId || null,
+    bundleId: null,
     description: parsed.data.description.trim(),
-    assigneeId: parsed.data.assigneeId || null,
+    assigneeId: null,
     createdAt: new Date(),
   };
 
@@ -62,13 +60,13 @@ actionRoutes.post("/sessions/:sid/actions", requireAuth, async (c) => {
     payload: {
       id: action.id,
       description: action.description,
-      bundleId: action.bundleId,
-      assigneeId: action.assigneeId,
     },
   }, user.id);
 
   return c.json(actionSchema.parse({
-    ...action,
+    id: action.id,
+    sessionId: action.sessionId,
+    description: action.description,
     createdAt: toIsoString(action.createdAt),
   }), 201);
 });
@@ -95,8 +93,6 @@ actionRoutes.patch("/sessions/:sid/actions/:aid", requireAuth, async (c) => {
   }
   const updates: Record<string, unknown> = {};
   if (parsed.data.description?.trim()) updates.description = parsed.data.description.trim();
-  if (parsed.data.bundleId !== undefined) updates.bundleId = parsed.data.bundleId || null;
-  if (parsed.data.assigneeId !== undefined) updates.assigneeId = parsed.data.assigneeId || null;
 
   await db.update(schema.actions).set(updates).where(eq(schema.actions.id, aid));
   const updated = await db.select().from(schema.actions).where(eq(schema.actions.id, aid)).get();
@@ -106,17 +102,13 @@ actionRoutes.patch("/sessions/:sid/actions/:aid", requireAuth, async (c) => {
     payload: {
       id: updated!.id,
       description: updated!.description,
-      bundleId: updated!.bundleId,
-      assigneeId: updated!.assigneeId,
     },
   }, user.id);
 
   return c.json(actionSchema.parse({
     id: updated!.id,
     sessionId: updated!.sessionId,
-    bundleId: updated!.bundleId,
     description: updated!.description,
-    assigneeId: updated!.assigneeId,
     createdAt: toIsoString(updated!.createdAt),
   }));
 });

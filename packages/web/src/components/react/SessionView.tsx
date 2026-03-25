@@ -24,9 +24,9 @@ type SessionSection = "review" | "ideation" | "action" | "summary";
 const phaseOrder: SessionPhase[] = ["review", "ideation", "action", "closed"];
 const sectionOrder: SessionSection[] = ["review", "ideation", "action", "summary"];
 const sectionLabels: Record<SessionSection, string> = {
-  review: "Review",
-  ideation: "Ideation",
-  action: "Actions",
+  review: "Look Back",
+  ideation: "Look Within",
+  action: "Look Forward",
   summary: "Summary",
 };
 
@@ -522,10 +522,10 @@ export default function SessionView({
                   onClick={() =>
                     openPendingAdvance({
                       nextSection: "action",
-                      title: "Move to Actions?",
-                      message: "This ends ideation editing and moves everyone into the action planning stage. This action can't be undone.",
+                      title: "Move to Look Forward?",
+                      message: "This ends ideation editing and moves everyone into action planning. This can't be undone.",
                       busyLabel: "Moving...",
-                      confirmLabel: "Yes, Move to Actions",
+                      confirmLabel: "Yes, Move Forward",
                     })}
                   disabled={advancingPhase}
                   className={cn(
@@ -533,7 +533,7 @@ export default function SessionView({
                     "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50 lg:w-auto",
                   )}
                 >
-                  Advance to Actions
+                  Advance to Look Forward
                 </button>
 
                 {pendingAdvance?.nextSection === "action" && pendingAdvancePopoverStyle && (
@@ -590,14 +590,14 @@ export default function SessionView({
                       title: "Close this retrospective?",
                       message: "This ends live editing and opens the final summary view for the team. This action can't be undone.",
                       busyLabel: "Closing...",
-                      confirmLabel: "Yes, Close Session",
+                      confirmLabel: "Yes, Finish Session",
                     })}
                   className={cn(
                     scrapbookButton({ tone: "sun", size: "regular", tilt: "left", depth: "md" }),
                     "w-full border-3 border-secondary bg-[#f9d258] px-5 py-3 font-bold uppercase text-secondary lg:w-auto",
                   )}
                 >
-                  Close Session
+                  Finish Session
                 </button>
 
                 {pendingAdvance?.nextSection === "summary" && pendingAdvancePopoverStyle && (
@@ -666,7 +666,6 @@ export default function SessionView({
       {visibleSection === "action" && (
         <ActionBoard
           sessionId={sessionId}
-          projectId={projectId}
           readOnly={session.phase === "closed"}
           onRegisterWsHandler={registerItemWsHandler}
         />

@@ -134,21 +134,6 @@ export async function voteItem(
   return res.json();
 }
 
-// --- Bundles ---
-
-export async function createBundle(
-  opts: RequestOptions,
-  sessionId: string,
-  data: { label?: string; itemIds?: string[] },
-) {
-  const res = await opts.request.post(
-    `${API_V1_URL}/sessions/${sessionId}/bundles`,
-    { data, headers: headers(opts.cookie) },
-  );
-  if (!res.ok()) throw new Error(`createBundle failed: ${res.status()}`);
-  return res.json();
-}
-
 // --- Actions ---
 
 export async function createAction(

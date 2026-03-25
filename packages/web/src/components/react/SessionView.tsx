@@ -129,6 +129,7 @@ export default function SessionView({
   const [activeSection, setActiveSection] = useState<SessionSection | null>(null);
   const [pendingAdvance, setPendingAdvance] = useState<PendingAdvance | null>(null);
   const [advancingPhase, setAdvancingPhase] = useState(false);
+  const [hasIdeationItems, setHasIdeationItems] = useState(false);
   const participantsPanelRef = useRef<HTMLDivElement>(null);
   const participantsButtonRef = useRef<HTMLButtonElement>(null);
   const [participantsPopoverStyle, setParticipantsPopoverStyle] = useState<CSSProperties | null>(null);
@@ -151,6 +152,7 @@ export default function SessionView({
       canEditActionBoard: false,
     } : prev));
     setActiveSection("ideation");
+    setHasIdeationItems(false);
   }, []);
 
   const handleWsEvent = useCallback(
@@ -215,6 +217,10 @@ export default function SessionView({
     setItemEventHandlers({ onWsEvent: handler });
   }, []);
 
+  const handleIdeationItemsChange = useCallback((count: number) => {
+    setHasIdeationItems(count > 0);
+  }, []);
+
   const updateParticipantsPopoverPosition = useCallback(() => {
     setParticipantsPopoverStyle(getAnchoredPopoverStyle(participantsButtonRef.current, 288));
   }, []);
@@ -274,9 +280,11 @@ export default function SessionView({
       return;
     }
 
+    const nextSection = pendingAdvance.nextSection;
+
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
-      const activeButton = getPendingAdvanceButton(pendingAdvance.nextSection);
+      const activeButton = getPendingAdvanceButton(nextSection);
 
       if (pendingAdvancePanelRef.current?.contains(target) || activeButton?.contains(target)) {
         return;
@@ -527,14 +535,14 @@ export default function SessionView({
                       busyLabel: "Moving...",
                       confirmLabel: "Yes, Move Forward",
                     })}
-                  disabled={advancingPhase}
-                  className={cn(
-                    scrapbookButton({ tone: "plum", size: "regular", tilt: "right", depth: "md" }),
-                    "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50 lg:w-auto",
-                  )}
-                >
-                  Advance to Look Forward
-                </button>
+                   disabled={advancingPhase || !hasIdeationItems}
+                   className={cn(
+                     scrapbookButton({ tone: "plum", size: "regular", tilt: "right", depth: "md" }),
+                     "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50 lg:w-auto",
+                   )}
+                  >
+                    Advance to Look Forward
+                  </button>
 
                 {pendingAdvance?.nextSection === "action" && pendingAdvancePopoverStyle && (
                   renderBodyPortal(
@@ -660,6 +668,7 @@ export default function SessionView({
           sessionId={sessionId}
           readOnly={session.phase !== "ideation"}
           onRegisterWsHandler={registerItemWsHandler}
+          onItemCountChange={handleIdeationItemsChange}
         />
       )}
 

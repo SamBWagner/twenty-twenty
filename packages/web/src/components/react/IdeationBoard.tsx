@@ -13,10 +13,12 @@ export default function IdeationBoard({
   sessionId,
   readOnly,
   onRegisterWsHandler,
+  onItemCountChange,
 }: {
   sessionId: string;
   readOnly: boolean;
   onRegisterWsHandler: (handler: (event: WsEvent) => void) => void;
+  onItemCountChange?: (count: number) => void;
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -28,10 +30,11 @@ export default function IdeationBoard({
       .get<Item[]>(`/api/sessions/${sessionId}/items`)
       .then((data) => {
         setItems(data);
+        onItemCountChange?.(data.length);
         setLoadError(null);
       })
       .catch((err: Error) => setLoadError(err.message || "Failed to load ideas."));
-  }, [sessionId]);
+  }, [sessionId, onItemCountChange]);
 
   useEffect(() => {
     onRegisterWsHandler((event: WsEvent) => {
@@ -46,10 +49,13 @@ export default function IdeationBoard({
           setItems((prev) =>
             prev.map((i) => (i.id === event.payload.itemId ? { ...i, voteCount: event.payload.voteCount } : i)),
           );
-          break;
       }
     });
   }, [onRegisterWsHandler]);
+
+  useEffect(() => {
+    onItemCountChange?.(items.length);
+  }, [items.length, onItemCountChange]);
 
   async function addItem(type: "good" | "bad") {
     const content = type === "good" ? goodInput : badInput;

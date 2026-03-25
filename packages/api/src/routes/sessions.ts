@@ -216,6 +216,17 @@ sessionRoutes.patch("/sessions/:sid/phase", requireAuth, async (c) => {
     }
   }
 
+  if (session.phase === "action") {
+    const actionCount = await db
+      .select()
+      .from(schema.actions)
+      .where(eq(schema.actions.sessionId, sid));
+
+    if (actionCount.length === 0) {
+      return jsonError(c, 400, "invalid_request", "At least one action is required to close the session.");
+    }
+  }
+
   const updates: Record<string, unknown> = { phase: nextPhase };
   if (nextPhase === "closed") {
     updates.closedAt = new Date();

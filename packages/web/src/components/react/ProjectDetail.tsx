@@ -253,7 +253,7 @@ export default function ProjectDetail({
       return;
     }
 
-    if (deleteConfirmationText.trim() !== "DELETE") {
+    if (deleteConfirmationText.trim().toUpperCase() !== "DELETE") {
       setFeedback({
         tone: "error",
         message: 'Type "DELETE" to confirm project deletion.',
@@ -359,7 +359,7 @@ export default function ProjectDetail({
                   <button
                     type="button"
                     onClick={handleDeleteProject}
-                    disabled={deleteConfirmationText.trim() !== "DELETE" || deletingProject}
+                    disabled={deleteConfirmationText.trim().toUpperCase() !== "DELETE" || deletingProject}
                     className={cn(
                       scrapbookButton({ tone: "danger", size: "compact", tilt: "left", depth: "sm" }),
                       "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",

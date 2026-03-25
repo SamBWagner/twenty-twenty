@@ -19,6 +19,9 @@ RUN npm ci
 # Copy source
 COPY . .
 
+# Build dependencies (shared library must be built before web)
+RUN cd packages/shared && npm run build
+
 # Build web only (API runs via tsx like dev mode)
 RUN cd packages/web && npm run build
 

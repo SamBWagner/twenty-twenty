@@ -355,6 +355,7 @@ function toSharedSessionSummary(summary: SessionSummary): SharedSessionSummary {
     session: {
       name: summary.session.name,
       sequence: summary.session.sequence,
+      createdAt: summary.session.createdAt,
       closedAt: summary.session.closedAt,
     },
     participants: summary.participants.map((participant) => ({

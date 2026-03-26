@@ -224,6 +224,7 @@ export const sharedSessionSummarySchema = z.object({
   session: z.object({
     name: z.string(),
     sequence: z.number().int().positive(),
+    createdAt: isoDateTimeSchema,
     closedAt: isoDateTimeSchema.nullable(),
   }),
   participants: z.array(z.object({

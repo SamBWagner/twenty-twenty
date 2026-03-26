@@ -13,6 +13,30 @@ export function formatVoteCount(voteCount: number): string {
   return `${voteCount} vote${voteCount === 1 ? "" : "s"}`;
 }
 
+export function formatSessionDuration(createdAt: string, closedAt: string | null): string {
+  if (!closedAt) return "Still open";
+
+  const durationMs = new Date(closedAt).getTime() - new Date(createdAt).getTime();
+
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    return "0 min";
+  }
+
+  const totalMinutes = Math.floor(durationMs / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${Math.max(1, totalMinutes)} min`;
+  }
+
+  if (minutes === 0) {
+    return `${hours} hr`;
+  }
+
+  return `${hours} hr ${minutes} min`;
+}
+
 export function toSessionSummaryDisplayData(summary: SessionSummaryData): SessionSummaryDisplayData {
   const goodItems = summary.items
     .filter((item) => item.type === "good")
@@ -32,6 +56,7 @@ export function toSessionSummaryDisplayData(summary: SessionSummaryData): Sessio
     session: {
       name: summary.session.name,
       sequence: summary.session.sequence,
+      createdAt: summary.session.createdAt,
       closedAt: summary.session.closedAt,
     },
     participants: summary.participants.map((participant) => ({

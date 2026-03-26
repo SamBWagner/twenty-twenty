@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { SharedSessionSummary as SessionSummaryDisplayData } from "@twenty-twenty/shared";
 import { cn } from "../../lib/button-styles";
-import { formatVoteCount, reviewStatusLabels } from "../../lib/session-summary";
+import { formatSessionDuration, formatVoteCount, reviewStatusLabels } from "../../lib/session-summary";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "Still open";
@@ -55,8 +55,16 @@ export default function SessionSummaryContent({
             <p className="mt-2 text-2xl font-bold">#{summary.session.sequence}</p>
           </div>
           <div className="note-panel border-3 border-secondary p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Closed</p>
-            <p className="mt-2 text-sm font-bold">{formatDateTime(summary.session.closedAt)}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Duration</p>
+            <p
+              className="mt-2 text-sm font-bold"
+              title={summary.session.closedAt ? `Closed ${formatDateTime(summary.session.closedAt)}` : undefined}
+            >
+              {formatSessionDuration(summary.session.createdAt, summary.session.closedAt)}
+            </p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-secondary/35">
+              {summary.session.closedAt ? `Closed ${formatDateTime(summary.session.closedAt)}` : "Still open"}
+            </p>
           </div>
           <div className="note-panel border-3 border-secondary p-3">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Participants</p>

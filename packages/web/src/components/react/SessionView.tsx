@@ -17,6 +17,7 @@ import IdeationBoard from "./IdeationBoard";
 import ActionBoard from "./ActionBoard";
 import ActionReviewFlow from "./ActionReviewFlow";
 import FloatingAvatars from "./FloatingAvatars";
+import ProjectNameTab from "./ProjectNameTab";
 import SessionSummary from "./SessionSummary";
 
 type SessionSection = "review" | "ideation" | "action" | "summary";
@@ -119,6 +120,7 @@ export default function SessionView({
   userId: string;
 }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
@@ -198,6 +200,7 @@ export default function SessionView({
       .get<SessionWorkspaceView>(`/api/sessions/${sessionId}/view`)
       .then((view) => {
         setSession(view.session);
+        setProjectName(view.projectName);
         setParticipants(view.participants);
         setViewerCapabilities(view.viewerCapabilities);
         setActiveSection((prev) => prev || defaultSectionForPhase(view.session.phase));
@@ -374,15 +377,30 @@ export default function SessionView({
       <FloatingAvatars users={onlineUsers} />
 
       <div className="mb-6">
-        <a
-          href={`/projects/${projectId}`}
-          className={cn(
-            scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
-            "inline-block border-2 border-secondary bg-white px-3 py-1 text-sm font-bold uppercase",
+        <div className="relative inline-block pb-10">
+          <a
+            href={`/projects/${projectId}`}
+            className={cn(
+              scrapbookButton({ tone: "neutral", size: "compact", tilt: "flat", depth: "sm" }),
+              "relative z-20 inline-block border-2 border-secondary bg-white px-3 py-1 text-sm font-bold uppercase",
+            )}
+          >
+            ← Back
+          </a>
+
+          {projectName && (
+            <div
+              className="pointer-events-none absolute z-10 max-w-[calc(100vw-9rem)] origin-left -rotate-[8deg] sm:max-w-[15rem]"
+              style={{ left: "calc(100% - 0.6rem)", top: "-0.05rem" }}
+            >
+              <ProjectNameTab
+                projectName={projectName}
+                testId="session-project-tab"
+                className="max-w-full"
+              />
+            </div>
           )}
-        >
-          ← Back
-        </a>
+        </div>
       </div>
 
       <div className="mb-10">

@@ -221,7 +221,14 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
     )
     : eq(schema.sessionParticipants.sessionId, sid);
 
-  const [participants, items, actions] = await Promise.all([
+  const [project, participants, items, actions] = await Promise.all([
+    db
+      .select({
+        name: schema.projects.name,
+      })
+      .from(schema.projects)
+      .where(eq(schema.projects.id, session.projectId))
+      .get(),
     db
       .select({
         userId: schema.sessionParticipants.userId,
@@ -245,6 +252,10 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
       .where(eq(schema.actions.sessionId, sid))
       .orderBy(asc(schema.actions.createdAt)),
   ]);
+
+  if (!project) {
+    throw new Error(`Project not found for session ${sid}.`);
+  }
 
   const voteRows = await db
     .select({
@@ -315,6 +326,7 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
 
   return sessionSummarySchema.parse({
     session: serializeSession(session),
+    projectName: project.name,
     participants: participants.map(serializeParticipant),
     items: items.map((item) => ({
       id: item.id,
@@ -358,6 +370,7 @@ function toSharedSessionSummary(summary: SessionSummary): SharedSessionSummary {
       createdAt: summary.session.createdAt,
       closedAt: summary.session.closedAt,
     },
+    projectName: summary.projectName,
     participants: summary.participants.map((participant) => ({
       username: participant.username,
       avatarUrl: participant.avatarUrl,
@@ -487,7 +500,14 @@ export async function getSessionView(sessionId: string, userId: string) {
     )
     : eq(schema.sessionParticipants.sessionId, sessionId);
 
-  const [projectMembership, projectMembers, participants, items, actions, voteRows, reviewState] = await Promise.all([
+  const [project, projectMembership, projectMembers, participants, items, actions, voteRows, reviewState] = await Promise.all([
+    db
+      .select({
+        name: schema.projects.name,
+      })
+      .from(schema.projects)
+      .where(eq(schema.projects.id, session.projectId))
+      .get(),
     db
       .select()
       .from(schema.projectMembers)
@@ -524,6 +544,10 @@ export async function getSessionView(sessionId: string, userId: string) {
     getReviewStateForSession(session),
   ]);
 
+  if (!project) {
+    return null;
+  }
+
   const voteCountByItemId = new Map<string, number>();
   const userVoteByItemId = new Map<string, number>();
 
@@ -536,6 +560,7 @@ export async function getSessionView(sessionId: string, userId: string) {
 
   return sessionViewSchema.parse({
     session: serializeSession(session),
+    projectName: project.name,
     participants: participants.map(serializeParticipant),
     projectMembers,
     items: items.map((item) => retroItemSchema.parse({

@@ -336,6 +336,7 @@ test("public summary links return a readonly payload without internal ids", asyn
 
   const payload = await publicResponse.json() as Record<string, any>;
   assert.equal(payload.session.name, "Sprint 10 Retro");
+  assert.equal(payload.projectName, "Project Zebra");
   assert.equal(payload.session.createdAt, "2026-03-19T23:59:00.000Z");
   assert.equal(payload.session.closedAt, "2026-03-20T00:00:30.000Z");
   assert.equal(payload.participants[0].username, "Owner");
@@ -350,6 +351,30 @@ test("public summary links return a readonly payload without internal ids", asyn
   assert.equal("userId" in payload.participants[0], false);
   assert.equal("id" in payload.goodItems[0], false);
   assert.equal("reviewerId" in payload.reviews[0], false);
+});
+
+test("session view includes the project name", async () => {
+  const { owner, sessionId } = await seedSessionFixture({ phase: "ideation" });
+
+  const response = await requestJson(`/api/v1/sessions/${sessionId}/view`, {
+    headers: { Cookie: owner.cookieHeader },
+  });
+  assert.equal(response.status, 200);
+
+  const payload = await response.json() as Record<string, any>;
+  assert.equal(payload.projectName, "Project Zebra");
+});
+
+test("session summary includes the project name", async () => {
+  const { owner, sessionId } = await seedSessionFixture();
+
+  const response = await requestJson(`/api/v1/sessions/${sessionId}/summary`, {
+    headers: { Cookie: owner.cookieHeader },
+  });
+  assert.equal(response.status, 200);
+
+  const payload = await response.json() as Record<string, any>;
+  assert.equal(payload.projectName, "Project Zebra");
 });
 
 test("invalid public summary tokens return 404", async () => {

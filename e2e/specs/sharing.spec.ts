@@ -4,7 +4,10 @@ import {
   createProject,
   createSession,
   createItem,
+  createAction,
+  advancePhase,
   generateShareToken,
+  generateSummaryShareToken,
 } from "../helpers/factories";
 import { resetDatabase } from "../helpers/db-reset";
 
@@ -87,6 +90,28 @@ test.describe("Session Sharing & Guests", () => {
 
     await page.goto("/join/invalid-token-abc");
     await expect(page.getByText("Oops")).toBeVisible();
+
+    await ctx.close();
+  });
+
+  test("public shared summary shows the project name", async ({ browser }) => {
+    const ctx = await browser.newContext();
+    const owner = await loginAsOwner(ctx);
+    const o = opts(ctx, owner);
+    const project = await createProject(o, { name: "Tabbed Summary" });
+    const session = await createSession(o, project.id, { name: "Retro 1" });
+
+    await createItem(o, session.id, { type: "good", content: "Nice momentum" });
+    await advancePhase(o, session.id);
+    await createAction(o, session.id, { description: "Ship the recap" });
+    await advancePhase(o, session.id);
+
+    const { summaryShareToken } = await generateSummaryShareToken(o, session.id);
+    const page = await ctx.newPage();
+
+    await page.goto(`/summary/${summaryShareToken}`);
+    await expect(page.getByTestId("summary-project-tab")).toContainText("Tabbed Summary");
+    await expect(page.getByText("Retro 1")).toBeVisible();
 
     await ctx.close();
   });

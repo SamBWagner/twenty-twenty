@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { SharedSessionSummary as SessionSummaryDisplayData } from "@twenty-twenty/shared";
 import { cn } from "../../lib/button-styles";
 import { formatSessionDuration, formatVoteCount, reviewStatusLabels } from "../../lib/session-summary";
+import ProjectNameTab from "./ProjectNameTab";
 
 function formatDateTime(value: string | null): string {
   if (!value) return "Still open";
@@ -33,10 +34,19 @@ export default function SessionSummaryContent({
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="inline-block border-2 border-secondary note-chip px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">
-              Final Summary
-            </p>
-            <h2 className="mt-2 text-3xl font-bold uppercase">{summary.session.name}</h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="inline-block border-2 border-secondary note-chip px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">
+                Final Summary
+              </p>
+              {summary.projectName && (
+                <ProjectNameTab
+                  projectName={summary.projectName}
+                  testId="summary-project-tab"
+                  className="max-w-full origin-left rotate-[4deg] sm:max-w-[15rem]"
+                />
+              )}
+            </div>
+            <h2 className="mt-3 text-3xl font-bold uppercase">{summary.session.name}</h2>
             <p className="scribble-help note-muted mt-3 max-w-2xl text-base">
               Everything from this retrospective is collected here, including attendance, review outcomes,
               ideation notes, and the action plan that came out of it.

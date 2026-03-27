@@ -184,6 +184,7 @@ export const projectViewSchema = z.object({
 
 export const sessionViewSchema = z.object({
   session: retroSessionSchema,
+  projectName: z.string(),
   participants: z.array(sessionParticipantSchema),
   projectMembers: z.array(projectMemberSchema),
   items: z.array(retroItemSchema),
@@ -204,6 +205,7 @@ export const sessionSummaryReviewSchema = z.object({
 
 export const sessionSummarySchema = z.object({
   session: retroSessionSchema,
+  projectName: z.string(),
   participants: z.array(sessionParticipantSchema),
   items: z.array(
     z.object({
@@ -227,6 +229,7 @@ export const sharedSessionSummarySchema = z.object({
     createdAt: isoDateTimeSchema,
     closedAt: isoDateTimeSchema.nullable(),
   }),
+  projectName: z.string(),
   participants: z.array(z.object({
     username: z.string(),
     avatarUrl: z.string().nullable(),

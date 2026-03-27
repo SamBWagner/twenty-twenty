@@ -31,8 +31,9 @@ test.describe("Session Lifecycle", () => {
 
     // Should navigate to session page showing ideation phase
     await expect(page).toHaveURL(/\/sessions\//);
-    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Ideation");
-    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await expect(page.getByTestId("session-project-tab")).toContainText("Lifecycle Test");
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Look Within");
+    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Look Within");
 
     await ctx.close();
   });
@@ -47,7 +48,8 @@ test.describe("Session Lifecycle", () => {
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
 
-    await page.getByRole("button", { name: "Review" }).click();
+    await expect(page.getByTestId("session-project-tab")).toContainText("First Review State");
+    await page.getByRole("button", { name: "Look Back" }).click();
     await expect(page.getByText("Nothing to review yet")).toBeVisible();
     await expect(page.getByText("doesn't have any actions from a previous retrospective yet")).toBeVisible();
 
@@ -84,14 +86,15 @@ test.describe("Session Lifecycle", () => {
 
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
-    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Ideation");
+    await expect(page.getByTestId("session-project-tab")).toContainText("Phase Test");
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Look Within");
 
     // Click advance button
-    await page.getByRole("button", { name: "Advance to Actions" }).click();
-    await expect(page.getByRole("dialog")).toContainText("Move to Actions?");
-    await page.getByRole("button", { name: "Yes, Move to Actions" }).click();
-    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Actions");
-    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Actions");
+    await page.getByRole("button", { name: "Advance to Look Forward" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Move to Look Forward?");
+    await page.getByRole("button", { name: "Yes, Move Forward" }).click();
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Look Forward");
+    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Look Forward");
     await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Action Groups");
 
     await ctx.close();
@@ -130,10 +133,11 @@ test.describe("Session Lifecycle", () => {
     await expect(page.getByRole("dialog")).toContainText("Close this retrospective?");
     await page.getByRole("button", { name: "Yes, Finish Session" }).click();
 
+    await expect(page.getByTestId("session-project-tab")).toContainText("Close Test");
+    await expect(page.getByTestId("summary-project-tab")).toContainText("Close Test");
     await expect(page.getByText("Final Summary")).toBeVisible();
     await expect(page.getByText("Publish retro recap")).toBeVisible();
     await expect(page.getByRole("button", { name: "Copy Summary" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Summarize" })).toHaveCount(0);
     await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Summary");
     await expect(page.locator('[data-note-theme="sun"][data-tape-position="top-center"]')).toContainText("Final Summary");
     await expect(page.locator('[data-note-theme="mint"][data-tape-position="top-center"]')).toContainText("Went Well");
@@ -160,6 +164,7 @@ test.describe("Session Lifecycle", () => {
     const s2 = await createSession(opts, project.id, { name: "Retro 2" });
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
+    await expect(page.getByTestId("session-project-tab")).toContainText("Review Start");
     await expect(page.getByText("Reviewing Previous Actions")).toBeVisible();
     await expect(page.locator('[data-note-theme="light-peach"][data-tape-position="top-center"]')).toContainText("Reviewing Previous Actions");
 

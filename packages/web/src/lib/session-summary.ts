@@ -59,6 +59,7 @@ export function toSessionSummaryDisplayData(summary: SessionSummaryData): Sessio
       createdAt: summary.session.createdAt,
       closedAt: summary.session.closedAt,
     },
+    projectName: summary.projectName,
     participants: summary.participants.map((participant) => ({
       username: participant.username,
       avatarUrl: participant.avatarUrl,
@@ -81,6 +82,7 @@ export function toSessionSummaryDisplayData(summary: SessionSummaryData): Sessio
 export function buildSessionSummaryMarkdown(summary: SessionSummaryDisplayData): string {
   const lines: string[] = [];
   lines.push(`# ${summary.session.name}`);
+  lines.push(`Project: ${summary.projectName}`);
   lines.push("");
   lines.push(`Sequence: #${summary.session.sequence}`);
   if (summary.session.closedAt) {

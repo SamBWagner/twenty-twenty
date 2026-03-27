@@ -105,6 +105,18 @@ export async function generateShareToken(
   return res.json();
 }
 
+export async function generateSummaryShareToken(
+  opts: RequestOptions,
+  sessionId: string,
+) {
+  const res = await opts.request.post(
+    `${API_V1_URL}/sessions/${sessionId}/summary-share`,
+    { headers: headers(opts.cookie) },
+  );
+  if (!res.ok()) throw new Error(`generateSummaryShareToken failed: ${res.status()}`);
+  return res.json();
+}
+
 // --- Items ---
 
 export async function createItem(

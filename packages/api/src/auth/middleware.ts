@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { authModeSchema, type AuthMode } from "@twenty-twenty/shared";
 import { auth } from "./index.js";
 import { db, schema } from "../db/index.js";

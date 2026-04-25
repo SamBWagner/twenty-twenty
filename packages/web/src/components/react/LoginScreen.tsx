@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { cn, scrapbookButton } from "../../lib/button-styles";
-import { AuthErrorMessage, AuthLoadingMessage, buildLoginUrl, useAuthSession } from "../../lib/client-auth";
+import { AuthErrorMessage, AuthLoadingMessage, useAuthSession } from "../../lib/client-auth";
 
 export default function LoginScreen({
   redirect,
@@ -11,7 +11,7 @@ export default function LoginScreen({
   error: string;
   details: string;
 }) {
-  const { loading, error: authError, session, viewer, auth } = useAuthSession();
+  const { loading, error: authError, viewer, auth } = useAuthSession();
 
   useEffect(() => {
     if (viewer) {

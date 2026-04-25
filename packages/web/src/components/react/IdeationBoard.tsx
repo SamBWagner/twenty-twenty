@@ -103,7 +103,6 @@ export default function IdeationBoard({
                 item={item}
                 onVote={vote}
                 onDelete={deleteItem}
-                color="green"
                 rotation={cardRotations[i % cardRotations.length]}
                 readOnly={readOnly}
               />
@@ -153,7 +152,6 @@ export default function IdeationBoard({
                 item={item}
                 onVote={vote}
                 onDelete={deleteItem}
-                color="red"
                 rotation={cardRotations[(i + 3) % cardRotations.length]}
                 readOnly={readOnly}
               />
@@ -196,14 +194,12 @@ function ItemCard({
   item,
   onVote,
   onDelete,
-  color,
   rotation,
   readOnly,
 }: {
   item: Item;
   onVote: (id: string, value: 1 | -1) => void;
   onDelete: (id: string) => void;
-  color: "green" | "red";
   rotation: string;
   readOnly: boolean;
 }) {

@@ -62,8 +62,8 @@ test.describe("Session Lifecycle", () => {
     const opts = ownerOpts(ctx, owner);
     const project = await createProject(opts, { name: "Seq Test" });
 
-    const s1 = await createSession(opts, project.id, { name: "Retro 1" });
-    const s2 = await createSession(opts, project.id, { name: "Retro 2" });
+    await createSession(opts, project.id, { name: "Retro 1" });
+    await createSession(opts, project.id, { name: "Retro 2" });
 
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}`);

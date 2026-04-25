@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { loginAsOwner, loginAsMember } from "../helpers/auth";
-import { createProject, createSession, addMember } from "../helpers/factories";
+import { loginAsOwner } from "../helpers/auth";
+import { createProject, createSession } from "../helpers/factories";
 import { resetDatabase } from "../helpers/db-reset";
 
 test.beforeEach(async () => {

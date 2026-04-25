@@ -5,7 +5,6 @@ import {
   invitationPreviewSchema,
   projectInvitationSchema,
   projectListItemSchema,
-  projectMemberSchema,
   projectSchema,
   updateProjectBodySchema,
 } from "@twenty-twenty/shared";

@@ -19,7 +19,7 @@ test.describe("Authentication", () => {
 
   test("authenticated user can access /projects", async ({ browser }) => {
     const context = await browser.newContext();
-    const { userId } = await loginAsOwner(context);
+    await loginAsOwner(context);
     const page = await context.newPage();
 
     await page.goto("/projects");

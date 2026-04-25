@@ -262,11 +262,12 @@ const pullsUrl = `${repoUrl}/pulls`;
   const root = document.querySelector(".tear-strip-root");
 
   if (root instanceof HTMLElement && root.dataset.tearReady !== "true") {
-    root.dataset.tearReady = "true";
-    const track = root.querySelector("[data-tear-track]");
-    const handle = root.querySelector("[data-tear-handle]");
-    const handleWrap = root.querySelector("[data-tear-handle-wrap]");
-    const panel = root.querySelector("[data-tear-panel]");
+    const tearRoot = root;
+    tearRoot.dataset.tearReady = "true";
+    const track = tearRoot.querySelector("[data-tear-track]");
+    const handle = tearRoot.querySelector("[data-tear-handle]");
+    const handleWrap = tearRoot.querySelector("[data-tear-handle-wrap]");
+    const panel = tearRoot.querySelector("[data-tear-panel]");
     const panelFocusables = panel?.querySelectorAll("a, button") ?? [];
 
     if (
@@ -275,10 +276,14 @@ const pullsUrl = `${repoUrl}/pulls`;
       handleWrap instanceof HTMLElement &&
       panel instanceof HTMLElement
     ) {
+      const tearTrack = track;
+      const tearHandle = handle;
+      const tearHandleWrap = handleWrap;
+      const tearPanel = panel;
       let maxTravel = 0;
       let progressPx = 0;
       let dragging = false;
-      let pointerId = null;
+      let pointerId: number | null = null;
       let startX = 0;
       let startProgress = 0;
       let dragOriginTorn = false;
@@ -287,9 +292,9 @@ const pullsUrl = `${repoUrl}/pulls`;
       const tearThreshold = 0.92;
       const repairThreshold = 0.08;
 
-      function syncHandleState(torn) {
-        handle.textContent = torn ? "Tape It Back Up" : "Tear Here";
-        handle.setAttribute(
+      function syncHandleState(torn: boolean) {
+        tearHandle.textContent = torn ? "Tape It Back Up" : "Tear Here";
+        tearHandle.setAttribute(
           "aria-label",
           torn
             ? "Drag back across to tape the footer back up"
@@ -297,8 +302,8 @@ const pullsUrl = `${repoUrl}/pulls`;
         );
       }
 
-      function syncPanelState(torn) {
-        panel.setAttribute("aria-hidden", torn ? "false" : "true");
+      function syncPanelState(torn: boolean) {
+        tearPanel.setAttribute("aria-hidden", torn ? "false" : "true");
         panelFocusables.forEach((element) => {
           if (element instanceof HTMLElement) {
             element.tabIndex = torn ? 0 : -1;
@@ -308,16 +313,16 @@ const pullsUrl = `${repoUrl}/pulls`;
 
       function render() {
         const percent = maxTravel > 0 ? Math.min(progressPx / maxTravel, 1) * 100 : 0;
-        root.style.setProperty("--tear-progress", `${percent}%`);
-        handleWrap.style.transform = `translate(${progressPx}px, -50%)`;
+        tearRoot.style.setProperty("--tear-progress", `${percent}%`);
+        tearHandleWrap.style.transform = `translate(${progressPx}px, -50%)`;
       }
 
       function measure() {
-        const trackRect = track.getBoundingClientRect();
-        const handleRect = handleWrap.getBoundingClientRect();
+        const trackRect = tearTrack.getBoundingClientRect();
+        const handleRect = tearHandleWrap.getBoundingClientRect();
         maxTravel = Math.max(trackRect.width - handleRect.width - 24, 0);
 
-        if (root.dataset.torn === "true") {
+        if (tearRoot.dataset.torn === "true") {
           progressPx = maxTravel;
         } else {
           progressPx = Math.min(progressPx, maxTravel);
@@ -330,7 +335,7 @@ const pullsUrl = `${repoUrl}/pulls`;
         if (pointerId === null) return;
 
         try {
-          handle.releasePointerCapture(pointerId);
+          tearHandle.releasePointerCapture(pointerId);
         } catch {
           // Ignore browsers that already released the pointer capture.
         }
@@ -338,11 +343,11 @@ const pullsUrl = `${repoUrl}/pulls`;
         pointerId = null;
       }
 
-      function setTorn(torn) {
-        root.dataset.torn = torn ? "true" : "false";
-        root.dataset.dragging = "false";
+      function setTorn(torn: boolean) {
+        tearRoot.dataset.torn = torn ? "true" : "false";
+        tearRoot.dataset.dragging = "false";
         dragging = false;
-        handle.setAttribute("aria-expanded", torn ? "true" : "false");
+        tearHandle.setAttribute("aria-expanded", torn ? "true" : "false");
         syncHandleState(torn);
         syncPanelState(torn);
         measure();
@@ -351,7 +356,7 @@ const pullsUrl = `${repoUrl}/pulls`;
       function finishDrag() {
         if (!dragging) return;
 
-        root.dataset.dragging = "false";
+        tearRoot.dataset.dragging = "false";
         dragging = false;
 
         if (dragOriginTorn) {
@@ -374,43 +379,43 @@ const pullsUrl = `${repoUrl}/pulls`;
       function cancelDrag() {
         if (!dragging) return;
 
-        root.dataset.dragging = "false";
+        tearRoot.dataset.dragging = "false";
         dragging = false;
         progressPx = dragOriginTorn ? maxTravel : 0;
         render();
         releasePointer();
       }
 
-      function updateProgress(clientX) {
+      function updateProgress(clientX: number) {
         const nextValue = startProgress + (clientX - startX);
         progressPx = Math.min(Math.max(nextValue, 0), maxTravel);
         movedDuringDrag = movedDuringDrag || Math.abs(clientX - startX) > 4;
         render();
       }
 
-      handle.addEventListener("pointerdown", (event) => {
+      tearHandle.addEventListener("pointerdown", (event) => {
         dragging = true;
         pointerId = event.pointerId;
         startX = event.clientX;
         startProgress = progressPx;
-        dragOriginTorn = root.dataset.torn === "true";
+        dragOriginTorn = tearRoot.dataset.torn === "true";
         movedDuringDrag = false;
-        root.dataset.dragging = "true";
-        handle.setPointerCapture(pointerId);
+        tearRoot.dataset.dragging = "true";
+        tearHandle.setPointerCapture(pointerId);
         event.preventDefault();
       });
 
-      handle.addEventListener("pointermove", (event) => {
+      tearHandle.addEventListener("pointermove", (event) => {
         if (!dragging || event.pointerId !== pointerId) return;
         updateProgress(event.clientX);
       });
 
-      handle.addEventListener("pointerup", finishDrag);
-      handle.addEventListener("pointercancel", cancelDrag);
+      tearHandle.addEventListener("pointerup", finishDrag);
+      tearHandle.addEventListener("pointercancel", cancelDrag);
       window.addEventListener("pointerup", finishDrag);
 
-      handle.addEventListener("keydown", (event) => {
-        if ((event.key === "Enter" || event.key === " ") && root.dataset.torn !== "true") {
+      tearHandle.addEventListener("keydown", (event) => {
+        if ((event.key === "Enter" || event.key === " ") && tearRoot.dataset.torn !== "true") {
           event.preventDefault();
           setTorn(true);
         }
@@ -422,7 +427,7 @@ const pullsUrl = `${repoUrl}/pulls`;
 
       if (typeof ResizeObserver !== "undefined") {
         const observer = new ResizeObserver(() => measure());
-        observer.observe(track);
+        observer.observe(tearTrack);
       } else {
         window.addEventListener("resize", measure);
       }

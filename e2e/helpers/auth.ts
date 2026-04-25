@@ -9,21 +9,6 @@ interface SeedResult {
 }
 
 /**
- * Extract the session cookie value from Set-Cookie headers.
- */
-function extractSessionCookie(headers: Headers): string | null {
-  const setCookies = headers.getSetCookie?.() || [];
-  for (const cookie of setCookies) {
-    if (cookie.startsWith(`${COOKIE_NAME}=`)) {
-      // Extract just the value (before the first ;)
-      const value = cookie.split(";")[0].split("=").slice(1).join("=");
-      return value;
-    }
-  }
-  return null;
-}
-
-/**
  * Seed a test user via better-auth's email+password signup.
  * Sets the signed session cookie on the browser context.
  */

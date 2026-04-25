@@ -1,10 +1,11 @@
 import type { Context } from "hono";
+import type { UpgradeWebSocket } from "hono/ws";
 import { eq, and } from "drizzle-orm";
 import { authenticateRequest } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
 import { joinRoom, leaveRoom } from "./rooms.js";
 
-export function createWsHandler(upgradeWebSocket: Function) {
+export function createWsHandler(upgradeWebSocket: UpgradeWebSocket) {
   return upgradeWebSocket(async (c: Context) => {
     const sessionId = c.req.query("sessionId");
 

@@ -46,11 +46,13 @@ test.describe("Review Phase", () => {
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
     await expect(page.getByText("Reviewing Previous Actions")).toBeVisible();
     await expect(page.getByText("Optimize CI pipeline")).toBeVisible();
-    await expect(page.getByText("Disagreed", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("review-option-disagreed").getByText("Disagreed", { exact: true })).toBeVisible();
     await expect(page.getByText("We did nothing, try again")).toBeVisible();
 
     const optionOrder = await page.locator('[data-testid="review-options"] > *').evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute("data-testid")),
+      nodes
+        .map((node) => node.getAttribute("data-testid"))
+        .filter((id): id is string => id !== null),
     );
     expect(optionOrder).toEqual([
       "review-option-actioned",
@@ -72,9 +74,11 @@ test.describe("Review Phase", () => {
 
     // Review first action as "actioned"
     await page.getByRole("button", { name: /Actioned/ }).click();
+    await expect(page.getByText("Your vote: Actioned")).toBeVisible();
 
-    // Progress should update (reviewed 2 of 2 shown, since progress = reviewed + currentIndex + 1)
+    await page.getByRole("button", { name: /Accept Top Vote/ }).click();
     await expect(page.getByText("2/2")).toBeVisible();
+    await expect(page.getByText("Add caching")).toBeVisible();
 
     await ctx.close();
   });
@@ -88,7 +92,10 @@ test.describe("Review Phase", () => {
     await page.goto(`/projects/${project.id}/sessions/${s2.id}`);
 
     await page.getByRole("button", { name: /We did nothing, try again/ }).click();
+    await expect(page.getByText("Your vote: Try Again")).toBeVisible();
+    await page.getByRole("button", { name: /Accept Top Vote/ }).click();
     await expect(page.getByText("2/2")).toBeVisible();
+    await expect(page.getByText("Add caching")).toBeVisible();
 
     await ctx.close();
   });
@@ -103,9 +110,12 @@ test.describe("Review Phase", () => {
 
     // Fill in disagree comment and submit
     await page.getByPlaceholder("Tell us what happened...").fill("This was the wrong approach");
-    await page.getByRole("button", { name: /Submit Disagreed/ }).click();
+    await page.getByRole("button", { name: /Vote Disagreed/ }).click();
+    await expect(page.getByText("Your vote: Disagreed")).toBeVisible();
 
+    await page.getByRole("button", { name: /Accept Top Vote/ }).click();
     await expect(page.getByText("2/2")).toBeVisible();
+    await expect(page.getByText("Add caching")).toBeVisible();
 
     await ctx.close();
   });
@@ -120,12 +130,14 @@ test.describe("Review Phase", () => {
 
     // Review both actions
     await page.getByRole("button", { name: /Actioned/ }).click();
-    await page.waitForTimeout(500);
+    await page.getByRole("button", { name: /Accept Top Vote/ }).click();
+    await expect(page.getByText("Add caching")).toBeVisible();
     await page.getByRole("button", { name: /Actioned/ }).click();
+    await page.getByRole("button", { name: /Accept Top Vote/ }).click();
 
     // Should transition to ideation phase after all reviews complete
-    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Ideation", { timeout: 10_000 });
-    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Look Within", { timeout: 10_000 });
+    await expect(page.locator('button[data-active-section="true"]')).toHaveText("Look Within");
 
     await ctx.close();
   });

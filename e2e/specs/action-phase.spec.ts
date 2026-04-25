@@ -4,6 +4,7 @@ import {
   createProject,
   createSession,
   createItem,
+  createAction,
   advancePhase,
 } from "../helpers/factories";
 import { resetDatabase } from "../helpers/db-reset";
@@ -28,42 +29,34 @@ async function setupActionPhase(ctx: any, owner: any) {
 }
 
 test.describe("Action Phase", () => {
-  test("create a new action group", async ({ browser }) => {
+  test("create a new action", async ({ browser }) => {
     const ctx = await browser.newContext();
     const owner = await loginAsOwner(ctx);
     const { project, session } = await setupActionPhase(ctx, owner);
     const page = await ctx.newPage();
 
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
-    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Action Groups");
-    await page.getByRole("button", { name: /New Action Group/ }).click();
+    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Actions");
+    await page.getByRole("button", { name: /New Action/ }).click();
+    await page.getByPlaceholder("e.g. Set up weekly check-ins").fill("Automate deploys");
+    await page.getByRole("button", { name: "Add" }).click();
 
-    // Should see the new bundle with editable label
-    await expect(page.getByPlaceholder("New Action Group")).toBeVisible();
-    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-right"]')).toHaveCount(1);
+    await expect(page.getByText("Automate deploys")).toBeVisible();
 
     await ctx.close();
   });
 
-  test("create an action within a group", async ({ browser }) => {
+  test("existing actions are shown", async ({ browser }) => {
     const ctx = await browser.newContext();
     const owner = await loginAsOwner(ctx);
     const { project, session, opts: o } = await setupActionPhase(ctx, owner);
 
-    // Create a bundle via API
-    const { createBundle } = await import("../helpers/factories");
-    await createBundle(o, session.id, { label: "Deploy Improvements" });
+    await createAction(o, session.id, { description: "Deploy Improvements" });
 
     const page = await ctx.newPage();
     await page.goto(`/projects/${project.id}/sessions/${session.id}`);
-    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Action Groups");
-
-    // Fill in action input inside the bundle
-    await page.getByPlaceholder("e.g. Set up weekly check-ins").fill("Automate deploys");
-    await page.getByPlaceholder("e.g. Set up weekly check-ins").press("Enter");
-
-    await expect(page.getByText("Automate deploys")).toBeVisible();
-    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-right"]').first()).toContainText("Deploy Improvements");
+    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Actions");
+    await expect(page.getByText("Deploy Improvements")).toBeVisible();
 
     await ctx.close();
   });

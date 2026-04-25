@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsOwner, loginAsMember, loginAsUser } from "../helpers/auth";
+import { loginAsOwner, loginAsMember } from "../helpers/auth";
 import { createProject, addMember } from "../helpers/factories";
 import { resetDatabase } from "../helpers/db-reset";
 

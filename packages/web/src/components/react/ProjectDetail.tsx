@@ -31,15 +31,13 @@ function fallbackCopy(text: string): boolean {
   document.body.appendChild(textarea);
   textarea.select();
 
-  let success = false;
   try {
-    success = document.execCommand("copy");
+    return document.execCommand("copy");
   } catch {
-    success = false;
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
   }
-
-  document.body.removeChild(textarea);
-  return success;
 }
 
 async function copyText(text: string): Promise<boolean> {

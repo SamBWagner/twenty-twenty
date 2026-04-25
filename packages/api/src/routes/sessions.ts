@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, asc, count, desc, eq, lte } from "drizzle-orm";
+import { and, count, desc, eq, lte } from "drizzle-orm";
 import {
   createSessionBodySchema,
   retroSessionSchema,

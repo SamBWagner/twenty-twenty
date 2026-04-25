@@ -173,7 +173,7 @@ export default function SessionView({
         case "user:left":
           setOnlineUsers((prev) => prev.filter((u) => u.userId !== event.payload.userId));
           break;
-        case "phase:changed":
+        case "phase:changed": {
           const nextPhase = event.payload.phase as SessionPhase;
           setSession((prev) =>
             prev ? { ...prev, phase: nextPhase } : prev,
@@ -188,6 +188,7 @@ export default function SessionView({
           } : prev));
           setActiveSection((prev) => prev || defaultSectionForPhase(nextPhase));
           break;
+        }
         default:
           itemEventHandlers.onWsEvent?.(event);
       }
@@ -370,7 +371,6 @@ export default function SessionView({
   if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!session) return <p className="font-bold text-red-600">Session not found</p>;
 
-  const isCreator = session.createdBy === userId;
   const visibleSection = activeSection || defaultSectionForPhase(session.phase);
   const liveSection = defaultSectionForPhase(session.phase);
 

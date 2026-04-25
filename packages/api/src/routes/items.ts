@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
+import { asc, eq, and } from "drizzle-orm";
 import { createItemBodySchema, retroItemSchema, voteItemBodySchema } from "@twenty-twenty/shared";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
@@ -7,6 +7,7 @@ import { newId } from "../lib/id.js";
 import { broadcast } from "../ws/rooms.js";
 import { canAccessSession } from "../lib/session-access.js";
 import { jsonError, parseJsonBody, toIsoString } from "../lib/http.js";
+import { serializeRetroItemsForUser } from "../lib/retro-items.js";
 
 export const itemRoutes = new Hono();
 
@@ -21,30 +22,29 @@ itemRoutes.get("/sessions/:sid/items", requireAuth, async (c) => {
   const session = await db.select().from(schema.retroSessions).where(eq(schema.retroSessions.id, sid)).get();
   if (!session) return jsonError(c, 404, "not_found", "Session not found.");
 
-  const items = await db.select().from(schema.items).where(eq(schema.items.sessionId, sid));
+  const [items, voteRows] = await Promise.all([
+    db
+      .select()
+      .from(schema.items)
+      .where(eq(schema.items.sessionId, sid))
+      .orderBy(asc(schema.items.createdAt)),
+    db
+      .select({
+        itemId: schema.votes.itemId,
+        userId: schema.votes.userId,
+        value: schema.votes.value,
+      })
+      .from(schema.votes)
+      .innerJoin(schema.items, eq(schema.items.id, schema.votes.itemId))
+      .where(eq(schema.items.sessionId, sid)),
+  ]);
 
-  // Get vote counts and user's own votes
-  const result = await Promise.all(
-    items.map(async (item) => {
-      const voteRows = await db.select().from(schema.votes).where(eq(schema.votes.itemId, item.id));
-      const voteCount = voteRows.reduce((sum, v) => sum + v.value, 0);
-      const userVote = voteRows.find((v) => v.userId === user.id)?.value || 0;
-
-      return retroItemSchema.parse({
-        id: item.id,
-        sessionId: item.sessionId,
-        type: item.type,
-        content: item.content,
-        createdAt: toIsoString(item.createdAt),
-        voteCount,
-        userVote,
-        authorId: session.phase === "ideation" ? null : item.authorId,
-        isOwn: item.authorId === user.id,
-      });
-    }),
-  );
-
-  return c.json(result);
+  return c.json(serializeRetroItemsForUser({
+    items,
+    voteRows,
+    sessionPhase: session.phase,
+    userId: user.id,
+  }));
 });
 
 // Create item (ideation phase only)

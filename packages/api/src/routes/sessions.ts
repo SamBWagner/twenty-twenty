@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, lte } from "drizzle-orm";
 import {
   createSessionBodySchema,
   retroSessionSchema,
@@ -102,11 +102,12 @@ sessionRoutes.post("/projects/:pid/sessions", requireAuth, async (c) => {
   let initialPhase: "review" | "ideation" = "ideation";
   if (latestSession) {
     const previousActions = await db
-      .select()
+      .select({ total: count() })
       .from(schema.actions)
-      .where(eq(schema.actions.sessionId, latestSession.id));
+      .where(eq(schema.actions.sessionId, latestSession.id))
+      .get();
 
-    if (previousActions.length > 0) {
+    if ((previousActions?.total || 0) > 0) {
       initialPhase = "review";
     }
   }
@@ -207,22 +208,24 @@ sessionRoutes.patch("/sessions/:sid/phase", requireAuth, async (c) => {
 
   if (session.phase === "ideation") {
     const itemCount = await db
-      .select()
+      .select({ total: count() })
       .from(schema.items)
-      .where(eq(schema.items.sessionId, sid));
+      .where(eq(schema.items.sessionId, sid))
+      .get();
 
-    if (itemCount.length === 0) {
+    if ((itemCount?.total || 0) === 0) {
       return jsonError(c, 400, "invalid_request", "At least one item is required to advance.");
     }
   }
 
   if (session.phase === "action") {
     const actionCount = await db
-      .select()
+      .select({ total: count() })
       .from(schema.actions)
-      .where(eq(schema.actions.sessionId, sid));
+      .where(eq(schema.actions.sessionId, sid))
+      .get();
 
-    if (actionCount.length === 0) {
+    if ((actionCount?.total || 0) === 0) {
       return jsonError(c, 400, "invalid_request", "At least one action is required to close the session.");
     }
   }

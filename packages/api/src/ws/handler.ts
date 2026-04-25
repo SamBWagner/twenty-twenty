@@ -10,6 +10,7 @@ export function createWsHandler(upgradeWebSocket: Function) {
 
     const auth = await authenticateRequest(c.req.raw.headers);
     const user = auth.user;
+    let connectionId: string | null = null;
 
     return {
       onOpen(_event: unknown, ws: any) {
@@ -17,7 +18,7 @@ export function createWsHandler(upgradeWebSocket: Function) {
           ws.close(1008, "Unauthorized");
           return;
         }
-        joinRoom(sessionId, {
+        connectionId = joinRoom(sessionId, {
           userId: user.id,
           username: user.name || "Anonymous",
           avatarUrl: user.image || null,
@@ -27,8 +28,15 @@ export function createWsHandler(upgradeWebSocket: Function) {
         recordAttendance(sessionId, user.id).catch(() => {});
       },
       onClose() {
-        if (sessionId && user) {
-          leaveRoom(sessionId, user.id);
+        if (sessionId && connectionId) {
+          leaveRoom(sessionId, connectionId);
+          connectionId = null;
+        }
+      },
+      onError() {
+        if (sessionId && connectionId) {
+          leaveRoom(sessionId, connectionId);
+          connectionId = null;
         }
       },
     };

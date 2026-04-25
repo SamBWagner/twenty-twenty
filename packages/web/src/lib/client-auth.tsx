@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import type { AuthSession } from "@twenty-twenty/shared";
 import { api } from "./api-client";
 
+const AUTH_SESSION_CACHE_MS = 2_000;
+
+let cachedAuthSession: {
+  value: AuthSession;
+  expiresAt: number;
+} | null = null;
+let inFlightAuthSession: Promise<AuthSession> | null = null;
+
 function currentBrowserPath(): string {
   if (typeof window === "undefined") {
     return "/";
@@ -22,6 +30,37 @@ export function redirectToLogin(redirectPath = currentBrowserPath()) {
   window.location.href = buildLoginUrl(redirectPath);
 }
 
+export function loadAuthSession(): Promise<AuthSession> {
+  const now = Date.now();
+  if (cachedAuthSession && cachedAuthSession.expiresAt > now) {
+    return Promise.resolve(cachedAuthSession.value);
+  }
+
+  if (inFlightAuthSession) {
+    return inFlightAuthSession;
+  }
+
+  inFlightAuthSession = api
+    .get<AuthSession>("/auth/session")
+    .then((result) => {
+      cachedAuthSession = {
+        value: result,
+        expiresAt: Date.now() + AUTH_SESSION_CACHE_MS,
+      };
+      return result;
+    })
+    .finally(() => {
+      inFlightAuthSession = null;
+    });
+
+  return inFlightAuthSession;
+}
+
+export function resetAuthSessionCacheForTest() {
+  cachedAuthSession = null;
+  inFlightAuthSession = null;
+}
+
 export function useAuthSession(options: {
   redirectOnAnonymous?: boolean;
   redirectPath?: string;
@@ -33,8 +72,7 @@ export function useAuthSession(options: {
   useEffect(() => {
     let cancelled = false;
 
-    api
-      .get<AuthSession>("/auth/session")
+    loadAuthSession()
       .then((result) => {
         if (cancelled) return;
         setSession(result);

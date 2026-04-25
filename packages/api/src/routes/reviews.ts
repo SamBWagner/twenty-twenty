@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
+import { count, eq, and } from "drizzle-orm";
 import { actionReviewSchema, submitReviewBodySchema } from "@twenty-twenty/shared";
 import { db, schema } from "../db/index.js";
 import { requireAuth } from "../auth/middleware.js";
@@ -89,16 +89,18 @@ reviewRoutes.post("/sessions/:sid/reviews", requireAuth, async (c) => {
 
   if (previousSession) {
     const totalActions = await db
-      .select()
+      .select({ total: count() })
       .from(schema.actions)
-      .where(eq(schema.actions.sessionId, previousSession.id));
+      .where(eq(schema.actions.sessionId, previousSession.id))
+      .get();
 
     const totalReviews = await db
-      .select()
+      .select({ total: count() })
       .from(schema.actionReviews)
-      .where(eq(schema.actionReviews.sessionId, sid));
+      .where(eq(schema.actionReviews.sessionId, sid))
+      .get();
 
-    if (totalReviews.length >= totalActions.length) {
+    if ((totalReviews?.total || 0) >= (totalActions?.total || 0)) {
       // All reviewed — advance to ideation
       await db
         .update(schema.retroSessions)

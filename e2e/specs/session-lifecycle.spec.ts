@@ -95,7 +95,7 @@ test.describe("Session Lifecycle", () => {
     await page.getByRole("button", { name: "Yes, Move Forward" }).click();
     await expect(page.locator('button[data-live-phase="true"]')).toHaveText("Look Forward");
     await expect(page.locator('button[data-active-section="true"]')).toHaveText("Look Forward");
-    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Action Groups");
+    await expect(page.locator('[data-note-theme="plum"][data-tape-position="top-center"]')).toContainText("Actions");
 
     await ctx.close();
   });

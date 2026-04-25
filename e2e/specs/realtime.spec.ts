@@ -67,30 +67,30 @@ test.describe("Real-time Collaboration", () => {
     await ownerPage.goto(`/projects/${project.id}/sessions/${session.id}`);
     await memberPage.goto(`/projects/${project.id}/sessions/${session.id}`);
 
-    await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Ideation");
-    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Look Within");
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Look Within");
 
     // Owner adds item and advances to action
     await ownerPage.getByPlaceholder("Something that went well").fill("Test item");
     await ownerPage.getByPlaceholder("Something that went well").press("Enter");
     await expect(ownerPage.getByText("Test item")).toBeVisible();
 
-    await ownerPage.getByRole("button", { name: "Advance to Actions" }).click();
-    await expect(ownerPage.getByRole("dialog")).toContainText("Move to Actions?");
-    await ownerPage.getByRole("button", { name: "Yes, Move to Actions" }).click();
+    await ownerPage.getByRole("button", { name: "Advance to Look Forward" }).click();
+    await expect(ownerPage.getByRole("dialog")).toContainText("Move to Look Forward?");
+    await ownerPage.getByRole("button", { name: "Yes, Move Forward" }).click();
 
     // Member should see the live phase change, but stay on ideation until they choose otherwise
-    await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Actions", { timeout: 10_000 });
-    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await expect(memberPage.locator('button[data-live-phase="true"]')).toHaveText("Look Forward", { timeout: 10_000 });
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Look Within");
     await expect(memberPage.getByText("Went Well")).toBeVisible();
     await expect(memberPage.getByText("Test item")).toBeVisible();
 
-    await memberPage.getByRole("button", { name: "Actions" }).click();
-    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Actions");
-    await expect(memberPage.getByText("Unactioned Items")).toBeVisible({ timeout: 10_000 });
+    await memberPage.getByRole("button", { name: "Look Forward" }).click();
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Look Forward");
+    await expect(memberPage.getByText("Retro Items")).toBeVisible({ timeout: 10_000 });
 
-    await memberPage.getByRole("button", { name: "Ideation" }).click();
-    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Ideation");
+    await memberPage.getByRole("button", { name: "Look Within" }).click();
+    await expect(memberPage.locator('button[data-active-section="true"]')).toHaveText("Look Within");
     await expect(memberPage.getByText("Went Well")).toBeVisible();
 
     await ownerCtx.close();

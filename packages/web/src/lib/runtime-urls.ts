@@ -6,7 +6,7 @@ function isLocalDevHost(hostname: string): boolean {
 }
 
 export function getPublicApiBaseUrl(): string {
-  if (import.meta.env.PUBLIC_API_URL) {
+  if (import.meta.env?.PUBLIC_API_URL) {
     return import.meta.env.PUBLIC_API_URL;
   }
 
@@ -22,7 +22,7 @@ export function getPublicApiBaseUrl(): string {
 }
 
 export function getPublicWebBaseUrl(): string {
-  if (import.meta.env.PUBLIC_WEB_URL) {
+  if (import.meta.env?.PUBLIC_WEB_URL) {
     return import.meta.env.PUBLIC_WEB_URL;
   }
 

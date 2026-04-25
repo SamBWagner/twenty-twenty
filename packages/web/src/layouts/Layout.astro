@@ -425,6 +425,34 @@ const { title } = Astro.props;
         box-shadow: 0 0.18rem 0 rgba(8, 7, 8, 0.14), 0.18rem 0.26rem 0 rgba(8, 7, 8, 0.12);
       }
 
+      .app-reactive-grid {
+        --app-grid-x: 0px;
+        --app-grid-y: 0px;
+        isolation: isolate;
+        overflow-x: clip;
+        position: relative;
+      }
+
+      .app-reactive-grid::before {
+        content: "";
+        position: fixed;
+        inset: -25vmax;
+        z-index: 0;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%2724%27%20height%3D%2724%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%3E%3Cpath%20d%3D%27M23.5%200V24%27%20stroke%3D%27%23e5e5e5%27%20stroke-width%3D%271%27%2F%3E%3Cpath%20d%3D%27M0%2023.5H24%27%20stroke%3D%27%23e5e5e5%27%20stroke-width%3D%271%27%2F%3E%3C%2Fsvg%3E");
+        background-position: var(--app-grid-x) var(--app-grid-y);
+        background-repeat: repeat;
+        background-size: 24px 24px;
+        transform: rotate(10deg);
+        transform-origin: center;
+        will-change: background-position;
+      }
+
+      .app-reactive-grid > :not(script) {
+        position: relative;
+        z-index: 1;
+      }
+
       .scrapbook-btn--left {
         --sb-rest-rotate: -0.9deg;
         --sb-hover-rotate: 0.5deg;
@@ -489,10 +517,14 @@ const { title } = Astro.props;
         .section-bounce {
           animation: none !important;
         }
+
+        .app-reactive-grid::before {
+          background-position: 0 0 !important;
+        }
       }
     </style>
   </head>
-  <body class="flex min-h-screen flex-col bg-surface bg-grid font-sans text-secondary">
+  <body class="app-reactive-grid flex min-h-screen flex-col bg-surface font-sans text-secondary">
     <!-- Scattered nav -->
     <nav class="relative mx-auto w-full max-w-6xl px-6 pb-2 pt-6">
       <div class="flex w-full items-center justify-between gap-4">
@@ -519,6 +551,176 @@ const { title } = Astro.props;
     </TearStrip>
 
     <script>
+      (() => {
+        const body = document.body;
+        if (!body.classList.contains("app-reactive-grid")) return;
+
+        const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const finePointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+        const gridSize = 24;
+        const passiveVelocityX = 3;
+        const passiveVelocityY = -3;
+        const cursorSpeed = 10;
+        const maxAxisSpeed = 10;
+        const velocityEase = 0.025;
+
+        let targetVelocityX = passiveVelocityX;
+        let targetVelocityY = passiveVelocityY;
+        let velocityX = 0;
+        let velocityY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        let pointerX = window.innerWidth / 2;
+        let pointerY = window.innerHeight / 2;
+        let hasPointer = false;
+        let lastTime = 0;
+        let animationFrameId: number | undefined;
+        let isAnimating = false;
+        let hasPointerListeners = false;
+
+        const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+        const setGridPosition = () => {
+          body.style.setProperty("--app-grid-x", `${offsetX.toFixed(3)}px`);
+          body.style.setProperty("--app-grid-y", `${offsetY.toFixed(3)}px`);
+        };
+
+        const setPassiveTargetVelocity = () => {
+          targetVelocityX = passiveVelocityX;
+          targetVelocityY = passiveVelocityY;
+        };
+
+        const resetTargetVelocity = () => {
+          hasPointer = false;
+          setPassiveTargetVelocity();
+        };
+
+        const updateTargetVelocity = () => {
+          if (!hasPointer) {
+            setPassiveTargetVelocity();
+            return;
+          }
+
+          const halfWidth = Math.max(window.innerWidth / 2, 1);
+          const halfHeight = Math.max(window.innerHeight / 2, 1);
+          const normalizedX = clamp((pointerX - halfWidth) / halfWidth, -1, 1);
+          const normalizedY = clamp((pointerY - halfHeight) / halfHeight, -1, 1);
+
+          targetVelocityX = clamp(passiveVelocityX + normalizedX * cursorSpeed, -maxAxisSpeed, maxAxisSpeed);
+          targetVelocityY = clamp(passiveVelocityY + normalizedY * cursorSpeed, -maxAxisSpeed, maxAxisSpeed);
+        };
+
+        const handlePointerMove = (event: PointerEvent) => {
+          if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+
+          hasPointer = true;
+          pointerX = event.clientX;
+          pointerY = event.clientY;
+          updateTargetVelocity();
+        };
+
+        const handlePointerExit = () => {
+          resetTargetVelocity();
+        };
+
+        const handlePointerOut = (event: PointerEvent) => {
+          if (!event.relatedTarget) {
+            handlePointerExit();
+          }
+        };
+
+        const handleResize = () => {
+          updateTargetVelocity();
+        };
+
+        const tick = (time: number) => {
+          const delta = lastTime === 0 ? 0 : Math.min((time - lastTime) / 1000, 0.05);
+          lastTime = time;
+
+          const frameEase = 1 - Math.pow(1 - velocityEase, delta * 60);
+          velocityX += (targetVelocityX - velocityX) * frameEase;
+          velocityY += (targetVelocityY - velocityY) * frameEase;
+
+          if (Math.abs(targetVelocityX - velocityX) < 0.001) velocityX = targetVelocityX;
+          if (Math.abs(targetVelocityY - velocityY) < 0.001) velocityY = targetVelocityY;
+
+          offsetX = (offsetX + velocityX * delta) % gridSize;
+          offsetY = (offsetY + velocityY * delta) % gridSize;
+          setGridPosition();
+
+          animationFrameId = window.requestAnimationFrame(tick);
+        };
+
+        const addPointerListeners = () => {
+          if (hasPointerListeners || !finePointerQuery.matches) return;
+          hasPointerListeners = true;
+          window.addEventListener("pointermove", handlePointerMove, { passive: true });
+          window.addEventListener("pointerout", handlePointerOut, { passive: true });
+          window.addEventListener("blur", handlePointerExit);
+          window.addEventListener("resize", handleResize, { passive: true });
+        };
+
+        const removePointerListeners = () => {
+          if (!hasPointerListeners) return;
+          hasPointerListeners = false;
+          window.removeEventListener("pointermove", handlePointerMove);
+          window.removeEventListener("pointerout", handlePointerOut);
+          window.removeEventListener("blur", handlePointerExit);
+          window.removeEventListener("resize", handleResize);
+        };
+
+        const enable = () => {
+          if (isAnimating || reducedMotionQuery.matches) return;
+
+          isAnimating = true;
+          lastTime = 0;
+          updateTargetVelocity();
+          addPointerListeners();
+          animationFrameId = window.requestAnimationFrame(tick);
+        };
+
+        const disable = () => {
+          hasPointer = false;
+          targetVelocityX = 0;
+          targetVelocityY = 0;
+          velocityX = 0;
+          velocityY = 0;
+          offsetX = 0;
+          offsetY = 0;
+          setGridPosition();
+          removePointerListeners();
+
+          if (!isAnimating) return;
+
+          isAnimating = false;
+
+          if (animationFrameId !== undefined) {
+            window.cancelAnimationFrame(animationFrameId);
+            animationFrameId = undefined;
+          }
+        };
+
+        const syncGridMotion = () => {
+          if (reducedMotionQuery.matches) {
+            disable();
+            return;
+          }
+
+          if (!finePointerQuery.matches) {
+            resetTargetVelocity();
+            removePointerListeners();
+          } else {
+            addPointerListeners();
+          }
+
+          enable();
+        };
+
+        reducedMotionQuery.addEventListener("change", syncGridMotion);
+        finePointerQuery.addEventListener("change", syncGridMotion);
+        syncGridMotion();
+      })();
+
       const COLORS = [
         { bg: "#3772FF", text: "#FFFFFF" }, // primary blue
         { bg: "#080708", text: "#FFFFFF" }, // secondary black

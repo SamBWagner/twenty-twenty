@@ -86,6 +86,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify Fly token
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "Missing FLY_API_TOKEN. Add it in GitHub repo Settings > Secrets and variables > Actions before deploying."
+            exit 1
+          fi
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Expose fly alias

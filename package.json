@@ -10,7 +10,7 @@
     "dev:web": "cd packages/web && npm run dev",
     "build": "cd packages/shared && npm run build && cd ../api && npm run build && cd ../web && npm run build",
     "lint": "eslint \"**/*.{js,mjs,cjs,ts,tsx,astro}\" --max-warnings=0",
-    "typecheck": "cd packages/shared && npm run typecheck && cd ../api && npm run typecheck && cd ../web && npm run typecheck",
+    "typecheck": "cd packages/shared && npm run build && cd ../api && npm run typecheck && cd ../web && npm run typecheck",
     "deploy:check": "fly deploy --local-only --build-only",
     "deploy:fly": "fly deploy --local-only",
     "test:api": "cd packages/api && npm test",

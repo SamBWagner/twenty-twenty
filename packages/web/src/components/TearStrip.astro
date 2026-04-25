@@ -276,7 +276,19 @@ const pullsUrl = `${repoUrl}/pulls`;
     const handle = tearRoot.querySelector("[data-tear-handle]");
     const handleWrap = tearRoot.querySelector("[data-tear-handle-wrap]");
     const panel = tearRoot.querySelector("[data-tear-panel]");
-    const panelFocusables = panel?.querySelectorAll("a, button") ?? [];
+    const footer = tearRoot.querySelector("[data-tear-footer]");
+    const focusableSelector = [
+      "a[href]",
+      "button",
+      "input:not([type='hidden'])",
+      "select",
+      "textarea",
+      "summary",
+      "[tabindex]",
+    ].join(",");
+    const panelFocusables = panel?.querySelectorAll(focusableSelector) ?? [];
+    const footerFocusables = footer?.querySelectorAll(focusableSelector) ?? [];
+    const originalTabIndexes = new WeakMap();
 
     if (
       track instanceof HTMLElement &&
@@ -312,9 +324,30 @@ const pullsUrl = `${repoUrl}/pulls`;
 
       function syncPanelState(torn: boolean) {
         tearPanel.setAttribute("aria-hidden", torn ? "false" : "true");
-        panelFocusables.forEach((element) => {
+        syncFocusables(panelFocusables, torn);
+      }
+
+      function syncFooterState(torn: boolean) {
+        syncFocusables(footerFocusables, !torn);
+      }
+
+      function syncFocusables(elements: NodeListOf<Element> | Element[], enabled: boolean) {
+        elements.forEach((element) => {
           if (element instanceof HTMLElement) {
-            element.tabIndex = torn ? 0 : -1;
+            if (!originalTabIndexes.has(element)) {
+              originalTabIndexes.set(element, element.getAttribute("tabindex"));
+            }
+
+            if (enabled) {
+              const originalTabIndex = originalTabIndexes.get(element);
+              if (originalTabIndex === null) {
+                element.removeAttribute("tabindex");
+              } else {
+                element.setAttribute("tabindex", originalTabIndex);
+              }
+            } else {
+              element.setAttribute("tabindex", "-1");
+            }
           }
         });
       }
@@ -358,6 +391,7 @@ const pullsUrl = `${repoUrl}/pulls`;
         tearHandle.setAttribute("aria-expanded", torn ? "true" : "false");
         syncHandleState(torn);
         syncPanelState(torn);
+        syncFooterState(torn);
         measure();
       }
 
@@ -431,6 +465,7 @@ const pullsUrl = `${repoUrl}/pulls`;
 
       syncHandleState(false);
       syncPanelState(false);
+      syncFooterState(false);
       measure();
 
       if (typeof ResizeObserver !== "undefined") {

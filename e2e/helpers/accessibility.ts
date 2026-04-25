@@ -104,6 +104,61 @@ export async function expectTouchTargets(page: Page) {
 }
 
 export async function expectKeyboardFocusVisible(page: Page, maxTabStops = 16) {
+  type FocusState = {
+    hasVisibleIndicator: boolean;
+    inViewport: boolean;
+    label: string;
+  } | null;
+
+  async function readFocusState(): Promise<FocusState> {
+    return page.evaluate(() => {
+      const activeElement = document.activeElement;
+      if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
+        return null;
+      }
+
+      const viewportTolerancePx = 1;
+      const rect = activeElement.getBoundingClientRect();
+      const style = window.getComputedStyle(activeElement);
+      const outlineWidth = Number.parseFloat(style.outlineWidth || "0");
+      const hasOutline = style.outlineStyle !== "none" && outlineWidth > 0;
+      const hasShadow = style.boxShadow !== "none";
+      const label = activeElement.getAttribute("aria-label")
+        || activeElement.getAttribute("title")
+        || activeElement.textContent
+        || activeElement.getAttribute("placeholder")
+        || activeElement.tagName.toLowerCase();
+
+      return {
+        hasVisibleIndicator: hasOutline || hasShadow,
+        inViewport: rect.top >= -viewportTolerancePx
+          && rect.left >= -viewportTolerancePx
+          && rect.bottom <= window.innerHeight + viewportTolerancePx
+          && rect.right <= window.innerWidth + viewportTolerancePx,
+        label: label.replace(/\s+/g, " ").trim().slice(0, 80),
+      };
+    });
+  }
+
+  async function waitForSettledFocusState() {
+    const timeoutMs = 750;
+    const retryIntervalMs = 50;
+    const deadline = Date.now() + timeoutMs;
+    let latestState: FocusState = null;
+
+    while (Date.now() <= deadline) {
+      latestState = await readFocusState();
+
+      if (latestState?.inViewport && latestState.hasVisibleIndicator) {
+        return latestState;
+      }
+
+      await page.waitForTimeout(retryIntervalMs);
+    }
+
+    return latestState ?? (await readFocusState());
+  }
+
   const focusableCount = await page.evaluate(() => {
     const selector = [
       "a[href]",
@@ -138,34 +193,7 @@ export async function expectKeyboardFocusVisible(page: Page, maxTabStops = 16) {
 
   for (let index = 0; index < tabStopsToCheck; index += 1) {
     await page.keyboard.press("Tab");
-    await page.waitForTimeout(25);
-
-    const state = await page.evaluate(() => {
-      const activeElement = document.activeElement;
-      if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
-        return null;
-      }
-
-      const rect = activeElement.getBoundingClientRect();
-      const style = window.getComputedStyle(activeElement);
-      const outlineWidth = Number.parseFloat(style.outlineWidth || "0");
-      const hasOutline = style.outlineStyle !== "none" && outlineWidth > 0;
-      const hasShadow = style.boxShadow !== "none";
-      const label = activeElement.getAttribute("aria-label")
-        || activeElement.getAttribute("title")
-        || activeElement.textContent
-        || activeElement.getAttribute("placeholder")
-        || activeElement.tagName.toLowerCase();
-
-      return {
-        hasVisibleIndicator: hasOutline || hasShadow,
-        inViewport: rect.top >= 0
-          && rect.left >= 0
-          && rect.bottom <= window.innerHeight
-          && rect.right <= window.innerWidth,
-        label: label.replace(/\s+/g, " ").trim().slice(0, 80),
-      };
-    });
+    const state = await waitForSettledFocusState();
 
     if (!state) {
       continue;

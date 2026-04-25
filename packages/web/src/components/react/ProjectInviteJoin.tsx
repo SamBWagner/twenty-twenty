@@ -109,7 +109,7 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
             type="checkbox"
             checked={confirmJoin}
             onChange={(e) => setConfirmJoin(e.target.checked)}
-            className="mt-0.5 h-6 w-6 shrink-0 border-secondary accent-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+            className="mt-0.5 h-6 w-6 shrink-0 border-secondary accent-secondary transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary focus-visible:shadow-brutal-primary"
           />
           <span className="text-sm font-bold uppercase leading-6">
             I confirm that I want to join <span className="text-secondary">{info.projectName}</span>.

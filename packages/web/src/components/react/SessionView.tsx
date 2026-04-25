@@ -150,6 +150,7 @@ export default function SessionView({
       ...prev,
       canAdvancePhase: true,
       canSubmitReviews: false,
+      canFinalizeReviews: false,
       canEditIdeation: true,
       canEditActionBoard: false,
     } : prev));
@@ -181,6 +182,7 @@ export default function SessionView({
             ...prev,
             canAdvancePhase: (nextPhase === "ideation" || nextPhase === "action") && session?.createdBy === userId,
             canSubmitReviews: nextPhase === "review",
+            canFinalizeReviews: nextPhase === "review" && session?.createdBy === userId,
             canEditIdeation: nextPhase === "ideation",
             canEditActionBoard: nextPhase === "action",
           } : prev));
@@ -190,7 +192,7 @@ export default function SessionView({
           itemEventHandlers.onWsEvent?.(event);
       }
     },
-    [itemEventHandlers],
+    [itemEventHandlers, session?.createdBy, userId],
   );
 
   useSessionWebSocket(sessionId, handleWsEvent);
@@ -211,7 +213,7 @@ export default function SessionView({
   }, [sessionId]);
 
   useEffect(() => {
-    if (activeSection !== "ideation" && activeSection !== "action") {
+    if (activeSection !== "review" && activeSection !== "ideation" && activeSection !== "action") {
       setItemEventHandlers({});
     }
   }, [activeSection]);
@@ -677,6 +679,8 @@ export default function SessionView({
         <ActionReviewFlow
           sessionId={sessionId}
           sessionPhase={session.phase}
+          canFinalizeReviews={viewerCapabilities?.canFinalizeReviews ?? false}
+          onRegisterWsHandler={registerItemWsHandler}
           onComplete={handleReviewComplete}
         />
       )}

@@ -64,6 +64,7 @@ export const viewerCapabilitiesSchema = z.object({
   canEditIdeation: z.boolean(),
   canEditActionBoard: z.boolean(),
   canSubmitReviews: z.boolean(),
+  canFinalizeReviews: z.boolean(),
 });
 
 export const projectSchema = z.object({
@@ -162,13 +163,45 @@ export const actionReviewSchema = z.object({
   reviewerId: z.string(),
   status: reviewStatusSchema,
   comment: z.string().nullable(),
+  tally: z.object({
+    actioned: z.number().int().nonnegative(),
+    didNothing: z.number().int().nonnegative(),
+    disagree: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  }),
   createdAt: isoDateTimeSchema,
+});
+
+export const reviewTallySchema = actionReviewSchema.shape.tally;
+
+export const actionReviewVoteSchema = z.object({
+  id: z.string(),
+  actionId: z.string(),
+  sessionId: z.string(),
+  voterId: z.string(),
+  status: reviewStatusSchema,
+  comment: z.string().nullable(),
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema,
+});
+
+export const reviewVoteSelectionSchema = z.object({
+  status: reviewStatusSchema,
+  comment: z.string().nullable(),
+});
+
+export const reviewTallyStateSchema = z.object({
+  actionId: z.string(),
+  tally: reviewTallySchema,
+  viewerVote: reviewVoteSelectionSchema.nullable(),
+  isFinalized: z.boolean(),
 });
 
 export const reviewStateSchema = z.object({
   actions: z.array(actionSchema),
   reviews: z.array(actionReviewSchema),
   pending: z.array(actionSchema),
+  voteTallies: z.array(reviewTallyStateSchema),
   total: z.number().int().nonnegative(),
   reviewed: z.number().int().nonnegative(),
 });
@@ -200,6 +233,7 @@ export const sessionSummaryReviewSchema = z.object({
   reviewerName: z.string(),
   status: reviewStatusSchema,
   comment: z.string().nullable(),
+  tally: reviewTallySchema,
   createdAt: isoDateTimeSchema,
 });
 
@@ -240,6 +274,7 @@ export const sharedSessionSummarySchema = z.object({
     reviewerName: z.string(),
     status: reviewStatusSchema,
     comment: z.string().nullable(),
+    tally: reviewTallySchema,
     createdAt: isoDateTimeSchema,
   })),
   goodItems: z.array(z.object({
@@ -300,11 +335,18 @@ export const updateActionBodySchema = z.object({
   description: z.string().trim().min(1).max(2000).optional(),
 });
 
-export const submitReviewBodySchema = z.object({
+export const submitReviewVoteBodySchema = z.object({
   actionId: z.string(),
   status: reviewStatusSchema,
   comment: z.string().trim().max(2000).optional(),
 });
+
+export const finalizeReviewBodySchema = z.object({
+  actionId: z.string(),
+  status: reviewStatusSchema.optional(),
+});
+
+export const submitReviewBodySchema = finalizeReviewBodySchema;
 
 export const createPersonalAccessTokenBodySchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -329,6 +371,9 @@ export type SessionParticipant = z.infer<typeof sessionParticipantSchema>;
 export type RetroItem = z.infer<typeof retroItemSchema>;
 export type Action = z.infer<typeof actionSchema>;
 export type ActionReview = z.infer<typeof actionReviewSchema>;
+export type ReviewTally = z.infer<typeof reviewTallySchema>;
+export type ActionReviewVote = z.infer<typeof actionReviewVoteSchema>;
+export type ReviewTallyState = z.infer<typeof reviewTallyStateSchema>;
 export type ReviewState = z.infer<typeof reviewStateSchema>;
 export type ProjectView = z.infer<typeof projectViewSchema>;
 export type SessionView = z.infer<typeof sessionViewSchema>;

@@ -13,6 +13,14 @@ export function formatVoteCount(voteCount: number): string {
   return `${voteCount} vote${voteCount === 1 ? "" : "s"}`;
 }
 
+export function formatReviewTally(tally: {
+  actioned: number;
+  didNothing: number;
+  disagree: number;
+}): string {
+  return `${tally.actioned} actioned, ${tally.disagree} disagreed, ${tally.didNothing} try again`;
+}
+
 export function formatSessionDuration(createdAt: string, closedAt: string | null): string {
   if (!closedAt) return "Still open";
 
@@ -70,6 +78,7 @@ export function toSessionSummaryDisplayData(summary: SessionSummaryData): Sessio
       reviewerName: review.reviewerName,
       status: review.status,
       comment: review.comment,
+      tally: review.tally,
       createdAt: review.createdAt,
     })),
     goodItems,
@@ -103,7 +112,7 @@ export function buildSessionSummaryMarkdown(summary: SessionSummaryDisplayData):
     for (const review of summary.reviews) {
       const commentSuffix = review.comment ? `: ${review.comment}` : "";
       lines.push(
-        `- [${reviewStatusLabels[review.status]}] ${review.actionDescription} (${review.reviewerName})${commentSuffix}`,
+        `- [${reviewStatusLabels[review.status]}] ${review.actionDescription} (${review.reviewerName}; ${formatReviewTally(review.tally)})${commentSuffix}`,
       );
     }
     lines.push("");

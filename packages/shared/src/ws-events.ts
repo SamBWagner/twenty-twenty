@@ -6,6 +6,14 @@ export type WsEvent =
   | { type: "item:deleted"; payload: { id: string } }
   | { type: "vote:updated"; payload: { itemId: string; voteCount: number } }
   | { type: "phase:changed"; payload: { phase: string } }
+  | {
+    type: "review:vote_updated";
+    payload: {
+      actionId: string;
+      tally: { actioned: number; didNothing: number; disagree: number; total: number };
+    };
+  }
+  | { type: "review:finalized"; payload: { actionId: string } }
   | { type: "action:created"; payload: { id: string; description: string } }
   | { type: "action:updated"; payload: { id: string; description: string } }
   | { type: "action:deleted"; payload: { id: string } };

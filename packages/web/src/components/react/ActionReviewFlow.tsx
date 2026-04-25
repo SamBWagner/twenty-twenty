@@ -1,34 +1,83 @@
-import { useEffect, useState } from "react";
-import type { ReviewState } from "@twenty-twenty/shared";
+import { useCallback, useEffect, useState } from "react";
+import type { ReviewState, ReviewTally, WsEvent } from "@twenty-twenty/shared";
 import { api } from "../../lib/api-client";
 import { cn, scrapbookButton } from "../../lib/button-styles";
 import { reviewStatusLabels } from "../../lib/session-summary";
 
+type ReviewStatus = "did_nothing" | "actioned" | "disagree";
+
+const emptyTally: ReviewTally = {
+  actioned: 0,
+  didNothing: 0,
+  disagree: 0,
+  total: 0,
+};
+
+function getTopStatuses(tally: ReviewTally): ReviewStatus[] {
+  const entries: Array<[ReviewStatus, number]> = [
+    ["actioned", tally.actioned],
+    ["did_nothing", tally.didNothing],
+    ["disagree", tally.disagree],
+  ];
+  const topCount = Math.max(...entries.map(([, count]) => count));
+  if (topCount === 0) return [];
+  return entries.filter(([, count]) => count === topCount).map(([status]) => status);
+}
+
+function formatTally(tally: ReviewTally) {
+  return `${tally.actioned} actioned, ${tally.disagree} disagreed, ${tally.didNothing} try again`;
+}
+
 export default function ActionReviewFlow({
   sessionId,
   sessionPhase,
+  canFinalizeReviews,
+  onRegisterWsHandler,
   onComplete,
 }: {
   sessionId: string;
   sessionPhase: "review" | "ideation" | "action" | "closed";
+  canFinalizeReviews: boolean;
+  onRegisterWsHandler: (handler: (event: WsEvent) => void) => void;
   onComplete: () => void;
 }) {
   const [data, setData] = useState<ReviewState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [votingStatus, setVotingStatus] = useState<ReviewStatus | null>(null);
+  const [finalizingStatus, setFinalizingStatus] = useState<ReviewStatus | "top" | null>(null);
+
+  const loadReviewState = useCallback(async () => {
+    const nextData = await api.get<ReviewState>(`/api/sessions/${sessionId}/reviews/pending`);
+    setData(nextData);
+    setLoadError(null);
+    if (nextData.pending.length === 0 && sessionPhase === "review") onComplete();
+    return nextData;
+  }, [sessionId, sessionPhase, onComplete]);
 
   useEffect(() => {
-    api
-      .get<ReviewState>(`/api/sessions/${sessionId}/reviews/pending`)
-      .then((d) => {
-        setData(d);
-        setLoadError(null);
-        if (d.pending.length === 0 && sessionPhase === "review") onComplete();
-      })
+    loadReviewState()
       .catch((err: Error) => setLoadError(err.message || "Failed to load reviews."));
-  }, [sessionId, sessionPhase, onComplete]);
+  }, [loadReviewState]);
+
+  useEffect(() => {
+    onRegisterWsHandler((event: WsEvent) => {
+      if (event.type === "review:vote_updated") {
+        setData((prev) => prev
+          ? {
+            ...prev,
+            voteTallies: prev.voteTallies.map((voteTally) => voteTally.actionId === event.payload.actionId
+              ? { ...voteTally, tally: event.payload.tally }
+              : voteTally),
+          }
+          : prev);
+      }
+
+      if (event.type === "review:finalized") {
+        loadReviewState().catch(() => {});
+      }
+    });
+  }, [loadReviewState, onRegisterWsHandler]);
 
   if (loadError) return <p className="font-bold text-red-600">{loadError}</p>;
   if (!data) return <p className="font-mono text-sm">Loading reviews...</p>;
@@ -55,12 +104,21 @@ export default function ActionReviewFlow({
     );
   }
 
-  const currentAction = reviewState.pending[currentIndex];
+  const currentAction = reviewState.pending[0];
   if (!currentAction) {
     return <ReviewRecap sessionId={sessionId} sessionPhase={sessionPhase} />;
   }
 
-  async function submitReview(status: "did_nothing" | "actioned" | "disagree") {
+  const currentVoteState = reviewState.voteTallies.find((voteTally) => voteTally.actionId === currentAction.id);
+  const tally = currentVoteState?.tally || emptyTally;
+  const viewerVote = currentVoteState?.viewerVote || null;
+  const topStatuses = getTopStatuses(tally);
+  const topStatus = topStatuses.length === 1 ? topStatuses[0] : null;
+  const reviewLocked = sessionPhase !== "review";
+  const displayProgress = Math.min(reviewState.reviewed + 1, reviewState.total);
+  const barProgress = Math.min(100, Math.max(0, (displayProgress / Math.max(reviewState.total, 1)) * 100));
+
+  async function castVote(status: ReviewStatus) {
     if (sessionPhase !== "review") {
       return;
     }
@@ -68,27 +126,35 @@ export default function ActionReviewFlow({
       alert("Please explain why you disagreed.");
       return;
     }
-    setSubmitting(true);
+    setVotingStatus(status);
     try {
-      await api.post(`/api/sessions/${sessionId}/reviews`, {
+      await api.post(`/api/sessions/${sessionId}/reviews/votes`, {
         actionId: currentAction.id,
         status,
         comment: status === "disagree" ? comment : undefined,
       });
-      const nextIndex = currentIndex + 1;
-      if (nextIndex >= reviewState.pending.length) {
-        onComplete();
-      } else {
-        setCurrentIndex(nextIndex);
-        setComment("");
-      }
+      await loadReviewState();
     } finally {
-      setSubmitting(false);
+      setVotingStatus(null);
     }
   }
 
-  const progress = reviewState.reviewed + currentIndex + 1;
-  const reviewLocked = sessionPhase !== "review";
+  async function finalizeReview(status?: ReviewStatus) {
+    if (sessionPhase !== "review" || !canFinalizeReviews) {
+      return;
+    }
+    setFinalizingStatus(status || "top");
+    try {
+      await api.post(`/api/sessions/${sessionId}/reviews`, {
+        actionId: currentAction.id,
+        status,
+      });
+      setComment("");
+      await loadReviewState();
+    } finally {
+      setFinalizingStatus(null);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-xl">
@@ -107,14 +173,14 @@ export default function ActionReviewFlow({
             </p>
           </div>
           <span className="border-2 border-secondary note-chip px-2 py-0.5 font-mono text-sm font-bold">
-            {progress}/{reviewState.total}
+            {displayProgress}/{reviewState.total}
           </span>
         </div>
 
         <div className="note-panel mb-6 h-5 border-3 border-secondary">
           <div
             className="h-full bg-[#8f63ef] transition-all"
-            style={{ width: `${(progress / reviewState.total) * 100}%` }}
+            style={{ width: `${barProgress}%` }}
           />
         </div>
 
@@ -122,6 +188,20 @@ export default function ActionReviewFlow({
           <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Action</p>
           <p className="mt-3 text-center text-xl font-bold">{currentAction.description}</p>
         </div>
+      </div>
+
+      <div className="note-panel mb-5 border-3 border-secondary p-4">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary/45">Votes</p>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <TallyPill label="Actioned" count={tally.actioned} active={viewerVote?.status === "actioned"} />
+          <TallyPill label="Disagreed" count={tally.disagree} active={viewerVote?.status === "disagree"} />
+          <TallyPill label="Try Again" count={tally.didNothing} active={viewerVote?.status === "did_nothing"} />
+        </div>
+        {viewerVote && (
+          <p className="scribble-help note-muted mt-3 text-sm">
+            Your vote: {reviewStatusLabels[viewerVote.status]}
+          </p>
+        )}
       </div>
 
       <div className="space-y-4" data-testid="review-options">
@@ -132,19 +212,28 @@ export default function ActionReviewFlow({
         )}
 
         <button
-          onClick={() => submitReview("actioned")}
-          disabled={submitting || reviewLocked}
+          onClick={() => castVote("actioned")}
+          disabled={Boolean(votingStatus) || reviewLocked}
           data-testid="review-option-actioned"
           className={cn(
             scrapbookButton({ tone: "mint", size: "regular", tilt: "left", depth: "md" }),
             "w-full border-3 border-secondary bg-[#7ce29a] p-5 text-left disabled:opacity-50",
+            viewerVote?.status === "actioned" && "ring-4 ring-secondary/20",
           )}
         >
           <span className="text-lg font-bold uppercase">Actioned</span>
           <span className="scribble-help mt-1 block text-base text-secondary/60">We did it, it landed well, and we can close it out</span>
         </button>
 
-        <div className="note-shell rotate-[0.3deg] p-5" data-note-theme="sun" data-tape-position="top-right" data-testid="review-option-disagreed">
+        <div
+          className={cn(
+            "note-shell rotate-[0.3deg] p-5",
+            viewerVote?.status === "disagree" && "ring-4 ring-secondary/20",
+          )}
+          data-note-theme="sun"
+          data-tape-position="top-right"
+          data-testid="review-option-disagreed"
+        >
           <span className="text-lg font-bold uppercase">Disagreed</span>
           <span className="scribble-help note-muted mb-3 mt-1 block text-base">
             We disagreed with this action or it missed the mark
@@ -153,35 +242,99 @@ export default function ActionReviewFlow({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Tell us what happened..."
-            disabled={reviewLocked}
+            disabled={reviewLocked || Boolean(votingStatus)}
             className="note-panel mb-3 w-full border-3 border-secondary px-4 py-3 text-sm font-medium focus:outline-none disabled:opacity-60"
             rows={2}
           />
           <button
-            onClick={() => submitReview("disagree")}
-            disabled={submitting || reviewLocked || !comment.trim()}
+            onClick={() => castVote("disagree")}
+            disabled={Boolean(votingStatus) || reviewLocked || !comment.trim()}
             className={cn(
               scrapbookButton({ tone: "sun", size: "compact", tilt: "right", depth: "sm" }),
               "border-3 border-secondary note-panel px-5 py-2 font-bold uppercase disabled:opacity-50",
             )}
           >
-            Submit Disagreed
+            {votingStatus === "disagree" ? "Voting..." : "Vote Disagreed"}
           </button>
         </div>
 
         <button
-          onClick={() => submitReview("did_nothing")}
-          disabled={submitting || reviewLocked}
+          onClick={() => castVote("did_nothing")}
+          disabled={Boolean(votingStatus) || reviewLocked}
           data-testid="review-option-did-nothing"
           className={cn(
             scrapbookButton({ tone: "blush", size: "regular", tilt: "right", depth: "md" }),
             "w-full border-3 border-secondary bg-[#ff9ab8] p-5 text-left disabled:opacity-50",
+            viewerVote?.status === "did_nothing" && "ring-4 ring-secondary/20",
           )}
         >
           <span className="text-lg font-bold uppercase">We did nothing, try again</span>
           <span className="scribble-help mt-1 block text-base text-secondary/60">Roll this into the next retro and give it another shot</span>
         </button>
+
+        {canFinalizeReviews && !reviewLocked && (
+          <div className="note-shell rotate-[-0.2deg] p-5" data-note-theme="plum" data-tape-position="top-left">
+            <p className="text-sm font-bold uppercase">Facilitator</p>
+            <p className="scribble-help note-muted mt-1 text-sm">
+              {tally.total === 0
+                ? "Waiting for at least one vote."
+                : topStatuses.length > 1
+                  ? "Top votes are tied. Pick the outcome to accept."
+                  : `Ready to accept ${reviewStatusLabels[topStatus!]} from ${formatTally(tally)}.`}
+            </p>
+            {topStatuses.length > 1 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {topStatuses.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => finalizeReview(status)}
+                    disabled={Boolean(finalizingStatus)}
+                    className={cn(
+                      scrapbookButton({ tone: "plum", size: "compact", tilt: "flat", depth: "sm" }),
+                      "border-2 border-secondary bg-[#8f63ef] px-3 py-2 text-xs font-bold uppercase text-white disabled:opacity-50",
+                    )}
+                  >
+                    {finalizingStatus === status ? "Accepting..." : reviewStatusLabels[status]}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => finalizeReview()}
+                disabled={Boolean(finalizingStatus) || tally.total === 0}
+                className={cn(
+                  scrapbookButton({ tone: "plum", size: "regular", tilt: "left", depth: "md" }),
+                  "mt-4 w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50",
+                )}
+              >
+                {finalizingStatus ? "Accepting..." : "Accept Top Vote"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function TallyPill({
+  label,
+  count,
+  active,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+}) {
+  return (
+    <div className={cn(
+      "border-2 border-secondary bg-white px-2 py-2",
+      active && "bg-[#FDCA40]",
+    )}>
+      <p className="font-mono text-lg font-bold">{count}</p>
+      <p className="text-[10px] font-bold uppercase">{label}</p>
     </div>
   );
 }
@@ -268,6 +421,9 @@ function ReviewRecap({
                   <p className="text-lg font-bold">{action.description}</p>
                   <p className="mt-0.5 text-sm font-bold uppercase tracking-wide text-secondary/55">
                     {reviewStatusLabels[review.status]}
+                  </p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-wide text-secondary/45">
+                    {formatTally(review.tally)}
                   </p>
                   {review.comment && (
                     <p className="mt-1.5 text-sm italic text-secondary/65">

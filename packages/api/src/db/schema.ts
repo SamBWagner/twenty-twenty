@@ -226,10 +226,42 @@ export const actionReviews = sqliteTable(
       .references(() => user.id),
     status: text("status", { enum: ["did_nothing", "actioned", "disagree"] }).notNull(),
     comment: text("comment"),
+    actionedVoteCount: integer("actioned_vote_count").notNull().default(0),
+    didNothingVoteCount: integer("did_nothing_vote_count").notNull().default(0),
+    disagreeVoteCount: integer("disagree_vote_count").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
+    uniqueIndex("action_reviews_session_action_idx").on(table.sessionId, table.actionId),
     index("action_reviews_session_created_at_idx").on(table.sessionId, table.createdAt),
+  ],
+);
+
+export const actionReviewVotes = sqliteTable(
+  "action_review_votes",
+  {
+    id: text("id").primaryKey(),
+    actionId: text("action_id")
+      .notNull()
+      .references(() => actions.id, { onDelete: "cascade" }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => retroSessions.id, { onDelete: "cascade" }),
+    voterId: text("voter_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["did_nothing", "actioned", "disagree"] }).notNull(),
+    comment: text("comment"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("action_review_votes_session_action_voter_idx").on(
+      table.sessionId,
+      table.actionId,
+      table.voterId,
+    ),
+    index("action_review_votes_session_action_idx").on(table.sessionId, table.actionId),
   ],
 );
 

@@ -2,6 +2,7 @@ import * as z from "zod/v4";
 import { toJSONSchema } from "zod/v4";
 import {
   actionReviewSchema,
+  actionReviewVoteSchema,
   actionSchema,
   apiErrorResponseSchema,
   authSessionSchema,
@@ -11,6 +12,7 @@ import {
   createProjectBodySchema,
   createSessionBodySchema,
   createdPersonalAccessTokenSchema,
+  finalizeReviewBodySchema,
   invitationPreviewSchema,
   personalAccessTokenSchema,
   projectInvitationSchema,
@@ -28,6 +30,7 @@ import {
   sharePreviewSchema,
   summaryShareTokenResponseSchema,
   submitReviewBodySchema,
+  submitReviewVoteBodySchema,
   updateActionBodySchema,
   updateProjectBodySchema,
   voteItemBodySchema,
@@ -62,6 +65,7 @@ const componentSchemas = {
   Item: retroItemSchema,
   Action: actionSchema,
   ActionReview: actionReviewSchema,
+  ActionReviewVote: actionReviewVoteSchema,
   ReviewState: reviewStateSchema,
   CreateProjectBody: createProjectBodySchema,
   UpdateProjectBody: updateProjectBodySchema,
@@ -71,6 +75,8 @@ const componentSchemas = {
   CreateActionBody: createActionBodySchema,
   UpdateActionBody: updateActionBodySchema,
   SubmitReviewBody: submitReviewBodySchema,
+  SubmitReviewVoteBody: submitReviewVoteBodySchema,
+  FinalizeReviewBody: finalizeReviewBodySchema,
   CreatePersonalAccessTokenBody: createPersonalAccessTokenBodySchema,
   OkResponse: okResponseSchema,
   PhaseResponse: phaseResponseSchema,
@@ -659,13 +665,25 @@ export function buildOpenApiDocument() {
           },
         },
         post: {
-          summary: "Submit a review",
+          summary: "Accept the current review vote outcome",
           tags: ["Reviews"],
           security: protectedRouteSecurity,
           parameters: [{ name: "sid", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: body("SubmitReviewBody"),
+          requestBody: body("FinalizeReviewBody"),
           responses: {
             201: jsonResponse("ActionReview", "Review created."),
+          },
+        },
+      },
+      "/sessions/{sid}/reviews/votes": {
+        post: {
+          summary: "Cast or update a review vote",
+          tags: ["Reviews"],
+          security: protectedRouteSecurity,
+          parameters: [{ name: "sid", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: body("SubmitReviewVoteBody"),
+          responses: {
+            201: jsonResponse("ActionReviewVote", "Review vote saved."),
           },
         },
       },

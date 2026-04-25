@@ -125,6 +125,7 @@ function buildViewerCapabilities(input: {
     canEditIdeation: input.canAccessCurrentSession && session?.phase === "ideation",
     canEditActionBoard: input.canAccessCurrentSession && session?.phase === "action",
     canSubmitReviews: input.canAccessCurrentSession && session?.phase === "review",
+    canFinalizeReviews: input.canAccessCurrentSession && session?.phase === "review" && session.createdBy === input.userId,
   };
 }
 
@@ -210,6 +211,34 @@ function buildVoteCountByItemId(voteRows: Array<{ itemId: string; value: number 
     voteCountByItemId.set(vote.itemId, (voteCountByItemId.get(vote.itemId) || 0) + vote.value);
   }
   return voteCountByItemId;
+}
+
+function buildReviewTally(input: {
+  actionedVoteCount: number | null;
+  didNothingVoteCount: number | null;
+  disagreeVoteCount: number | null;
+}) {
+  const actioned = input.actionedVoteCount || 0;
+  const didNothing = input.didNothingVoteCount || 0;
+  const disagree = input.disagreeVoteCount || 0;
+  return {
+    actioned,
+    didNothing,
+    disagree,
+    total: actioned + didNothing + disagree,
+  };
+}
+
+function buildReviewTallyFromVotes(votes: Array<{ status: "did_nothing" | "actioned" | "disagree" }>) {
+  const actioned = votes.filter((vote) => vote.status === "actioned").length;
+  const didNothing = votes.filter((vote) => vote.status === "did_nothing").length;
+  const disagree = votes.filter((vote) => vote.status === "disagree").length;
+  return {
+    actioned,
+    didNothing,
+    disagree,
+    total: actioned + didNothing + disagree,
+  };
 }
 
 async function buildSessionSummary(session: typeof schema.retroSessions.$inferSelect): Promise<SessionSummary> {
@@ -305,6 +334,9 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
           reviewerName: schema.user.name,
           status: schema.actionReviews.status,
           comment: schema.actionReviews.comment,
+          actionedVoteCount: schema.actionReviews.actionedVoteCount,
+          didNothingVoteCount: schema.actionReviews.didNothingVoteCount,
+          disagreeVoteCount: schema.actionReviews.disagreeVoteCount,
           createdAt: schema.actionReviews.createdAt,
         })
         .from(schema.actionReviews)
@@ -320,6 +352,7 @@ async function buildSessionSummary(session: typeof schema.retroSessions.$inferSe
     reviews = reviewRows.map((review) => ({
       ...review,
       actionDescription: previousActionDescriptionById.get(review.actionId) || "Previous action",
+      tally: buildReviewTally(review),
       createdAt: toIsoString(review.createdAt),
     }));
   }
@@ -381,6 +414,7 @@ function toSharedSessionSummary(summary: SessionSummary): SharedSessionSummary {
       reviewerName: review.reviewerName,
       status: review.status,
       comment: review.comment,
+      tally: review.tally,
       createdAt: review.createdAt,
     })),
     goodItems,
@@ -414,7 +448,10 @@ export async function getSharedSessionSummaryByToken(token: string) {
   return toSharedSessionSummary(summary);
 }
 
-export async function getReviewStateForSession(session: typeof schema.retroSessions.$inferSelect) {
+export async function getReviewStateForSession(
+  session: typeof schema.retroSessions.$inferSelect,
+  viewerId?: string,
+) {
   const previousSession = await db
     .select()
     .from(schema.retroSessions)
@@ -431,12 +468,13 @@ export async function getReviewStateForSession(session: typeof schema.retroSessi
       actions: [],
       reviews: [],
       pending: [],
+      voteTallies: [],
       total: 0,
       reviewed: 0,
     });
   }
 
-  const [previousActions, reviews] = await Promise.all([
+  const [previousActions, reviews, votes] = await Promise.all([
     db
       .select()
       .from(schema.actions)
@@ -447,9 +485,19 @@ export async function getReviewStateForSession(session: typeof schema.retroSessi
       .from(schema.actionReviews)
       .where(eq(schema.actionReviews.sessionId, session.id))
       .orderBy(asc(schema.actionReviews.createdAt)),
+    db
+      .select()
+      .from(schema.actionReviewVotes)
+      .where(eq(schema.actionReviewVotes.sessionId, session.id)),
   ]);
 
   const reviewedActionIds = new Set(reviews.map((review) => review.actionId));
+  const votesByActionId = new Map<string, Array<(typeof votes)[number]>>();
+  for (const vote of votes) {
+    const actionVotes = votesByActionId.get(vote.actionId) || [];
+    actionVotes.push(vote);
+    votesByActionId.set(vote.actionId, actionVotes);
+  }
 
   return reviewStateSchema.parse({
     actions: previousActions.map((action) => actionSchema.parse({
@@ -466,6 +514,7 @@ export async function getReviewStateForSession(session: typeof schema.retroSessi
       reviewerId: review.reviewerId,
       status: review.status,
       comment: review.comment,
+      tally: buildReviewTally(review),
       createdAt: toIsoString(review.createdAt),
     })),
     pending: previousActions
@@ -477,6 +526,21 @@ export async function getReviewStateForSession(session: typeof schema.retroSessi
   
         createdAt: toIsoString(action.createdAt),
       })),
+    voteTallies: previousActions.map((action) => {
+      const actionVotes = votesByActionId.get(action.id) || [];
+      const viewerVote = viewerId ? actionVotes.find((vote) => vote.voterId === viewerId) : null;
+      return {
+        actionId: action.id,
+        tally: buildReviewTallyFromVotes(actionVotes),
+        viewerVote: viewerVote
+          ? {
+            status: viewerVote.status,
+            comment: viewerVote.comment,
+          }
+          : null,
+        isFinalized: reviewedActionIds.has(action.id),
+      };
+    }),
     total: previousActions.length,
     reviewed: reviews.length,
   });
@@ -541,7 +605,7 @@ export async function getSessionView(sessionId: string, userId: string) {
       .from(schema.votes)
       .innerJoin(schema.items, eq(schema.items.id, schema.votes.itemId))
       .where(eq(schema.items.sessionId, sessionId)),
-    getReviewStateForSession(session),
+    getReviewStateForSession(session, userId),
   ]);
 
   if (!project) {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { SharedSessionSummary as SessionSummaryDisplayData } from "@twenty-twenty/shared";
 import { cn } from "../../lib/button-styles";
-import { formatSessionDuration, formatVoteCount, reviewStatusLabels } from "../../lib/session-summary";
+import { formatReviewTally, formatSessionDuration, formatVoteCount, reviewStatusLabels } from "../../lib/session-summary";
 import ProjectNameTab from "./ProjectNameTab";
 
 function formatDateTime(value: string | null): string {
@@ -156,7 +156,10 @@ export default function SessionSummaryContent({
                     {reviewStatusLabels[review.status]}
                   </span>
                   <span className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">
-                    Reviewed by {review.reviewerName}
+                    Finalized by {review.reviewerName}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">
+                    {formatReviewTally(review.tally)}
                   </span>
                 </div>
                 <p className="mt-3 text-lg font-bold">{review.actionDescription}</p>

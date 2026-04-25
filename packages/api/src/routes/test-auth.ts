@@ -51,6 +51,7 @@ testAuthRoutes.post("/test-auth/seed", async (c) => {
 testAuthRoutes.post("/test-auth/reset-db", async (c) => {
   // Delete in FK-dependency order (children first)
   const tables = [
+    "action_review_votes",
     "action_reviews",
     "actions",
     "bundle_items",

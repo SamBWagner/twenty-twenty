@@ -109,7 +109,7 @@ export default function IdeationBoard({
             ))}
           </div>
           {readOnly ? (
-            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
               This section is read-only now, but you can still look back through everything that was captured.
             </p>
           ) : (
@@ -122,10 +122,12 @@ export default function IdeationBoard({
                 value={goodInput}
                 onChange={(e) => setGoodInput(e.target.value)}
                 placeholder="Something that went well..."
+                aria-label="Went well idea"
                 className="note-panel flex-1 border-3 border-secondary px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
               />
               <button
                 type="submit"
+                aria-label="Add went well idea"
                 className={cn(
                   scrapbookButton({ tone: "mint", size: "compact", tilt: "left", depth: "sm" }),
                   "w-full border-3 border-secondary note-accent px-5 py-3 font-bold uppercase sm:w-auto",
@@ -158,7 +160,7 @@ export default function IdeationBoard({
             ))}
           </div>
           {readOnly ? (
-            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
               Live editing has moved on, but the ideas from this stage stay available here for reference.
             </p>
           ) : (
@@ -171,10 +173,12 @@ export default function IdeationBoard({
                 value={badInput}
                 onChange={(e) => setBadInput(e.target.value)}
                 placeholder="Something that could improve..."
+                aria-label="Needs work idea"
                 className="note-panel flex-1 border-3 border-secondary px-4 py-3 font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
               />
               <button
                 type="submit"
+                aria-label="Add needs work idea"
                 className={cn(
                   scrapbookButton({ tone: "blush", size: "compact", tilt: "right", depth: "sm" }),
                   "w-full border-3 border-secondary note-accent px-5 py-3 font-bold uppercase sm:w-auto",
@@ -209,8 +213,10 @@ function ItemCard({
     <div className={`relative z-0 border-3 border-secondary ${bg} p-4 transition-all hover:z-10 ${rotation}`}>
       <div className="absolute -left-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1">
         <button
+          type="button"
           onClick={() => onVote(item.id, 1)}
           disabled={readOnly}
+          aria-label={`Upvote ${item.content}`}
           className={cn(
             scrapbookButton({
               tone: item.userVote === 1 ? "primary" : "neutral",
@@ -219,7 +225,7 @@ function ItemCard({
               depth: "sm",
             }),
             `h-7 w-7 border-2 border-secondary text-sm font-bold transition-colors ${
-              item.userVote === 1 ? "bg-primary text-white" : "bg-white hover:bg-blue-200"
+              item.userVote === 1 ? "bg-primary text-secondary" : "bg-white hover:bg-blue-200"
             } ${readOnly ? "cursor-not-allowed opacity-50" : ""}`,
           )}
         >
@@ -229,8 +235,10 @@ function ItemCard({
           {item.voteCount}
         </div>
         <button
+          type="button"
           onClick={() => onVote(item.id, -1)}
           disabled={readOnly}
+          aria-label={`Downvote ${item.content}`}
           className={cn(
             scrapbookButton({
               tone: item.userVote === -1 ? "danger" : "neutral",
@@ -239,7 +247,7 @@ function ItemCard({
               depth: "sm",
             }),
             `h-7 w-7 border-2 border-secondary text-sm font-bold transition-colors ${
-              item.userVote === -1 ? "bg-red-500 text-white" : "bg-white hover:bg-red-200"
+              item.userVote === -1 ? "bg-red-500 text-secondary" : "bg-white hover:bg-red-200"
             } ${readOnly ? "cursor-not-allowed opacity-50" : ""}`,
           )}
         >
@@ -253,7 +261,9 @@ function ItemCard({
 
       {item.isOwn && !readOnly && (
         <button
+          type="button"
           onClick={() => onDelete(item.id)}
+          aria-label={`Delete ${item.content}`}
           className={cn(
             scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
             "absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-300",

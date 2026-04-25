@@ -91,7 +91,7 @@ export default function ActionReviewFlow({
           data-note-theme="light-peach"
           data-tape-position="top-center"
         >
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">
             Review
           </p>
           <h2 className="mt-3 text-2xl font-bold uppercase">Nothing to review yet</h2>
@@ -165,7 +165,7 @@ export default function ActionReviewFlow({
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/50">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">
               Reviewing Previous Actions
             </p>
             <p className="scribble-help note-muted mt-1 text-base">
@@ -185,13 +185,13 @@ export default function ActionReviewFlow({
         </div>
 
         <div className="note-panel rotate-[0.4deg] border-3 border-secondary p-6">
-          <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-secondary/45">Action</p>
+          <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">Action</p>
           <p className="mt-3 text-center text-xl font-bold">{currentAction.description}</p>
         </div>
       </div>
 
       <div className="note-panel mb-5 border-3 border-secondary p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary/45">Votes</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary/70">Votes</p>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           <TallyPill label="Actioned" count={tally.actioned} active={viewerVote?.status === "actioned"} />
           <TallyPill label="Disagreed" count={tally.disagree} active={viewerVote?.status === "disagree"} />
@@ -206,7 +206,7 @@ export default function ActionReviewFlow({
 
       <div className="space-y-4" data-testid="review-options">
         {reviewLocked && (
-          <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+          <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
             This review stage is finished, so these controls are read-only now.
           </p>
         )}
@@ -222,7 +222,7 @@ export default function ActionReviewFlow({
           )}
         >
           <span className="text-lg font-bold uppercase">Actioned</span>
-          <span className="scribble-help mt-1 block text-base text-secondary/60">We did it, it landed well, and we can close it out</span>
+          <span className="scribble-help mt-1 block text-base text-secondary/75">We did it, it landed well, and we can close it out</span>
         </button>
 
         <div
@@ -243,7 +243,8 @@ export default function ActionReviewFlow({
             onChange={(e) => setComment(e.target.value)}
             placeholder="Tell us what happened..."
             disabled={reviewLocked || Boolean(votingStatus)}
-            className="note-panel mb-3 w-full border-3 border-secondary px-4 py-3 text-sm font-medium focus:outline-none disabled:opacity-60"
+            aria-label="Disagreement comment"
+            className="note-panel mb-3 w-full border-3 border-secondary px-4 py-3 text-sm font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none disabled:opacity-60"
             rows={2}
           />
           <button
@@ -269,7 +270,7 @@ export default function ActionReviewFlow({
           )}
         >
           <span className="text-lg font-bold uppercase">We did nothing, try again</span>
-          <span className="scribble-help mt-1 block text-base text-secondary/60">Roll this into the next retro and give it another shot</span>
+          <span className="scribble-help mt-1 block text-base text-secondary/75">Roll this into the next retro and give it another shot</span>
         </button>
 
         {canFinalizeReviews && !reviewLocked && (
@@ -292,7 +293,7 @@ export default function ActionReviewFlow({
                     disabled={Boolean(finalizingStatus)}
                     className={cn(
                       scrapbookButton({ tone: "plum", size: "compact", tilt: "flat", depth: "sm" }),
-                      "border-2 border-secondary bg-[#8f63ef] px-3 py-2 text-xs font-bold uppercase text-white disabled:opacity-50",
+                      "border-2 border-secondary bg-[#8f63ef] px-3 py-2 text-xs font-bold uppercase text-secondary disabled:opacity-50",
                     )}
                   >
                     {finalizingStatus === status ? "Accepting..." : reviewStatusLabels[status]}
@@ -306,7 +307,7 @@ export default function ActionReviewFlow({
                 disabled={Boolean(finalizingStatus) || tally.total === 0}
                 className={cn(
                   scrapbookButton({ tone: "plum", size: "regular", tilt: "left", depth: "md" }),
-                  "mt-4 w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50",
+                  "mt-4 w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-secondary disabled:opacity-50",
                 )}
               >
                 {finalizingStatus ? "Accepting..." : "Accept Top Vote"}
@@ -382,11 +383,11 @@ function ReviewRecap({
         data-note-theme="peach"
         data-tape-position="top-center"
       >
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/45 text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70 text-center">
           Look Back
         </p>
         <p className="text-center text-2xl font-bold uppercase mt-2">Review complete</p>
-        <p className="mt-1 text-center font-medium text-secondary/60">
+        <p className="mt-1 text-center font-medium text-secondary/75">
           {sessionPhase === "review"
             ? "Moving to ideation..."
             : "You can revisit this stage whenever you need to."}
@@ -419,12 +420,12 @@ function ReviewRecap({
               >
                 <div className="relative z-10">
                   <p className="text-lg font-bold">{action.description}</p>
-                  <p className="mt-0.5 text-sm font-bold uppercase tracking-wide text-secondary/55">
-                    {reviewStatusLabels[review.status]}
-                  </p>
-                  <p className="mt-1 text-xs font-bold uppercase tracking-wide text-secondary/45">
-                    {formatTally(review.tally)}
-                  </p>
+                    <p className="mt-0.5 text-sm font-bold uppercase tracking-wide text-secondary/70">
+                      {reviewStatusLabels[review.status]}
+                    </p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-wide text-secondary/70">
+                      {formatTally(review.tally)}
+                    </p>
                   {review.comment && (
                     <p className="mt-1.5 text-sm italic text-secondary/65">
                       &ldquo;{review.comment}&rdquo;

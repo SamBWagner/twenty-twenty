@@ -61,27 +61,27 @@ export default function SessionSummaryContent({
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
           <div className="note-panel border-3 border-secondary p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Sequence</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">Sequence</p>
             <p className="mt-2 text-2xl font-bold">#{summary.session.sequence}</p>
           </div>
           <div className="note-panel border-3 border-secondary p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Duration</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">Duration</p>
             <p
               className="mt-2 text-sm font-bold"
               title={summary.session.closedAt ? `Closed ${formatDateTime(summary.session.closedAt)}` : undefined}
             >
               {formatSessionDuration(summary.session.createdAt, summary.session.closedAt)}
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-secondary/35">
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-secondary/70">
               {summary.session.closedAt ? `Closed ${formatDateTime(summary.session.closedAt)}` : "Still open"}
             </p>
           </div>
           <div className="note-panel border-3 border-secondary p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Participants</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">Participants</p>
             <p className="mt-2 text-2xl font-bold">{summary.participants.length}</p>
           </div>
           <div className="note-panel border-3 border-secondary p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">Actions</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">Actions</p>
             <p className="mt-2 text-2xl font-bold">{summary.actionCount}</p>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function SessionSummaryContent({
                 </div>
                 <div>
                   <p className="font-bold">{participant.username}</p>
-                  <p className="text-xs font-medium uppercase text-secondary/45">{participant.role}</p>
+                  <p className="text-xs font-medium uppercase text-secondary/70">{participant.role}</p>
                 </div>
               </div>
             ))}
@@ -155,10 +155,10 @@ export default function SessionSummaryContent({
                   >
                     {reviewStatusLabels[review.status]}
                   </span>
-                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">
                     Finalized by {review.reviewerName}
                   </span>
-                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/40">
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-secondary/70">
                     {formatReviewTally(review.tally)}
                   </span>
                 </div>
@@ -251,7 +251,7 @@ export default function SessionSummaryContent({
               </div>
             ))
           ) : (
-            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+            <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
               No actions were captured in this session.
             </p>
           )}

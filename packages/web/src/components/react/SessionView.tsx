@@ -465,11 +465,13 @@ export default function SessionView({
                   ref={participantsButtonRef}
                   onClick={toggleParticipants}
                   type="button"
+                  aria-label="Show participants"
+                  aria-controls="session-participants"
                   aria-expanded={showParticipants}
                   aria-haspopup="dialog"
                   className={cn(
                     scrapbookButton({ tone: "sun", size: "compact", tilt: "flat", depth: "sm" }),
-                    "flex -space-x-1 border-3 border-secondary bg-white p-1",
+                    "flex min-h-12 min-w-12 -space-x-1 border-3 border-secondary bg-white p-1",
                   )}
                   title="Show participants"
                 >
@@ -490,14 +492,17 @@ export default function SessionView({
 
                 {showParticipants && (
                   <div
+                    id="session-participants"
+                    role="dialog"
+                    aria-labelledby="session-participants-title"
                     className="note-shell z-50 p-4"
                     data-note-theme="sun"
                     data-tape-position="top-right"
                     style={participantsPopoverStyle ?? undefined}
                   >
-                    <h3 className="mb-3 text-sm font-bold uppercase">Participants</h3>
+                    <h3 id="session-participants-title" className="mb-3 text-sm font-bold uppercase">Participants</h3>
                     {participants.length === 0 && (
-                      <p className="scribble-help text-sm text-secondary/50">No participants recorded yet</p>
+                      <p className="scribble-help text-sm text-secondary/70">No participants recorded yet</p>
                     )}
                     {participants.map((p) => {
                       const isOnline = onlineUsers.some((u) => u.userId === p.userId);
@@ -531,7 +536,7 @@ export default function SessionView({
                   onClick={handleShare}
                   className={cn(
                     scrapbookButton({ tone: "cobalt", size: "compact", tilt: "left", depth: "sm" }),
-                    "border-3 border-secondary bg-[#5d83f9] px-4 py-2 text-sm font-bold uppercase text-white",
+                    "border-3 border-secondary bg-[#5d83f9] px-4 py-2 text-sm font-bold uppercase text-secondary",
                   )}
                 >
                   {shareState === "copied"
@@ -558,7 +563,7 @@ export default function SessionView({
                    disabled={advancingPhase || !hasIdeationItems}
                    className={cn(
                      scrapbookButton({ tone: "plum", size: "regular", tilt: "right", depth: "md" }),
-                     "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-white disabled:opacity-50 lg:w-auto",
+                     "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-3 font-bold uppercase text-secondary disabled:opacity-50 lg:w-auto",
                    )}
                   >
                     Advance to Look Forward
@@ -596,7 +601,7 @@ export default function SessionView({
                           disabled={advancingPhase}
                           className={cn(
                             scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
-                            "border-2 border-secondary bg-[#8f63ef] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                            "border-2 border-secondary bg-[#8f63ef] px-4 py-2 text-xs font-bold uppercase text-secondary disabled:cursor-not-allowed disabled:opacity-50",
                           )}
                         >
                           {advancingPhase ? pendingAdvance.busyLabel : pendingAdvance.confirmLabel}

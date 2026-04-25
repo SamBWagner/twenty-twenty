@@ -294,8 +294,9 @@ export default function ProjectDetail({
 
       {feedback && (
         <div
+          role={feedback.tone === "success" ? "status" : "alert"}
           className={`mb-6 border-3 border-secondary px-4 py-3 text-sm font-bold uppercase ${
-            feedback.tone === "success" ? "bg-primary text-white" : "bg-white text-red-600"
+            feedback.tone === "success" ? "bg-primary text-secondary" : "bg-white text-red-600"
           }`}
         >
           {feedback.message}
@@ -317,7 +318,7 @@ export default function ProjectDetail({
               onClick={handleDeleteClick}
               className={cn(
                 scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
-                "flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none hover:bg-[#ff7f7f] hover:text-white",
+                "flex h-11 w-11 items-center justify-center border-3 border-secondary bg-white text-3xl font-black leading-none hover:bg-[#ff7f7f] hover:text-secondary",
               )}
               aria-label="Delete project"
             >
@@ -325,8 +326,12 @@ export default function ProjectDetail({
             </button>
 
             {deleteConfirmOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[min(22rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] border-3 border-secondary bg-[#fff1ea] p-4">
-                <p className="text-sm font-bold uppercase">Delete Project</p>
+              <div
+                role="dialog"
+                aria-labelledby="delete-project-title"
+                className="absolute right-0 top-[calc(100%+0.75rem)] z-20 w-[min(22rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] border-3 border-secondary bg-[#fff1ea] p-4"
+              >
+                <p id="delete-project-title" className="text-sm font-bold uppercase">Delete Project</p>
                 <p className="scribble-help mt-2 text-sm text-secondary/70">
                   This permanently deletes the project, sessions, actions, and invite links.
                 </p>
@@ -360,7 +365,7 @@ export default function ProjectDetail({
                     disabled={deleteConfirmationText.trim().toUpperCase() !== "DELETE" || deletingProject}
                     className={cn(
                       scrapbookButton({ tone: "danger", size: "compact", tilt: "left", depth: "sm" }),
-                      "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                      "border-2 border-secondary bg-[#ff7f7f] px-4 py-2 text-xs font-bold uppercase text-secondary disabled:cursor-not-allowed disabled:opacity-50",
                     )}
                   >
                     {deletingProject ? "Deleting..." : "Delete Project"}
@@ -406,7 +411,7 @@ export default function ProjectDetail({
                   disabled={creatingInvite}
                   className={cn(
                     scrapbookButton({ tone: "cobalt", size: "regular", tilt: "left", depth: "md" }),
-                    "border-3 border-secondary bg-[#5d83f9] px-5 py-3 font-bold uppercase text-white disabled:cursor-not-allowed disabled:opacity-50",
+                    "border-3 border-secondary bg-[#5d83f9] px-5 py-3 font-bold uppercase text-secondary disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                 >
                   {creatingInvite ? "Creating..." : "Create Invite Link"}
@@ -481,7 +486,7 @@ export default function ProjectDetail({
                       disabled={removingMemberId === member.userId}
                       className={cn(
                         scrapbookButton({ tone: "danger", size: "compact", tilt: "flat", depth: "sm" }),
-                        "shrink-0 border-2 border-secondary bg-white px-3 py-1 text-xs font-bold uppercase hover:bg-[#ff7f7f] hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
+                        "shrink-0 border-2 border-secondary bg-white px-3 py-1 text-xs font-bold uppercase hover:bg-[#ff7f7f] hover:text-secondary disabled:cursor-not-allowed disabled:opacity-50",
                       )}
                       aria-label={`Kick ${member.username}`}
                     >
@@ -516,6 +521,7 @@ export default function ProjectDetail({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Sprint 14 Retro"
+              aria-label="Session name"
               required
               className="flex-1 border-3 border-secondary note-panel px-4 py-3 font-bold shadow-brutal-sm transition-shadow focus:outline-none focus:shadow-brutal-primary"
             />
@@ -590,7 +596,7 @@ export default function ProjectDetail({
           {invitations.length === 0 ? (
             <MarchingAnts className="note-panel p-10 text-center">
               <p className="scribble-help text-2xl text-secondary">No active invite links yet.</p>
-              <p className="scribble-help mt-2 text-base text-secondary/60">Create one above and it will appear here.</p>
+              <p className="scribble-help mt-2 text-base text-secondary/75">Create one above and it will appear here.</p>
             </MarchingAnts>
           ) : (
             <div className="space-y-3">
@@ -606,14 +612,14 @@ export default function ProjectDetail({
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0">
                         <p className="break-all font-mono text-xs text-secondary/70">{inviteUrl}</p>
-                        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs font-mono uppercase text-secondary/50">
+                      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs font-mono uppercase text-secondary/70">
                           <span>Created by {invitation.invitedByUserName}</span>
                           <span>Created {formatDateTime(invitation.createdAt)}</span>
                           <span>Expires {formatDateTime(invitation.expiresAt)}</span>
                         </div>
                       </div>
 
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3">
                         <button
                           type="button"
                           onClick={() => handleCopyInvite(invitation.token)}
@@ -630,7 +636,7 @@ export default function ProjectDetail({
                           disabled={revokingInviteId === invitation.id}
                           className={cn(
                             scrapbookButton({ tone: "danger", size: "compact", tilt: "flat", depth: "sm" }),
-                            "border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase hover:bg-[#ff7f7f] hover:text-white disabled:cursor-not-allowed disabled:opacity-50",
+                            "border-2 border-secondary bg-white px-4 py-2 text-xs font-bold uppercase hover:bg-[#ff7f7f] hover:text-secondary disabled:cursor-not-allowed disabled:opacity-50",
                           )}
                         >
                           {revokingInviteId === invitation.id ? "Revoking..." : "Revoke"}

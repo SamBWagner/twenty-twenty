@@ -46,7 +46,7 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
             href="/projects"
             className={cn(
               scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "sm" }),
-              "mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+              "mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-secondary",
             )}
           >
             Go Home
@@ -65,15 +65,15 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
       <div className="flex flex-col items-center justify-center py-20">
         <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="mb-2 text-3xl font-bold uppercase">{info.projectName}</h2>
-          {info.projectDescription && <p className="mb-4 text-sm text-secondary/60">{info.projectDescription}</p>}
-          <p className="scribble-help mb-6 text-base text-secondary/60">
+          {info.projectDescription && <p className="mb-4 text-sm text-secondary/75">{info.projectDescription}</p>}
+          <p className="scribble-help mb-6 text-base text-secondary/75">
             You are already a member of this project.
           </p>
           <a
             href={`/projects/${info.projectId}`}
             className={cn(
               scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
-              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-secondary",
             )}
           >
             Go to Project
@@ -84,22 +84,22 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
   }
 
   return (
-    <div className="relative flex flex-col items-center justify-center py-20">
-      <div className="absolute left-20 top-16 select-none text-5xl rotate-[12deg]">+</div>
-      <div className="absolute right-32 top-24 select-none text-3xl text-primary rotate-[-8deg]">!</div>
+    <div className="relative flex flex-col items-center justify-center py-16 sm:py-20">
+      <div aria-hidden="true" className="absolute left-20 top-16 hidden select-none text-5xl rotate-[12deg] sm:block">+</div>
+      <div aria-hidden="true" className="absolute right-32 top-24 hidden select-none text-3xl text-primary rotate-[-8deg] sm:block">!</div>
 
       <div className="w-full max-w-xl border-3 border-secondary bg-white p-8">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">Project Invite</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#1f5eea]">Project Invite</p>
         <h1 className="mb-2 text-4xl font-bold uppercase">{info.projectName}</h1>
-        {info.projectDescription && <p className="mb-5 text-secondary/60">{info.projectDescription}</p>}
+        {info.projectDescription && <p className="mb-5 text-secondary/75">{info.projectDescription}</p>}
 
         <div className="mb-6 grid gap-3 border-3 border-secondary bg-surface p-4 text-sm sm:grid-cols-2">
           <div>
-            <p className="font-mono text-[11px] uppercase text-secondary/50">Invited By</p>
+            <p className="font-mono text-[11px] uppercase text-secondary/70">Invited By</p>
             <p className="font-bold">{info.invitedByUserName}</p>
           </div>
           <div>
-            <p className="font-mono text-[11px] uppercase text-secondary/50">Expires</p>
+            <p className="font-mono text-[11px] uppercase text-secondary/70">Expires</p>
             <p className="font-bold">{formatDateTime(info.expiresAt)}</p>
           </div>
         </div>
@@ -109,10 +109,10 @@ export default function ProjectInviteJoin({ token }: { token: string }) {
             type="checkbox"
             checked={confirmJoin}
             onChange={(e) => setConfirmJoin(e.target.checked)}
-            className="mt-1 h-4 w-4 border-secondary accent-secondary"
+            className="mt-0.5 h-6 w-6 shrink-0 border-secondary accent-secondary"
           />
           <span className="text-sm font-bold uppercase leading-6">
-            I confirm that I want to join <span className="text-primary">{info.projectName}</span>.
+            I confirm that I want to join <span className="text-secondary">{info.projectName}</span>.
           </span>
         </label>
 

@@ -51,7 +51,7 @@ export default function JoinSession({ token }: { token: string }) {
             href="/projects"
             className={cn(
               scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "sm" }),
-              "mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+              "mt-6 inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-secondary",
             )}
           >
             Go Home
@@ -70,14 +70,14 @@ export default function JoinSession({ token }: { token: string }) {
       <div className="flex flex-col items-center justify-center py-20">
         <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="text-2xl font-bold uppercase mb-2">{info.sessionName}</h2>
-          <p className="scribble-help mb-6 text-base text-secondary/60">
+          <p className="scribble-help mb-6 text-base text-secondary/75">
             You're already a member of <strong>{info.projectName}</strong>
           </p>
           <a
             href={`/projects/${info.projectId}/sessions/${info.sessionId}`}
             className={cn(
               scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
-              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-secondary",
             )}
           >
             Go to Retro
@@ -92,7 +92,7 @@ export default function JoinSession({ token }: { token: string }) {
       <div className="flex flex-col items-center justify-center py-20">
         <div className="max-w-md border-3 border-secondary bg-white p-8 text-center">
           <h2 className="text-2xl font-bold uppercase mb-2">{info.sessionName}</h2>
-          <p className="scribble-help mb-6 text-base text-secondary/60">
+          <p className="scribble-help mb-6 text-base text-secondary/75">
             This retrospective has already closed. Ask a project member for the summary link if you still need to
             review the outcome.
           </p>
@@ -100,7 +100,7 @@ export default function JoinSession({ token }: { token: string }) {
             href="/projects"
             className={cn(
               scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
-              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-white",
+              "inline-block border-3 border-secondary bg-primary px-6 py-3 font-bold uppercase text-secondary",
             )}
           >
             Go Home
@@ -111,15 +111,15 @@ export default function JoinSession({ token }: { token: string }) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-20 relative">
-      <div className="absolute top-16 left-20 text-5xl rotate-[12deg] select-none">★</div>
-      <div className="absolute top-24 right-32 text-3xl rotate-[-8deg] text-primary select-none">✦</div>
+    <div className="relative flex flex-col items-center justify-center py-16 sm:py-20">
+      <div aria-hidden="true" className="absolute top-16 left-20 hidden text-5xl rotate-[12deg] select-none sm:block">★</div>
+      <div aria-hidden="true" className="absolute top-24 right-32 hidden text-3xl rotate-[-8deg] text-primary select-none sm:block">✦</div>
 
       <div className="w-full max-w-md border-3 border-secondary bg-white p-8">
         <h2 className="text-3xl font-bold uppercase mb-1">{info.sessionName}</h2>
-        <p className="font-mono text-sm text-secondary/60 mb-2">{info.projectName}</p>
-        <p className="text-xs font-bold uppercase text-secondary/40 mb-8">
-          Phase: <span className="text-primary">{info.phase}</span>
+        <p className="font-mono text-sm text-secondary/75 mb-2">{info.projectName}</p>
+        <p className="text-xs font-bold uppercase text-secondary/70 mb-8">
+          Phase: <span className="text-[#1f5eea]">{info.phase}</span>
         </p>
 
         <div className="flex flex-col gap-3">
@@ -133,7 +133,7 @@ export default function JoinSession({ token }: { token: string }) {
           >
             Join As Guest
           </button>
-          <p className="scribble-help text-center -mt-1 mb-2 text-sm text-secondary/40">
+          <p className="scribble-help text-center -mt-1 mb-2 text-sm text-secondary/70">
             Participate in this retro only
           </p>
 
@@ -142,12 +142,12 @@ export default function JoinSession({ token }: { token: string }) {
             disabled={joining}
             className={cn(
               scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "md" }),
-              "w-full border-3 border-secondary bg-primary px-6 py-4 font-bold uppercase text-white disabled:opacity-50",
+              "w-full border-3 border-secondary bg-primary px-6 py-4 font-bold uppercase text-secondary disabled:opacity-50",
             )}
           >
             Join Project
           </button>
-          <p className="scribble-help text-center -mt-1 text-sm text-secondary/40">
+          <p className="scribble-help text-center -mt-1 text-sm text-secondary/70">
             Become a permanent member of {info.projectName}
           </p>
         </div>

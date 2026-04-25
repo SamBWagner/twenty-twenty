@@ -13,7 +13,7 @@ export default function NewProjectPage() {
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-8 text-4xl font-bold uppercase text-stroke">
+      <h1 className="mb-8 text-4xl font-bold uppercase text-stroke sm:text-5xl">
         <span className="text-primary">New</span> <span className="text-tertiary">Project</span>
       </h1>
       <CreateProjectForm />

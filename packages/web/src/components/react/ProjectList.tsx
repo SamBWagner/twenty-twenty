@@ -53,7 +53,7 @@ export default function ProjectList() {
             {p.name}
           </h2>
           {p.description && (
-            <p className="mt-2 overflow-hidden break-words text-sm text-secondary/60 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+            <p className="mt-2 overflow-hidden break-words text-sm text-secondary/75 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
               {p.description}
             </p>
           )}

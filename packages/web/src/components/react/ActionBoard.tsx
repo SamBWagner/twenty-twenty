@@ -115,7 +115,7 @@ export default function ActionBoard({
         )}
 
         {actions.length === 0 && readOnly && (
-          <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+          <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
             No actions were captured in this session.
           </p>
         )}
@@ -166,7 +166,7 @@ export default function ActionBoard({
                   />
                 ))}
                 {goodItems.filter((i) => !hotTopicIds.has(i.id)).length === 0 && (
-                  <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+                  <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
                     All items are in hot topics above.
                   </p>
                 )}
@@ -190,7 +190,7 @@ export default function ActionBoard({
                   />
                 ))}
                 {badItems.filter((i) => !hotTopicIds.has(i.id)).length === 0 && (
-                  <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/60">
+                  <p className="scribble-help note-panel border-3 border-secondary px-4 py-3 text-base text-secondary/75">
                     All items are in hot topics above.
                   </p>
                 )}
@@ -222,7 +222,7 @@ function ReadOnlyItemCard({
         <p className="font-medium">{item.content}</p>
         <span className={cn(
           "shrink-0 rounded-full border-2 border-secondary px-2 py-0.5 font-mono text-xs font-bold",
-          item.voteCount > 0 ? "bg-[#FDCA40] text-secondary" : "bg-white text-secondary/50",
+          item.voteCount > 0 ? "bg-[#FDCA40] text-secondary" : "bg-white text-secondary/70",
         )}>
           {item.voteCount}
         </span>
@@ -260,13 +260,14 @@ function ActionCard({
               setEditing(false);
             }
           }}
-          className="flex gap-2"
+          className="flex flex-col gap-2 sm:flex-row"
         >
           <input
             type="text"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-bold focus:outline-none"
+            aria-label="Action description"
+            className="note-panel flex-1 border-3 border-secondary px-3 py-2 text-sm font-bold shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
             autoFocus
           />
           <button
@@ -290,8 +291,8 @@ function ActionCard({
           </button>
         </form>
       ) : (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-base font-bold">{action.description}</p>
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="min-w-0 break-words text-base font-bold">{action.description}</p>
           {!readOnly && (
             <div className="flex shrink-0 items-center gap-2">
               <button
@@ -304,7 +305,9 @@ function ActionCard({
                 Edit
               </button>
               <button
+                type="button"
                 onClick={onDelete}
+                aria-label={`Delete action ${action.description}`}
                 className={cn(
                   scrapbookButton({ tone: "danger", size: "icon", tilt: "flat", depth: "sm" }),
                   "flex h-6 w-6 items-center justify-center border-2 border-secondary bg-white text-xs font-bold hover:bg-red-200",
@@ -339,7 +342,7 @@ function NewActionForm({
         }}
         className={cn(
           scrapbookButton({ tone: "plum", size: "regular", tilt: "left", depth: "md" }),
-          "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-4 text-base font-bold uppercase text-white",
+          "w-full border-3 border-secondary bg-[#8f63ef] px-5 py-4 text-base font-bold uppercase text-secondary",
         )}
       >
         + New Action
@@ -349,7 +352,7 @@ function NewActionForm({
 
   return (
     <div className="border-3 border-secondary bg-[#ede6fc] p-5">
-      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/55">New Action</p>
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-secondary/70">New Action</p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -366,10 +369,11 @@ function NewActionForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="e.g. Set up weekly check-ins..."
-          className="note-panel w-full border-3 border-secondary px-4 py-3 text-sm font-medium focus:outline-none"
+          aria-label="New action description"
+          className="note-panel w-full border-3 border-secondary px-4 py-3 text-sm font-medium shadow-brutal-sm transition-shadow focus:shadow-brutal-primary focus:outline-none"
           autoFocus
         />
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={() => { setDescription(""); setIsOpen(false); }}
@@ -384,7 +388,7 @@ function NewActionForm({
             type="submit"
             className={cn(
               scrapbookButton({ tone: "plum", size: "compact", tilt: "left", depth: "sm" }),
-              "border-3 border-secondary bg-[#8f63ef] px-4 py-2 text-sm font-bold uppercase text-white",
+              "border-3 border-secondary bg-[#8f63ef] px-4 py-2 text-sm font-bold uppercase text-secondary",
             )}
           >
             Add

@@ -14,7 +14,7 @@ function hash(str: string): number {
 
 export default function FloatingAvatars({ users }: { users: PresenceUser[] }) {
   return (
-    <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+    <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
       {users.map((u) => {
         const h = hash(u.userId);
         const patternIndex = h % 4;

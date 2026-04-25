@@ -67,7 +67,7 @@ export default function ShareSummaryButton({
       disabled={sharing}
       className={cn(
         scrapbookButton({ tone, size: "regular", tilt: "left", depth: "md" }),
-        "border-3 border-secondary bg-[#5d83f9] px-5 py-3 font-bold uppercase text-white disabled:opacity-50",
+        "border-3 border-secondary bg-[#5d83f9] px-5 py-3 font-bold uppercase text-secondary disabled:opacity-50",
         className,
       )}
     >

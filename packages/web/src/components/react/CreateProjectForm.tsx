@@ -26,8 +26,9 @@ export default function CreateProjectForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="border-3 border-secondary bg-white p-6 rotate-[-0.5deg]">
-        <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-secondary/60">Project Name</label>
+        <label htmlFor="project-name" className="block text-xs font-bold uppercase tracking-wider mb-2 text-secondary/75">Project Name</label>
         <input
+          id="project-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -37,8 +38,9 @@ export default function CreateProjectForm() {
         />
       </div>
       <div className="border-3 border-secondary bg-white p-6 rotate-[0.5deg]">
-        <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-secondary/60">Description (optional)</label>
+        <label htmlFor="project-description" className="block text-xs font-bold uppercase tracking-wider mb-2 text-secondary/75">Description (optional)</label>
         <textarea
+          id="project-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full border-3 border-secondary px-4 py-3 font-medium focus:shadow-brutal-primary focus:outline-none transition-shadow bg-surface"
@@ -56,7 +58,7 @@ export default function CreateProjectForm() {
         disabled={submitting}
         className={cn(
           scrapbookButton({ tone: "primary", size: "regular", tilt: "left", depth: "lg" }),
-          "border-4 border-secondary bg-primary px-8 py-4 text-lg font-bold uppercase text-white disabled:opacity-50",
+          "border-4 border-secondary bg-primary px-8 py-4 text-lg font-bold uppercase text-secondary disabled:opacity-50",
         )}
       >
         {submitting ? "Creating..." : "Create Project →"}

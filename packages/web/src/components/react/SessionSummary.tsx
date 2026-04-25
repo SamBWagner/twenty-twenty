@@ -56,7 +56,7 @@ export default function SessionSummary({
           key="copy"
           text={markdown}
           tone="cobalt"
-          className="mb-0 bg-[#5d83f9] text-white"
+          className="mb-0 bg-[#5d83f9] text-secondary"
         />,
       ]}
     />

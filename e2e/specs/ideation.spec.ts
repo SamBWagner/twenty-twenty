@@ -62,7 +62,7 @@ test.describe("Ideation Phase", () => {
     await expect(page.getByText("Good code reviews")).toBeVisible();
 
     // Upvote
-    await page.getByRole("button", { name: "▲" }).first().click();
+    await page.getByRole("button", { name: "Upvote Good code reviews" }).click();
 
     // Vote count should show 1
     await expect(page.getByText("1").first()).toBeVisible();
@@ -84,8 +84,8 @@ test.describe("Ideation Phase", () => {
     await page.getByPlaceholder("Something that went well").press("Enter");
     await expect(page.getByText("Temporary item")).toBeVisible();
 
-    // Delete button (✕) should be visible for own item
-    await page.getByRole("button", { name: "✕" }).click();
+    // Delete button should be visible for own item
+    await page.getByRole("button", { name: "Delete Temporary item" }).click();
     await expect(page.getByText("Temporary item")).not.toBeVisible();
 
     await ctx.close();
